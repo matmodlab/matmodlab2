@@ -46,7 +46,7 @@ def get_logger(name, verbosity=None):
     logger.propagate = False
     for handler in logger.handlers:
         logger.removeHandler(handler)
-    logger.setLevel(level)
+    logger.setLevel(logging.NOTSET)
 
     ch = logging.StreamHandler()
     ch.setLevel(level)
@@ -55,6 +55,9 @@ def get_logger(name, verbosity=None):
     return logger
 
 def add_filehandler(logger, filename):
+    for handler in logger.handlers:
+        if hasattr(handler, 'baseFilename'):
+            logger.removeHandler(handler)
     fh = logging.FileHandler(filename, mode='w')
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)

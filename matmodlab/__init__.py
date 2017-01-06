@@ -1,9 +1,9 @@
 from .core.matmodlab import MaterialPointSimulator
-from .core.material import Material, ElasticMaterial, PlasticMaterial
+from .core.materials import ElasticMaterial, PlasticMaterial, VonMises
 from .core.database import DatabaseFile
 from .core.environ import environ
 from .core.logio import logger
 
 __all__ = ['MaterialPointSimulator',
-           'Material', 'ElasticMaterial', 'PlasticMaterial',
+           'ElasticMaterial', 'PlasticMaterial', 'VonMises',
            'DatabaseFile', 'environ', 'logger']

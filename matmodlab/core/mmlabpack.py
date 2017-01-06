@@ -308,7 +308,12 @@ def trace(a):
     return np.sum(a[:3])
 
 
-def get_invariants(a, n):
+def invariants(a, n=None, mechanics=False):
+    if mechanics:
+        i1 = trace(a)
+        rootj2 = mag(dev(a)) / np.sqrt(2.)
+        return i1, rootj2
+
     asq = np.dot(a, a)
     deta = np.linalg.det(a)
     tra = np.trace(a)
@@ -317,6 +322,9 @@ def get_invariants(a, n):
     b[0] = tra
     b[1] = .5 * (tra ** 2 - np.trace(asq))
     b[2] = deta
+    if n in None:
+        return b[:3]
+
     b[3] = np.dot(np.dot(n, a), n)
     b[4] = np.dot(np.dot(n, asq), n)
 

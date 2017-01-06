@@ -222,7 +222,7 @@ class MaterialPointSimulator(object):
             F = np.reshape(components, (3, 3))
             jac = det9(F)
             if jac <= 0:
-                raise ValueError('Negative initial Jacobian')
+                raise ValueError('Negative or zero initial Jacobian')
 
             # convert deformation gradient to strain E with associated
             # rotation given by axis of rotation x and angle of rotation theta
@@ -277,8 +277,8 @@ class MaterialPointSimulator(object):
                 components = np.append(components, [0.] * n)
 
         n = len(self.steps)
-        logger.debug('Adding step {0} with descriptors: {1}\n'
-                     '                  and components: {2}'.format(
+        logger.debug('Adding step {0:4d} with descriptors: {1}\n'
+                     '                   and components: {2}'.format(
                          n, descriptors, components))
 
         begin = self.steps[-1].end
@@ -413,6 +413,9 @@ class MaterialPointSimulator(object):
         sep = COMPONENT_SEP
         keys = ['{0}{1}{2}'.format(key, sep, x) for x in names_and_cols[key]]
         return self.df[keys]
+
+    def get2(self, *args):
+        return self.df.as_matrix(args)
 
     def get_elem_var_names(self):
         """Returns the list of element variable names"""

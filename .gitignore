@@ -1,0 +1,6 @@
+*.pyc
+*.exo
+*.log
+__pycache__
+__pycache__/*
+matmodlab/test/.cache

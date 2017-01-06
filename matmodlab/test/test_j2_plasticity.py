@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 from matmodlab import *
-from numerix import rms_error, same_as_baseline
+from numerix import rms_error, same_as_baseline, responses_are_same
 
 def teardown_module():
     for ext in ('.log', '.exo'):
@@ -349,21 +349,3 @@ def gen_uniax_strain_path(Y, YF, G, LAM):
     SIGLY2 = ((2 * G + 3 * LAM) * EPSY2 - YF ) / 3.0 # final lateral stress
 
     return [[EPSY, 0.0, 0.0], [EPSY2, 0.0, 0.0]]
-
-def responses_are_same(a, b, vars):
-    failtol = 1.E-02
-    difftol = 5.E-03
-    T = a[:, 0]
-    t = b[:, 0]
-    passed, diffed, failed = 0, 0, 0
-    for col in range(1, len(vars)):
-        X = a[:, col]
-        x = b[:, col]
-        nrms = rms_error(T, X, t, x, disp=0)
-        if nrms < difftol:
-            passed += 1
-        elif nrms < failtol:
-            diffed += 1
-        else:
-            failed += 1
-    return passed == len(vars[1:])

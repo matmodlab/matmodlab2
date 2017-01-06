@@ -38,17 +38,16 @@ def interp_rms_error(t1, d1, t2, d2):
                            for t in np.linspace(ti, tf, n)]))
     return rms
 
-def load_table(filename):
-    return read_table(filename, sep='\s+')
-
-def same_as_baseline(mps, interp=0):
+def same_as_baseline(mps, baseline=None, interp=0):
 
     dtol = 1.5E-06
     ftol = 1.E-04
     floor = 1.E-12
 
     df1 = mps.df
-    df2 = load_table(os.path.join('data', mps.jobid+'.base_dat'))
+    if baseline is None:
+        baseline = os.path.join('data', mps.jobid+'.base_dat')
+    df2 = read_table(baseline, sep='\s+')
 
     t1 = df1['Time']
     t2 = df2['Time']
@@ -94,3 +93,21 @@ def same_as_baseline(mps, interp=0):
         return True
 
     return False
+
+def responses_are_same(a, b, vars):
+    failtol = 1.E-02
+    difftol = 5.E-03
+    T = a[:, 0]
+    t = b[:, 0]
+    passed, diffed, failed = 0, 0, 0
+    for col in range(1, len(vars)):
+        X = a[:, col]
+        x = b[:, col]
+        nrms = rms_error(T, X, t, x, disp=0)
+        if nrms < difftol:
+            passed += 1
+        elif nrms < failtol:
+            diffed += 1
+        else:
+            failed += 1
+    return passed == len(vars[1:])

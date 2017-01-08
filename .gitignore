@@ -2,6 +2,9 @@
 *.exo
 *.log
 *.eval
+*.so
+*.o
+*module.c
 foo.*
 foo
 .ipynb_checkpoints/*

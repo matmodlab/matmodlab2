@@ -1,9 +1,10 @@
 from __future__ import print_function
 import numpy as np
+from collections import OrderedDict
+
 from .mmlabpack import *
 from .environ import environ
 from .logio import logger, add_filehandler, splash
-
 from .database import DatabaseFile, COMPONENT_SEP, groupby_names
 continued = {'continued': 1}
 
@@ -43,35 +44,35 @@ class MaterialPointSimulator(object):
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
     def __init__(self, jobid, initial_temp=0.):
-        add_filehandler(logger, jobid+'.log')
-        splash(logger)
-        logger.info('Matmodlab simulation: {0!r}'.format(jobid))
+        logger.info('Initializing the simulation')
+        self.init(jobid, initial_temp)
+        logger.info('Done initializing the simulation')
+
+    def init(self, jobid, initial_temp):
 
         self.jobid = jobid
         self.material = None
         self.initial_temp = initial_temp
-        logger.info('Initializing the simulation')
-        self.init()
-        logger.info('Done initializing the simulation')
+        add_filehandler(logger, self.jobid+'.log')
+        splash(logger)
+        logger.info('Matmodlab simulation: {0!r}'.format(self.jobid))
 
-    def init(self):
         logger.info('Creating initial step... ', extra=continued)
         self.steps = self._initialize_steps(self.initial_temp)
         logger.info('done')
-
-        logger.info('Opening the output database... ', extra=continued)
-        self.db = DatabaseFile(self.jobid, 'w')
-        logger.info('done')
-        logger.info('Output database: {0!r}'.format(self.db.filename))
         self.ran = False
         self._df = None
+        self._columns = None
+        self._elem_var_names = None
+        self.db = None
+        self.data = None
 
     def _initialize_steps(self, temp):
         """Create the initial step"""
         begin, end = 0., 0.
         components = np.zeros(6, dtype=np.float64)
         descriptors = ['E'] * 6
-        return [Step(0, 0, 0, descriptors, components, temp, 0)]
+        return [Step(0, 0, 1, descriptors, components, temp, 0)]
 
     def _validate_descriptors(self, descriptors):
         """Validate the user given descriptors"""
@@ -322,9 +323,7 @@ class MaterialPointSimulator(object):
 
     def reset(self):
         logger.info('Resetting the simulation... ', extra=continued)
-        for step in self.steps:
-            step.reset()
-        self.init()
+        self.init(self.jobid, self.initial_temp)
         logger.info('done')
 
     def run(self):
@@ -344,43 +343,74 @@ class MaterialPointSimulator(object):
         if self.ran:
             raise RuntimeError('Already run')
 
-        # Initialize the output database
-        logger.info('Initializing the output database... ', extra=continued)
-        self.db.initialize(self.get_elem_var_names())
-        logger.info('done')
+        if not environ.notebook:
+            # Initialize the output database
+            logger.info('Opening the output database... ', extra=continued)
+            self.db = DatabaseFile(self.jobid, 'w')
+            logger.info('done')
+            logger.info('Output database: {0!r}'.format(self.db.filename))
+            logger.info('Initializing the output database... ', extra=continued)
+            self.db.initialize(self.glo_var_names, self.elem_var_names)
+            logger.info('done')
+
+        # Setup the array of simulation data
+        columns = list(self.columns.keys())
+        num_vars = len(columns)
+        num_incs = sum(step.frames for step in self.steps)
+        self.data = np.zeros((num_incs, num_vars))
 
         # Put the initial state in the output database
         step = self.steps[0]
         numx = self.material.num_sdv
         statev = None if numx is None else np.zeros(numx)
-        step.statev = self.material.sdvini(statev)
-        defgrad = f_from_e(step.kappa, step.strain)
-        elem_var_vals = self.astack(step.strain/VOIGT, np.zeros(6),
-                                    step.stress, step.stress-np.zeros(6),
-                                    defgrad, step.temp, step.statev)
-        self.db.save(0, 0, step.end, step.increment, elem_var_vals)
+        statev = self.material.sdvini(statev)
+        strain = np.where(step.descriptors=='E', step.components, 0.) * VOIGT
+        stress = np.where(step.descriptors=='S', step.components, 0.)
+        defgrad = f_from_e(step.kappa, strain)
+        glo_var_vals = [step.increment, 1, 0]
+        elem_var_vals = self.astack(strain, np.zeros(6),
+                                    stress, stress-np.zeros(6),
+                                    defgrad, step.temp, statev)
+        self.data[0, 0  ] = step.end
+        self.data[0, 1:4] = glo_var_vals
+        self.data[0, 4:] = elem_var_vals
+        if not environ.notebook:
+            self.db.save(step.end, glo_var_vals, elem_var_vals)
         step.ran = True
 
-        # Run each step
+        # Run each step, skipping the first
         logger.info('Running each step')
         for i in range(len(self.steps)-1):
-            self.run_istep(i+1)
+            istep = i + 1
+            irow = sum(step.frames for step in self.steps[:istep])-1
+            previous_step = self.steps[i]
+            step = self.steps[istep]
+            assert step.begin == previous_step.end
+            self.run_istep(istep, step.begin, step.end, step.frames,
+                           step.descriptors, step.components,
+                           step.temp, step.kappa, self.data[irow:, :])
+            step.ran = True
         logger.info('All steps complete')
 
-        self.db.close()
+        if not environ.notebook:
+            self.db.close()
+
         logger.info('Simulation complete')
 
         self.ran = True
 
     @property
     def df(self):
+        """Return the DataFrame containing simulation data"""
+        from pandas import DataFrame
         if not self.ran:
             raise RuntimeError('Must be run before accessing database')
         elif self._df is None:
-            self._df = DatabaseFile(self.jobid)
+            columns = list(self.columns.keys())
+            self._df = DataFrame(self.data, columns=columns)
         return self._df
 
-    def get_from_db(self, key):
+    def get_from_df(self, key):
         """Get `key` from the database
 
         Parameters
@@ -404,21 +434,69 @@ class MaterialPointSimulator(object):
           simulation
 
         """
-        df = self.df
         if key in self.df:
             return self.df[key]
-        names_and_cols = groupby_names(self.df.columns)
+        keys = self.expand_name_to_keys(key, self.df.columns)
+        return self.df[keys]
+
+    def get_from_a(self, key):
+        """Get the value of key from the data array"""
+        columns = list(self.columns.keys())
+        if key in columns:
+            return self.data[:, columns[key]]
+        keys = self.expand_name_to_keys(key, columns)
+        if keys is None:
+            return None
+        ix = [columns[key] for key in keys]
+        return self.data[:, ix]
+
+    def get(self, key, df=None):
+        if not self.ran:
+            raise RuntimeError('Simulation must first be run')
+        df = df or environ.notebook
+        if df:
+            return self.get_from_df(key)
+        return self.get_from_a(key)
+
+    def get2(self, *keys, **kwargs):
+        if not self.ran:
+            raise RuntimeError('Simulation must first be run')
+        df = kwargs.get('df', None) or environ.notebook
+        if df:
+            return self.df[keys]
+        ix = [self.columns[key] for key in keys]
+        return self.data[:, ix]
+
+    def plot(self, *args, **kwargs):
+        return self.df.plot(*args, **kwargs)
+
+    def expand_name_to_keys(self, key, columns):
+        names_and_cols = groupby_names(columns)
         if key not in names_and_cols:
             return None
         sep = COMPONENT_SEP
         keys = ['{0}{1}{2}'.format(key, sep, x) for x in names_and_cols[key]]
-        return self.df[keys]
+        return keys
 
-    def get2(self, *args):
-        return self.df.as_matrix(args)
+    @property
+    def columns(self):
+        if self._columns is not None:
+            return self._columns
+        columns = ['Time']+self.glo_var_names+self.elem_var_names
+        self._columns = OrderedDict([(x,i) for (i,x) in enumerate(columns)])
+        return self._columns
 
-    def get_elem_var_names(self):
+    @property
+    def glo_var_names(self):
+        return ['DTime', 'Step', 'Frame']
+
+    @property
+    def elem_var_names(self):
         """Returns the list of element variable names"""
+        if self.material is None:
+            raise ValueError('Material must first be assigned')
+        if self._elem_var_names is not None:
+            return self._elem_var_names
         def expand_var_name(name, components):
             sep = COMPONENT_SEP
             return ['{0}{1}{2}'.format(name, sep, x) for x in components]
@@ -439,6 +517,7 @@ class MaterialPointSimulator(object):
                 elem_var_names.extend(self.material.sdv_names)
             else:
                 elem_var_names.extend(expand_var_name('SDV', range(1, n+1)))
+        self._elem_var_names = elem_var_names
         return elem_var_names
 
     def astack(self, E, DE, S, DS, F, T, XV):
@@ -446,7 +525,8 @@ class MaterialPointSimulator(object):
         a = [E, DE, S, DS, F, T, XV]
         return np.hstack(tuple([x for x in a if x is not None]))
 
-    def run_istep(self, istep):
+    def run_istep(self, istep, begin, end, frames, descriptors, components,
+                  temp, kappa, data):
         """Run this step, using the previous step as the initial state
 
         Parameters
@@ -456,53 +536,52 @@ class MaterialPointSimulator(object):
 
         """
         assert istep != 0
-        previous = self.steps[istep-1]
-        current = self.steps[istep]
         material = self.material
-        assert current.begin == previous.end
-
-        energy = None
-        rho = None
+        increment = end - begin
 
         #---------------------------------------------------------------------- #
         # The following variables have values at
         # [begining, end, current] of step
         #---------------------------------------------------------------------- #
         # Time
-        time = np.array([current.begin, current.end, current.begin])
+        time = np.array([begin, end, begin])
 
         # Temperature
-        temp = np.array((previous.temp, current.temp, previous.temp))
-        dtemp = (temp[1] - temp[0]) / float(current.frames)
-
+        temp = np.array((data[1, 37], temp, data[1, 37]))
+        dtemp = (temp[1] - temp[0]) / float(frames)
 
         # Strain and stress states
-        strain = np.vstack((previous.strain, current.strain, previous.strain))
-        stress = np.vstack((previous.stress, current.stress, previous.stress))
+        previous_strain = data[0,  4:10] * VOIGT
+        previous_stress = data[0, 16:22]
+        current_strain = np.where(descriptors=='E', components, 0.) * VOIGT
+        current_stress = np.where(descriptors=='S', components, 0.)
+        strain = np.vstack((previous_strain, current_strain, previous_strain))
+        stress = np.vstack((previous_stress, current_stress, previous_stress))
 
         #---------------------------------------------------------------------- #
         # The following variables have values at
         # [begining, current] of step
         #---------------------------------------------------------------------- #
-        if previous.statev is None:
+        previous_statev = data[0, 38:]
+        if not len(previous_statev):
             statev = [None, None]
         else:
-            statev = np.vstack((previous.statev, previous.statev))
-        F0 = f_from_e(previous.kappa, previous.strain)
+            statev = np.vstack((previous_statev, previous_statev))
+        F0 = data[0, 28:37]
         F = np.vstack((F0, F0))
 
         # v array is an array of integers that contains the rows and columns of
         # the slice needed in the jacobian subroutine.
         nv = 0
         v = np.zeros(6, dtype=np.int)
-        for (i, cij) in enumerate(current.components):
-            descriptor = current.descriptors[i]
+        for (i, cij) in enumerate(components):
+            descriptor = descriptors[i]
             if descriptor == 'DE':         # -- strain rate
-                strain[1, i] = strain[0, i] + cij * VOIGT[i] * current.increment
+                strain[1, i] = strain[0, i] + cij * VOIGT[i] * increment
             elif descriptor == 'E':        # -- strain
                 strain[1, i] = cij * VOIGT[i]
             elif descriptor == 'DS':       # -- stress rate
-                stress[1, i] = stress[0, i] + cij * current.increment
+                stress[1, i] = stress[0, i] + cij * increment
                 v[nv] = i
                 nv += 1
             elif descriptor == 'S':        # -- stress
@@ -514,21 +593,21 @@ class MaterialPointSimulator(object):
 
         v = v[:nv]
         vx = [x for x in range(6) if x not in v]
-        if current.increment < 1.e-14:
+        if increment < 1.e-14:
             dedt = np.zeros_like(strain[1])
             dtime = 1.
         else:
-            dedt = (strain[1] - strain[0]) / current.increment
-            dtime = (time[1] - time[0]) / float(current.frames)
+            dedt = (strain[1] - strain[0]) / increment
+            dtime = (time[1] - time[0]) / float(frames)
 
         # --- find current value of d: sym(velocity gradient)
         if not nv:
             # strain or strain rate prescribed and the strain rate is constant
             # over the entire step
-            if abs(current.kappa) > 1.e-14:
-                d = deps2d(dtime, current.kappa, strain[2], dedt)
+            if abs(kappa) > 1.e-14:
+                d = deps2d(dtime, kappa, strain[2], dedt)
             elif environ.SQA:
-                d = deps2d(dtime, current.kappa, strain[2], dedt)
+                d = deps2d(dtime, kappa, strain[2], dedt)
                 if not np.allclose(d, dedt):
                     logger.warn('SQA: d != dedt')
             else:
@@ -538,16 +617,16 @@ class MaterialPointSimulator(object):
             # Initial guess for d[v]
             dedt[v] = 0.
             #Jsub = J0[[[x] for x in v], v]
-            #work = (stress[1,v] - stress[0,v]) / current.increment
+            #work = (stress[1,v] - stress[0,v]) / increment
             #try:
             #    dedt[v] = solve(Jsub,  work)
             #except:
             #    dedt[v] -= lstsq(Jsub, work)[0]
 
         # Process each frame of the step
-        for iframe in range(current.frames):
-            a1 = float(current.frames - (iframe + 1)) / current.frames
-            a2 = float(iframe + 1) / current.frames
+        for iframe in range(frames):
+            a1 = float(frames - (iframe + 1)) / frames
+            a2 = float(iframe + 1) / frames
             strain[2] = a1 * strain[0] + a2 * strain[1]
             pstress = a1 * stress[0] + a2 * stress[1]
 
@@ -559,7 +638,7 @@ class MaterialPointSimulator(object):
 
             # compute the current deformation gradient and strain from
             # previous values and the deformation rate
-            F[1], e = update_deformation(dtime, current.kappa, F[0], d)
+            F[1], e = update_deformation(dtime, kappa, F[0], d)
             strain[2,v] = e[v]
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))
@@ -577,14 +656,15 @@ class MaterialPointSimulator(object):
             stress[2], statev[1] = s, x
             statev[0] = statev[1]
 
+            glo_var_vals = [dtime, istep+1, iframe+1]
             elem_var_vals = self.astack(strain[2]/VOIGT, dedt/VOIGT,
                                         stress[2], dstress, F[1], temp[2], x)
-            self.db.save(istep+1, iframe+1, time[2], dtime, elem_var_vals)
+            data[iframe+1, 0] = time[2]
+            data[iframe+1, 1:4] = glo_var_vals
+            data[iframe+1, 4:] = elem_var_vals
 
-        current.stress = stress[2]
-        current.strain = strain[2]
-        current.statev = statev[1]
-        current.ran = True
+            if not environ.notebook:
+                self.db.save(time[2], glo_var_vals, elem_var_vals)
 
 class Step(object):
     def __init__(self, begin, end, frames,
@@ -601,12 +681,4 @@ class Step(object):
         self.descriptors = np.asarray(descriptors)
         self.temp = temp
         self.kappa = kappa
-
-        self.strain = np.where(self.descriptors=='E', self.components, 0.)
-        self.stress = np.where(self.descriptors=='S', self.components, 0.)
-        self.ran = False
-
-    def reset(self):
-        self.strain = np.where(self.descriptors=='E', self.components, 0.)
-        self.stress = np.where(self.descriptors=='S', self.components, 0.)
         self.ran = False

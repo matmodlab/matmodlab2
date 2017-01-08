@@ -69,7 +69,7 @@ def test_brannon_lellavanichkul_2():
 
     # set up the material
     parameters = {'K': K, 'G': G, 'Y0': Y}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
 
     # set up the driver

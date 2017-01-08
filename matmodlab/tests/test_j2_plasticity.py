@@ -55,7 +55,7 @@ def test_random_j2_2(realization):
 
     # set up the material
     parameters = {'K': K, 'G': G, 'Y0': Y0, 'H': 0., 'BETA': 0.}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
 
     # get the path and analytical solution
@@ -78,7 +78,7 @@ def test_j2_1():
     NU, E, K, G, LAM, Y = copper_params()
     YF, H, BETA = Y, 0, 0
     parameters = {'K': K, 'G': G, 'Y0': YF, 'H': H, 'BETA': 0}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
@@ -95,7 +95,7 @@ def test_j2_iso_hard():
     H = 3.0 * HFAC / (1.0 - HFAC) * G
     YF, BETA = Y * (1.0 + HFAC), 0
     parameters = {'K': K, 'G': G, 'Y0': Y, 'H': H, 'BETA': BETA}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
@@ -113,7 +113,7 @@ def test_j2_kin_hard():
     YF = Y * (1.0 + HFAC)
     BETA = 1.0
     parameters = {'K': K, 'G': G, 'Y0': Y, 'H': H, 'BETA': BETA}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
@@ -130,7 +130,7 @@ def test_j2_mix_hard():
     H = 3.0 * HFAC / (1.0 - HFAC) * G
     YF, BETA = Y * (1.0 + HFAC), .5
     parameters = {'K': K, 'G': G, 'Y0': Y, 'H': H, 'BETA': BETA}
-    material = VonMises(**parameters)
+    material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:

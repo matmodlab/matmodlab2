@@ -2,7 +2,6 @@ import os
 import re
 import datetime
 import numpy as np
-from pandas import DataFrame
 from scipy.io.netcdf import NetCDFFile
 
 COMPONENT_SEP = '.'
@@ -127,11 +126,12 @@ class DatabaseFileWriter(_DatabaseFile):
         self.filename = filename
         self.fh = NetCDFFile(filename, mode='w')
 
-    def initialize(self, elem_var_names):
+    def initialize(self, glo_var_names, elem_var_names):
         """Initialize the output database
 
         Parameters
         ----------
+        glo_var_names : list of string
         elem_var_names : list of string
 
         """
@@ -243,15 +243,13 @@ class DatabaseFileWriter(_DatabaseFile):
         # ------------------------------------------------------------------- #
         # ---------------------------------------------- Global variables --- #
         # ------------------------------------------------------------------- #
-        self.fh.createDimension('num_glo_var', 3)
+        self.fh.createDimension('num_glo_var', len(glo_var_names))
         dim = ('num_glo_var', 'len_string')
         self.fh.createVariable('name_glo_var', 'c', dim)
-        for i in range(3):
-            key = ['DTime', 'Step', 'Frame'][i]
+        for (i, key) in enumerate(glo_var_names):
             self.fh.variables['name_glo_var'][i, :] = adjstr(key)
         self.fh.createVariable('vals_glo_var', 'f', ('time_step', 'num_glo_var'))
 
-        self.step_count = 0
         self.initialized = True
         return
 
@@ -269,15 +267,15 @@ class DatabaseFileWriter(_DatabaseFile):
         displ = np.array(displ).T
         return displ
 
-    def save(self, step, frame, time, dtime, elem_var_vals):
+    def save(self, time, glo_var_vals, elem_var_vals):
         """Save the step information to the database file
 
         Parameters
         ----------
-        step, frame : int
-            The step and frame
-        time, dtime : float
+        time : float
             Time at end of increment
+        glo_var_vals : ndarray
+            Global variable values, in same order put in to the database
         elem_var_vals : ndarray
             Element variable values, in same order put in to the database
 
@@ -286,7 +284,7 @@ class DatabaseFileWriter(_DatabaseFile):
         # write time value
         count = len(self.fh.variables['time_whole'].data)
         self.fh.variables['time_whole'][count] = time
-        self.fh.variables['vals_glo_var'][count] = [dtime, step, frame]
+        self.fh.variables['vals_glo_var'][count] = glo_var_vals
 
         # get node and element fields
         elem_var_names = self.get_elem_var_names()
@@ -340,6 +338,7 @@ class DatabaseFileReader(_DatabaseFile):
         This is a single element reader
 
         """
+        from pandas import DataFrame
         fh = self.fh
 
         # global/element vars and mapping

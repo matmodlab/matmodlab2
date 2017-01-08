@@ -1,6 +1,12 @@
 *.pyc
 *.exo
 *.log
+*.eval
+foo.*
+foo
+.ipynb_checkpoints/*
+.ipynb_checkpoints
+*.eval/*
 __pycache__
 __pycache__/*
-matmodlab/test/.cache
+matmodlab/tests/.cache

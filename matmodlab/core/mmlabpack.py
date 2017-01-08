@@ -35,12 +35,10 @@ def epsilon(a):
     """Find the machine precision for a float of type 'a'"""
     return np.finfo(float).eps
 
-
 def det9(a):
     """ Determinant of 3x3 array stored as 9x1,
     row major ordering assumed """
     return np.linalg.det(np.reshape(a, (3, 3)))
-
 
 def inv6(a):
     return asarray(np.linalg.inv(asmat(a)), 6)
@@ -49,16 +47,13 @@ def det6(a):
     """ Determinant of 3x3 array stored as 6x1"""
     return np.linalg.det(asmat(a))
 
-
 def det(a):
     """ Determinant of 3x3 array stored as 6x1"""
     return np.linalg.det(a)
 
-
 def dot(a, b):
     """perform matrix multiplication on two 3x3 matricies"""
     return np.dot(a, b)
-
 
 def u2e(u, kappa):
     """Convert the 3x3 stretch tensor to a strain tensor using the
@@ -70,13 +65,11 @@ def u2e(u, kappa):
         eps = logm(u)
     return symarray(eps) * VOIGT
 
-
 def symarray(a):
     """Convert a 3x3 matrix to a 6x1 array representing a symmetric matix."""
     mat = (a + a.T) / 2.0
     return np.array([mat[0, 0], mat[1, 1], mat[2, 2],
                         mat[0, 1], mat[1, 2], mat[0, 2]])
-
 
 def asarray(a, n=6):
     """Convert a 3x3 matrix to array form"""
@@ -87,37 +80,30 @@ def asarray(a, n=6):
     else:
         raise Exception("Invalid value for n. Given {0}".format(n))
 
-
 def as3x3(a):
     """Convert a 6x1 array to a 3x3 symmetric matrix"""
     return np.array([[a[0], a[3], a[5]],
                         [a[3], a[1], a[4]],
                         [a[5], a[4], a[2]]])
 
-
 def asmat(a):
     return as3x3(a)
-
 
 def expm(a):
     """Compute the matrix exponential of a 3x3 matrix"""
     return scipy.linalg.expm(a)
 
-
 def powm(a, m):
     """Compute the matrix power of a 3x3 matrix"""
     return funcm(a, lambda x: x ** m)
-
 
 def sqrtm(a):
     """Compute the square root of a 3x3 matrix"""
     return scipy.linalg.sqrtm(a)
 
-
 def logm(a):
     """Compute the matrix logarithm of a 3x3 matrix"""
     return scipy.linalg.logm(a)
-
 
 def diag(a):
     """Returns the diagonal part of a 3x3 matrix."""
@@ -128,7 +114,6 @@ def diag(a):
 def isdiag(a):
     """Determines if a matrix is diagonal."""
     return np.sum(np.abs(a - diag(a))) <= epsilon(a)
-
 
 def funcm(a, f):
     """Apply function to eigenvalues of a 3x3 matrix then recontruct the matrix
@@ -146,7 +131,6 @@ def funcm(a, f):
     p2 = np.outer(vecs[:, 2], vecs[:, 2])
 
     return f(vals[0]) * p0 + f(vals[1]) * p1 + f(vals[2]) * p2
-
 
 def deps2d(dt, k, e, de):
     """
@@ -194,7 +178,6 @@ def deps2d(dt, k, e, de):
     D = (L + L.T) / 2.0
 
     return symarray(D) * VOIGT
-
 
 def update_deformation(dt, k, farg, darg):
     """
@@ -285,14 +268,11 @@ def f_from_e(kappa, E, flatten=1):
 def dev(a):
     return a - iso(a)
 
-
 def iso(a):
     return trace(a) / 3. * np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
 
-
 def mag(a):
     return np.sqrt(ddot(a, a))
-
 
 def dyad(a, b):
     return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2],
@@ -303,10 +283,8 @@ def ddot(a, b):
     # double of symmetric tensors stored as 6x1 arrays
     return np.sum(a * b * VOIGT)
 
-
 def trace(a):
     return np.sum(a[:3])
-
 
 def invariants(a, n=None, mechanics=False):
     if mechanics:
@@ -391,7 +369,6 @@ def sig2d(material, t, dt, temp, dtemp, f0, f, stran, d, sig, statev,
     d = dsave.copy()
     return simplex(material, t, dt, temp, dtemp, f0, f, stran, d,
                    sig, statev, v, sigspec)
-
 
 def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
            sigarg, statev_arg, v, sigspec):
@@ -487,8 +464,8 @@ def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
             # the visco correction, push it forward, and convert to Jaummann
             # rate. It's not as trivial as it sounds...
             statev = copy(statev_save)
-            stif = material.numerical_jacobian(t, dt, temp, dtemp, f0,
-                                               f, stran, d, sig, statev, v)
+            stif = numerical_jacobian(material, t, dt, temp, dtemp, f0,
+                                      f, stran, d, sig, statev, v)
         else:
             stif = stif[[[i] for i in v], v]
 
@@ -539,7 +516,6 @@ def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
     # didn't converge, restore restore data and exit
     return None
 
-
 def simplex(material, t, dt, temp, dtemp, f0, farg, stran, darg, sigarg,
             statev_arg, v, sigspec):
     '''Perform a downhill simplex search to find sym_velgrad[v] such that
@@ -579,7 +555,6 @@ def simplex(material, t, dt, temp, dtemp, f0, farg, stran, darg, sigarg,
     d[v] = scipy.optimize.fmin(_func, d[v], args=args, maxiter=20, disp=False)
     return d
 
-
 def _func(x, material, t, dt, temp, dtemp, f0, farg, stran, darg,
           sigarg, statev_arg, v, sigspec):
     '''Objective function to be optimized by simplex
@@ -605,3 +580,93 @@ def _func(x, material, t, dt, temp, dtemp, f0, farg, stran, darg,
         continue
 
     return error
+
+def numerical_jacobian(material, time, dtime, temp, dtemp, F0, F, stran, d,
+                        stress, statev, v):
+    '''Numerically compute material Jacobian by a centered difference scheme.
+
+    Parameters
+    ----------
+    time : float
+        Time at beginning of step
+    dtime : float
+        Time step length.  `time+dtime` is the time at the end of the step
+    temp : float
+        Temperature at beginning of step
+    dtemp : float
+        Temperature increment. `temp+dtemp` is the temperature at the end
+        of the step
+    F0, F : ndarray
+        Deformation gradient at the beginning and end of the step
+    strain : ndarray
+        Strain at the beginning of the step
+    d : ndarray
+        Symmetric part of the velocity gradient at the middle of the step
+    stress : ndarray
+        Stress at the beginning of the step
+    statev : ndarray
+        State variables at the beginning of the step
+    v : ndarray
+        Array of subcomponents of Jacobian to return
+
+    Returns
+    -------
+    Js : array_like
+        Jacobian of the deformation J = dsig / dE
+
+    Notes
+    -----
+    The submatrix returned is the one formed by the intersections of the
+    rows and columns specified in the vector subscript array, v. That is,
+    Js = J[v, v]. The physical array containing this submatrix is
+    assumed to be dimensioned Js[nv, nv], where nv is the number of
+    elements in v. Note that in the special case v = [1,2,3,4,5,6], with
+    nv = 6, the matrix that is returned is the full Jacobian matrix, J.
+
+    The components of Js are computed numerically using a centered
+    differencing scheme which requires two calls to the material model
+    subroutine for each element of v. The centering is about the point eps
+    = epsold + d * dt, where d is the rate-of-strain array.
+
+    History
+    -------
+    This subroutine is a python implementation of a routine by the same
+    name in Tom Pucick's MMD driver.
+
+    Authors
+    -------
+    Tom Pucick, original fortran implementation in the MMD driver
+    Tim Fuller, Sandial National Laboratories, tjfulle@sandia.gov
+
+    '''
+    # local variables
+    nv = len(v)
+    deps =  np.sqrt(np.finfo(np.float64).eps)
+    Jsub = np.zeros((nv, nv))
+    dtime = 1 if dtime < 1.e-12 else dtime
+
+    for i in range(nv):
+        # perturb forward
+        Dp = d.copy()
+        Dp[v[i]] = d[v[i]] + (deps / dtime) / 2.
+        Fp, Ep = update_deformation(dtime, 0., F, Dp)
+        sigp = stress.copy()
+        xp = copy(statev)
+        sigp = material.eval(time, dtime, temp, dtemp,
+                             F0, Fp, Ep, Dp, sigp, xp)[0]
+
+        # perturb backward
+        Dm = d.copy()
+        Dm[v[i]] = d[v[i]] - (deps / dtime) / 2.
+        Fm, Em = update_deformation(dtime, 0., F, Dm)
+        sigm = stress.copy()
+        xm = copy(statev)
+        sigm = material.eval(time, dtime, temp, dtemp,
+                             F0, Fm, Em, Dm, sigm, xm)[0]
+
+        # compute component of jacobian
+        Jsub[i, :] = (sigp[v] - sigm[v]) / deps
+
+        continue
+
+    return Jsub

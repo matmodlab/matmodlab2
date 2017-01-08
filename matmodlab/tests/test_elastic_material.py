@@ -34,9 +34,11 @@ def test_uniaxial_strain():
     H = K + 4. / 3. * G
     Q = K - 2. / 3. * G
     a = mps.get2('E.XX', 'S.XX', 'S.YY', 'S.ZZ')
+    eps_xx = mps.data[:,4]
     assert np.allclose(a[:,2], a[:,3])
     assert np.allclose(a[:,1], H * a[:,0])
     assert np.allclose(a[:,2], Q * a[:,0])
+    assert np.allclose(eps_xx, a[:,0])
 
 @pytest.mark.material
 @pytest.mark.elastic

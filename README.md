@@ -2,7 +2,7 @@
 
 ## What is it?
 
-The material model laboratory (*matmodlab*) is a material point simulator developed as a tool for developing and analyzing material models for use in larger finite element codes.
+The material model laboratory (*Matmodlab*) is a material point simulator developed as a tool for developing and analyzing material models for use in larger finite element codes.
 
 ## System Requirements
 
@@ -15,25 +15,24 @@ and the Apple Mac OSX 10 operating systems.
 
 - [Python (2.7 or greater)](http://www.python.org) or newer
 
-- [Numpy](http://www.numpy.org) or newer
+- [Numpy](http://www.numpy.org)
 
-- [Scipy](http://www.scipy.org) or newer
+- [Scipy](http://www.scipy.org)
 
-- [Pandas](http://www.pandas.pydata.org) or newer
 
-*matmodlab* is developed and tested using the [Anaconda](http://continuum.io) and [Enthought](http://www.enthought.com) Python distributions.
+*Matmodlab* is developed and tested using the [Anaconda](http://continuum.io) Python distributions.
 
 ### Optional Software
 
-## Installation
+- [Pandas](http://www.pandas.pydata.org)
 
-  Execute `python setup.py develop` in this directory
+- [py.test](http://doc.pytest.org/en/latest)
 
 ## Documentation
 
-  http://www.tjfulle.github.com/matmodlab
+The documentation consists of Jupyter notebooks contained in the `matmodlab/notebooks` directory and vieweable at [Introduction to Matmodlab](https://github.com/tjfulle/matmodlab2/blob/master/matmodlab/notebooks/Introduction.ipynb)
 
 ## Troubleshooting
 
-If you experience problems when building/installing/testing *matmodlab*, you
+If you experience problems when building/installing/testing *Matmodlab*, you
 can ask help from Tim Fuller <timothy.fuller@utah.edu>

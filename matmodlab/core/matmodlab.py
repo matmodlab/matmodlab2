@@ -344,14 +344,7 @@ class MaterialPointSimulator(object):
             raise RuntimeError('Already run')
 
         if not environ.notebook:
-            # Initialize the output database
-            logger.info('Opening the output database... ', extra=continued)
-            self.db = DatabaseFile(self.jobid, 'w')
-            logger.info('done')
-            logger.info('Output database: {0!r}'.format(self.db.filename))
-            logger.info('Initializing the output database... ', extra=continued)
-            self.db.initialize(self.glo_var_names, self.elem_var_names)
-            logger.info('done')
+            self.initialize_db()
 
         # Setup the array of simulation data
         columns = list(self.columns.keys())
@@ -469,6 +462,31 @@ class MaterialPointSimulator(object):
 
     def plot(self, *args, **kwargs):
         return self.df.plot(*args, **kwargs)
+
+    def initialize_db(self, filename=None):
+        logger.info('Opening the output database... ', extra=continued)
+        if filename is None:
+            filename = self.jobid
+        self.db = DatabaseFile(filename, 'w')
+        logger.info('done')
+        logger.info('Output database: {0!r}'.format(self.db.filename))
+        logger.info('Initializing the output database... ', extra=continued)
+        self.db.initialize(self.glo_var_names, self.elem_var_names)
+        logger.info('done')
+
+    def dump(self, filename=None):
+        """Write results to output database"""
+        if not self.ran:
+            raise RuntimeError('Simulation must first be run')
+        self.initialize_db(filename=filename)
+        num_glo_vars = len(self.glo_var_names)
+        i, j = 1, 1  + len(num_glo_vars)
+        for row in self.data:
+            time = row[0]
+            glo_var_vals = row[i:j]
+            elem_var_vals = row[j:]
+            self.db.save(time, glo_var_vals, elem_var_vals)
+        self.db.close()
 
     def expand_name_to_keys(self, key, columns):
         names_and_cols = groupby_names(columns)

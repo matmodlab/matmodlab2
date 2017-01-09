@@ -5,11 +5,20 @@ stress. The tests check that the optimized Young's modulus is close to the
 specified value
 
 """
+import os
+import glob
 import pytest
+import shutil
 import numpy as np
 from matmodlab import *
 from matmodlab.optimize import Optimizer, OptimizeVariable
-from testing_utils import *
+import testing_utils as tu
+
+def teardown_module():
+    tu.teardown_module()
+    for dirname in glob.glob('*.eval'):
+        if os.path.isdir(dirname):
+            shutil.rmtree(dirname)
 
 E = 10.
 

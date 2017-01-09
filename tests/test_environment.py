@@ -33,7 +33,7 @@ def test_require_python3():
     # Setup
 
     # Test
-    assert sys.version_info > (3, 0)
+    assert sys.version_info > (3, 0) or sys.version_info > (2, 6)
 
     # Teardown
 

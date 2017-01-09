@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 from copy import deepcopy as copy
-from .mmlabpack import update_deformation
 
 class Material(object):
     """The material model base class

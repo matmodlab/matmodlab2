@@ -1,11 +1,13 @@
-from copy import deepcopy as copy
 import warnings
 import numpy as np
 import scipy.linalg
+from copy import deepcopy as copy
 from .environ import environ
 
 VOIGT = np.array([1, 1, 1, 2, 2, 2], dtype=np.float64)
 I6 = np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
+epsilon = np.finfo(float).eps
+
 
 def is_listlike(item):
     """Is item list like?"""
@@ -31,45 +33,73 @@ def is_scalarlike(item):
     except TypeError:
         return False
 
-def epsilon(a):
-    """Find the machine precision for a float of type 'a'"""
-    return np.finfo(float).eps
+def determinant(a):
+    """Determinant of a"""
+    return apply_matrix_fun_to_array(a, np.linalg.det)
 
-def det9(a):
-    """ Determinant of 3x3 array stored as 9x1,
-    row major ordering assumed """
-    return np.linalg.det(np.reshape(a, (3, 3)))
+def inverse(a):
+    """Inverse of a"""
+    return apply_matrix_fun_to_array(a, np.linalg.inv)
 
-def inv6(a):
-    return asarray(np.linalg.inv(asmat(a)), 6)
+def expm(a):
+    """Compute the matrix exponential of a 3x3 matrix"""
+    return apply_matrix_fun_to_array(a, scipy.linalg.expm)
 
-def det6(a):
-    """ Determinant of 3x3 array stored as 6x1"""
-    return np.linalg.det(asmat(a))
+def powm(a, m):
+    """Compute the matrix power of a 3x3 matrix"""
+    fun = lambda x: scipy.linalg.fractional_matrix_power(x, m)
+    return apply_matrix_fun_to_array(a, fun)
 
-def det(a):
-    """ Determinant of 3x3 array stored as 6x1"""
-    return np.linalg.det(a)
+def sqrtm(a):
+    """Compute the square root of a 3x3 matrix"""
+    return apply_matrix_fun_to_array(a, scipy.linalg.sqrtm)
+
+def logm(a):
+    """Compute the matrix logarithm of a 3x3 matrix"""
+    return apply_matrix_fun_to_array(a, scipy.linalg.logm)
+
+def apply_matrix_fun_to_array(arr, matrix_fun):
+    """Apply the matrix fun to array arr
+
+    Parameters
+    ----------
+    arr : ndarray
+        Some array
+    matrix_fun : callable
+        A matrix function
+
+    Returns
+    -------
+    a_fun : ndarray
+        Array with matrix_fun applied
+
+    """
+    mat, orig_shape = array_to_mat(arr)
+    mat2 = matrix_fun(mat)
+    # Determine if mat2 is a scalar
+    try:
+        return float(mat2)
+    except TypeError:
+        return mat_to_array(mat2, orig_shape)
 
 def dot(a, b):
     """perform matrix multiplication on two 3x3 matricies"""
     return np.dot(a, b)
 
-def u2e(u, kappa):
+def stretch_to_strain(u, k):
     """Convert the 3x3 stretch tensor to a strain tensor using the
-    Seth-Hill parameter kappa and return a 6x1 array"""
-    u2e = np.zeros((3, 3))
-    if kappa != 0:
-        eps = 1.0 / kappa * (powm(u, kappa) - np.eye(3, 3))
-    else:
-        eps = logm(u)
-    return symarray(eps) * VOIGT
+    Seth-Hill parameter k and return a 6x1 array"""
+    if abs(k) > 1e-12:
+        I = np.eye(3,3)
+        fun = lambda x: 1./k*(scipy.linalg.fractional_matrix_power(x,k)-I)
+        return apply_matrix_fun_to_array(u, fun) * VOIGT
+    return apply_matrix_fun_to_array(u, scipy.linalg.logm) * VOIGT
 
 def symarray(a):
     """Convert a 3x3 matrix to a 6x1 array representing a symmetric matix."""
     mat = (a + a.T) / 2.0
     return np.array([mat[0, 0], mat[1, 1], mat[2, 2],
-                        mat[0, 1], mat[1, 2], mat[0, 2]])
+                     mat[0, 1], mat[1, 2], mat[0, 2]])
 
 def asarray(a, n=6):
     """Convert a 3x3 matrix to array form"""
@@ -80,48 +110,62 @@ def asarray(a, n=6):
     else:
         raise Exception("Invalid value for n. Given {0}".format(n))
 
-def as3x3(a):
+def as_3x3_matrix(a):
     """Convert a 6x1 array to a 3x3 symmetric matrix"""
-    return np.array([[a[0], a[3], a[5]],
-                        [a[3], a[1], a[4]],
-                        [a[5], a[4], a[2]]])
+    a = np.asarray(a)
+    if a.shape == (6,):
+        # Symmetric matrix
+        return np.array([[a[0], a[3], a[5]],
+                         [a[3], a[1], a[4]],
+                         [a[5], a[4], a[2]]])
+    elif a.shape == (9,):
+        return np.reshape(a, (3,3))
+    elif a.shape == (3,3):
+        return a
+    raise ValueError('Unknown shape')
 
-def asmat(a):
-    return as3x3(a)
+def array_to_mat(a):
+    """Convert array to matrix"""
+    if a.shape == (6,):
+        mat = as_3x3_matrix(a)
+        orig_shape = (6,)
+    elif a.shape == (9,):
+        mat = np.reshape(a, (3,3))
+        orig_shape = (9,)
+    elif a.shape == (3,3):
+        mat = a
+        orig_shape = (3,3)
+    else:
+        raise ValueError('Unknown shape')
+    return mat, orig_shape
 
-def expm(a):
-    """Compute the matrix exponential of a 3x3 matrix"""
-    return scipy.linalg.expm(a)
-
-def powm(a, m):
-    """Compute the matrix power of a 3x3 matrix"""
-    return funcm(a, lambda x: x ** m)
-
-def sqrtm(a):
-    """Compute the square root of a 3x3 matrix"""
-    return scipy.linalg.sqrtm(a)
-
-def logm(a):
-    """Compute the matrix logarithm of a 3x3 matrix"""
-    return scipy.linalg.logm(a)
+def mat_to_array(mat, shape):
+    """Reverse of array_to_mat"""
+    if shape == (6,):
+        return symarray(mat)
+    if shape == (9,):
+        return mat.flatten()
+    if shape == (3,3):
+        return mat
+    raise ValueError('Unknown shape')
 
 def diag(a):
     """Returns the diagonal part of a 3x3 matrix."""
     return np.array([[a[0, 0],     0.0,     0.0],
-                        [0.0,     a[1, 1],     0.0],
-                        [0.0,         0.0, a[2, 2]]])
+                       [0.0,   a[1, 1],     0.0],
+                       [0.0,       0.0, a[2, 2]]])
 
 def isdiag(a):
     """Determines if a matrix is diagonal."""
     return np.sum(np.abs(a - diag(a))) <= epsilon(a)
 
-def funcm(a, f):
+def apply_fun_to_matrix(a, f):
     """Apply function to eigenvalues of a 3x3 matrix then recontruct the matrix
     with the new eigenvalues and the eigenprojectors"""
     if isdiag(a):
         return np.array([[f(a[0, 0]),        0.0,        0.0],
-                            [       0.0, f(a[1, 1]),        0.0],
-                            [       0.0,        0.0, f(a[2, 2])]])
+                         [       0.0, f(a[1, 1]),        0.0],
+                         [       0.0,        0.0, f(a[2, 2])]])
 
     vals, vecs = np.linalg.eig(a)
 
@@ -132,32 +176,40 @@ def funcm(a, f):
 
     return f(vals[0]) * p0 + f(vals[1]) * p1 + f(vals[2]) * p2
 
+def rate_of_matrix_function(A, Adot, f, fprime):
+    """Find the rate of the tensor A
 
-def rate_of_matrix_function(*, A, Adot, f, fprime):
-    """
-    For a diagonalizable tensor A (the strain) which has a
-    quasi-arbitrary spectral expansion
+    Parameters
+    ----------
+    A : ndarray (3,3)
+        A diagonalizable tensor
+    Adot : ndarray (3,3)
+        Rate of A
+    f : callable
+    fprime : callable
+        Derivative of f
 
+    Returns
+    -------
+    Ydot : ndarray (3,3)
+
+    Notes
+    -----
+    For a diagonalizable tensor A (the strain) which has a quasi-arbitrary
+    spectral expansion
+
+    .. math::
         A = \sum_{i=1}^3 \lambda_i P_{i}
 
     and if a second tensor Y is a principal function of A, defined by
 
+    .. math::
         Y = \sum_{i=1}^3 f(\lambda_i) P_i,
 
     compute the time rate \dot{Y}. Algorithm taken from Brannon's
     Tensor book, from the highlighted box near Equation (28.404) on
     page 550.
 
-    INPUTS
-    ------
-      A      = 3x3 matrix
-      Adot   = 3x3 matrix
-      f      = function
-      fprime = function (derivative of f)
-
-    OUTPUTS
-    -------
-      Ydot   = 3x3 matrix
     """
 
     # Compute the eigenvalues and eigenprojections.
@@ -176,90 +228,124 @@ def rate_of_matrix_function(*, A, Adot, f, fprime):
 
     return Ydot
 
+def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
+    """ Compute symmetric part of velocity gradient given depsdt
 
-def deps2d(dt, k, e, de):
-    """
-    ! ----------------------------------------------------------------------- !
-    ! Compute symmetric part of velocity gradient given depsdt
-    ! ----------------------------------------------------------------------- !
-    ! Velocity gradient L is given by
-    !             L = dFdt * Finv
-    !               = dRdt*I*Rinv + R*dUdt*Uinv*Rinv
-    ! where F, I, R, U are the deformation gradient, identity, rotation, and
-    ! right stretch tensor, respectively. d*dt and *inv are the rate and
-    ! inverse or *, respectively,
-    !
-    ! The stretch U is given by
-    !              if k != 0:
-    !                  U = (k*E + I)**(1/k)
-    !              else:
-    !                  U = exp(E)
-    ! and its rate (dUdt) is calculated using 'rate_of_matrix_function()'.
-    !    Then
-    !              L = dot(dUdt, inv(U))
-    !              d = sym(L)
-    !              w = skew(L)
-    !
-    ! Argument 'dt' is unused but is retained for backwards compatibility.
+    Parameters
+    ----------
+    dedt : ndarray
+        Strain rate
+    e : ndarray
+        Strain
+    k : int or float
+        Seth-Hill parameter
+    disp : bool, optional
+        If True, return both d and dU
+
+    Returns
+    -------
+    d : ndarray
+        Symmetric part of the velocity gradient
+    dU : ndarray
+        Rate of stretch (if disp is True)
+
+    Notes
+    -----
+    Velocity gradient L is given by
+                L = dFdt * Finv
+                  = dRdt*I*Rinv + R*dUdt*Uinv*Rinv
+    where F, I, R, U are the deformation gradient, identity, rotation, and
+    right stretch tensor, respectively. d*dt and *inv are the rate and
+    inverse or *, respectively,
+
+    The stretch U is given by
+                 if k != 0:
+                     U = (k*E + I)**(1/k)
+                 else:
+                     U = exp(E)
+    and its rate (dUdt) is calculated using `rate_of_matrix_function`.
+       Then
+                 L = dot(dUdt, inv(U))
+                 d = sym(L)
+                 w = skew(L)
+
     """
 
-    D = np.zeros((3,3))
-    eps = as3x3(e / VOIGT)
-    depsdt = as3x3(de / VOIGT)
+    eps = as_3x3_matrix(e / VOIGT)
+    depsdt = as_3x3_matrix(dedt / VOIGT)
 
     # Calculate the right stretch (U) and its rate
-    if k == 0:
+    if abs(k) <= 1e-12:
         u = scipy.linalg.expm(eps)
-        dudt = rate_of_matrix_function(A=eps, Adot=depsdt,
-                                       f=np.exp, fprime=np.exp)
+        dudt = rate_of_matrix_function(eps, depsdt, np.exp, np.exp)
     else:
         u = scipy.linalg.fractional_matrix_power(k * eps + np.eye(3), 1.0 / k)
         f = lambda x: (k * x + 1.0) ** (1.0 / k)
         fprime = lambda x: (k * x + 1.0) ** (1.0 / k - 1.0)
-        dudt = rate_of_matrix_function(A=eps, Adot=depsdt,
-                                       f=f, fprime=fprime)
+        dudt = rate_of_matrix_function(eps, depsdt, f, fprime)
 
     # Calculate the velocity gradient (L) and its symmetric part
     l = np.dot(dudt, np.linalg.inv(u))
     d = (l + l.T) / 2.0
 
-    return symarray(d) * VOIGT
+    d = symarray(d) * VOIGT
+    if not disp:
+        return d
+    return d, dudt
 
+def update_deformation(farg, darg, dt, k):
+    """Update the deformation gradient and strain
 
-def update_deformation(dt, k, farg, darg):
-    """
-    ! ----------------------------------------------------------------------- !
-    ! From the value of the Seth-Hill parameter kappa, current strain E,
-    ! deformation gradient F, and symmetric part of the velocit gradient d,
-    ! update the strain and deformation gradient.
-    ! ----------------------------------------------------------------------- !
-    ! Deformation gradient is given by
-    !
-    !              dFdt = L*F                                             (1)
-    !
-    ! where F and L are the deformation and velocity gradients, respectively.
-    ! The solution to (1) is
-    !
-    !              F = F0*exp(Lt)
-    !
-    ! Solving incrementally,
-    !
-    !              Fc = Fp*exp(Lp*dt)
-    !
-    ! where the c and p refer to the current and previous values, respectively.
-    !
-    ! With the updated F, Fc, known, the updated stretch is found by
-    !
-    !              U = (trans(Fc)*Fc)**(1/2)
-    !
-    ! Then, the updated strain is found by
-    !
-    !              E = 1/k * (U**k - I)
-    !
-    ! where k is the Seth-Hill strain parameter.
+    Parameters
+    ----------
+    farg : ndarray
+        The deformation gradient
+    darg : ndarray
+        The symmetric part of the velocity gradient
+    dt : float
+        The time increment
+    k : int or real
+        The Seth-Hill parameter
+
+    Returns
+    -------
+    f : ndarray
+        The updated deformation gradient
+    e : ndarray
+        The updated strain
+
+    Notes
+    -----
+    From the value of the Seth-Hill parameter kappa, current strain E,
+    deformation gradient F, and symmetric part of the velocit gradient d,
+    update the strain and deformation gradient.
+    Deformation gradient is given by
+
+                 dFdt = L*F                                             (1)
+
+    where F and L are the deformation and velocity gradients, respectively.
+    The solution to (1) is
+
+                 F = F0*exp(Lt)
+
+    Solving incrementally,
+
+                 Fc = Fp*exp(Lp*dt)
+
+    where the c and p refer to the current and previous values, respectively.
+
+    With the updated F, Fc, known, the updated stretch is found by
+
+                 U = (trans(Fc)*Fc)**(1/2)
+
+    Then, the updated strain is found by
+
+                 E = 1/k * (U**k - I)
+
+    where k is the Seth-Hill strain parameter.
     """
     f0 = farg.reshape((3, 3))
-    d = as3x3(darg / VOIGT)
+    d = as_3x3_matrix(darg / VOIGT)
     ff = np.dot(expm(d * dt), f0)
     u = sqrtm(np.dot(ff.T, ff))
     if k == 0:
@@ -275,8 +361,25 @@ def update_deformation(dt, k, farg, darg):
 
     return f, e
 
-def e_from_f(k, farg):
-    """
+def strain_from_defgrad(farg, kappa):
+    """Compute the strain measure from the deformation gradient
+
+    Parameters
+    ----------
+    farg : ndarray (9,)
+        Deformation gradient
+    kappa : int or float
+        Seth-Hill strain parameter
+    flatten : bool, optional
+        If True (default), return a flattened array
+
+    Returns
+    -------
+    E : ndarray
+        The strain measure
+
+    Notes
+    -----
     Update strain by
 
                  E = 1/k * (U**k - I)
@@ -297,10 +400,27 @@ def e_from_f(k, farg):
 
     return e
 
-def f_from_e(kappa, E, flatten=1):
+def defgrad_from_strain(E, kappa, flatten=1):
+    """Compute the deformation gradient from the strain measure
+
+    Parameters
+    ----------
+    E : ndarray (6,)
+        Strain measure
+    kappa : int or float
+        Seth-Hill strain parameter
+    flatten : bool, optional
+        If True (default), return a flattened array
+
+    Returns
+    -------
+    F : ndarray
+        The deformation gradient
+
+    """
     R = np.eye(3)
     I = np.eye(3)
-    E = asmat(E / VOIGT)
+    E, _ = array_to_mat(E / VOIGT)
     if kappa == 0:
         U = expm(E)
     else:
@@ -312,33 +432,58 @@ def f_from_e(kappa, E, flatten=1):
         return F.flatten()
     return F
 
-def dev(a):
-    return a - iso(a)
+def _isotropic_part(A):
+    assert A.shape == (3,3)
+    return np.trace(A) / 3. * np.eye(3)
 
-def iso(a):
-    return trace(a) / 3. * np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
+def isotropic_part(a):
+    """Return isotropic part of A"""
+    return apply_matrix_fun_to_array(a, _isotropic_part)
 
-def mag(a):
-    return np.sqrt(ddot(a, a))
+def _deviatoric_part(A):
+    assert A.shape == (3,3)
+    return A - isotropic_part(A)
 
-def dyad(a, b):
+def deviatoric_part(a):
+    return apply_matrix_fun_to_array(a, _deviatoric_part)
+
+def double_dot(a, b):
+    a_mat, a_shape = array_to_mat(a)
+    b_mat, b_shape = array_to_mat(b)
+    assert a.shape == (3,3)
+    assert b.shape == a.shape
+    return np.sum(a * b)
+
+def magnitude(a):
+    fun = lambda x: np.sqrt(double_dot(x, x))
+    m = apply_matrix_fun_to_array(a, fun)
+    return m
+
+def symmetric_dyad(a, b):
+    a = np.asarray(a)
+    b = np.asarray(b)
+    assert a.shape == (3,)
+    assert a.shape == b.shape
     return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2],
-                        a[0] * b[1], a[1] * b[2], a[0] * b[2]],
-                       dtype=np.float64)
+                     a[0] * b[1], a[1] * b[2], a[0] * b[2]],
+                    dtype=np.float64)
 
 def ddot(a, b):
     # double of symmetric tensors stored as 6x1 arrays
+    assert a.shape == (6,)
+    assert a.shape == b.shape
     return np.sum(a * b * VOIGT)
 
 def trace(a):
-    return np.sum(a[:3])
+    return apply_matrix_fun_to_array(a, np.trace)
 
 def invariants(a, n=None, mechanics=False):
     if mechanics:
         i1 = trace(a)
-        rootj2 = mag(dev(a)) / np.sqrt(2.)
+        rootj2 = magnitude(deviatoric_part(a)) / np.sqrt(2.)
         return i1, rootj2
 
+    a = as_3x3_matrix(a)
     asq = np.dot(a, a)
     deta = np.linalg.det(a)
     tra = np.trace(a)
@@ -544,7 +689,7 @@ def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
         # with the updated rate of deformation, update stress and check
         sig = sigsave.copy()
         statev = copy(statev_save)
-        fp, ep = update_deformation(dt, 0., f, d)
+        fp, ep = update_deformation(f, d, dt, 0)
         sig, statev, stif = material.eval(t, dt, temp, dtemp,
                                           f0, fp, ep, d, sig, statev)
 
@@ -596,7 +741,7 @@ def simplex(material, t, dt, temp, dtemp, f0, farg, stran, darg, sigarg,
     d = darg.copy()
     f = farg.copy()
     sig = sigarg.copy()
-    statev = statev_arg.copy()
+    statev = copy(statev_arg)
     args = (material, t, dt, temp, dtemp, f0, f, stran, d,
             sig, statev, v, sigspec)
     d[v] = scipy.optimize.fmin(_func, d[v], args=args, maxiter=20, disp=False)
@@ -610,11 +755,11 @@ def _func(x, material, t, dt, temp, dtemp, f0, farg, stran, darg,
     d = darg.copy()
     f = farg.copy()
     sig = sigarg.copy()
-    statev = statev_arg.copy()
+    statev = copy(statev_arg)
 
     # initialize
     d[v] = x
-    fp, ep = update_deformation(dt, 0., f, d)
+    fp, ep = update_deformation(f, d, dt, 0)
 
     # store the best guesses
     sig, statev, stif = material.eval(t, dt, temp, dtemp,
@@ -696,7 +841,7 @@ def numerical_jacobian(material, time, dtime, temp, dtemp, F0, F, stran, d,
         # perturb forward
         Dp = d.copy()
         Dp[v[i]] = d[v[i]] + (deps / dtime) / 2.
-        Fp, Ep = update_deformation(dtime, 0., F, Dp)
+        Fp, Ep = update_deformation(F, Dp, dtime, 0)
         sigp = stress.copy()
         xp = copy(statev)
         sigp = material.eval(time, dtime, temp, dtemp,
@@ -705,7 +850,7 @@ def numerical_jacobian(material, time, dtime, temp, dtemp, F0, F, stran, d,
         # perturb backward
         Dm = d.copy()
         Dm[v[i]] = d[v[i]] - (deps / dtime) / 2.
-        Fm, Em = update_deformation(dtime, 0., F, Dm)
+        Fm, Em = update_deformation(F, Dm, dtime, 0)
         sigm = stress.copy()
         xm = copy(statev)
         sigm = material.eval(time, dtime, temp, dtemp,

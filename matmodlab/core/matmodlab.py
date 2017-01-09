@@ -234,7 +234,7 @@ class MaterialPointSimulator(object):
         if 'F' in descriptors:
             # Convert deformation gradient to strain
             F = np.reshape(components, (3, 3))
-            jac = det9(F)
+            jac = determinant(F)
             if jac <= 0:
                 raise ValueError('Negative or zero initial Jacobian')
 
@@ -246,7 +246,7 @@ class MaterialPointSimulator(object):
                                  'gave unexpected rotations (rotations are '
                                  'not yet supported)')
             U = np.dot(R.T, np.dot(V, R))
-            components = u2e(U, kappa)
+            components = stretch_to_strain(symarray(U), kappa)
             descriptors = ['E'] * 6
 
         elif 'U' in descriptors:
@@ -254,7 +254,7 @@ class MaterialPointSimulator(object):
             U = np.zeros((3, 3))
             DI3 = np.diag_indices(3)
             U[DI3] = components + 1.
-            components = u2e(U, kappa)
+            components = stretch_to_strain(symarray(U), kappa)
             descriptors = ['E'] * 6
 
         elif 'E' in descriptors and len(descriptors) == 1:
@@ -383,7 +383,7 @@ class MaterialPointSimulator(object):
         statev = self.material.sdvini(statev)
         strain = np.where(step.descriptors=='E', step.components, 0.) * VOIGT
         stress = np.where(step.descriptors=='S', step.components, 0.)
-        defgrad = f_from_e(step.kappa, strain)
+        defgrad = defgrad_from_strain(strain, step.kappa)
         glo_var_vals = [step.increment, 1, 0]
         elem_var_vals = self.astack(strain, np.zeros(6),
                                     stress, stress-np.zeros(6),
@@ -647,9 +647,9 @@ class MaterialPointSimulator(object):
             # strain or strain rate prescribed and the strain rate is constant
             # over the entire step
             if abs(kappa) > 1.e-14:
-                d = deps2d(dtime, kappa, strain[2], dedt)
+                d = rate_of_strain_to_rate_of_deformation(dedt, strain[2], kappa)
             elif environ.SQA:
-                d = deps2d(dtime, kappa, strain[2], dedt)
+                d = rate_of_strain_to_rate_of_deformation(dedt, strain[2], kappa)
                 if not np.allclose(d, dedt):
                     logger.warn('SQA: d != dedt')
             else:
@@ -680,7 +680,7 @@ class MaterialPointSimulator(object):
 
             # compute the current deformation gradient and strain from
             # previous values and the deformation rate
-            F[1], e = update_deformation(dtime, kappa, F[0], d)
+            F[1], e = update_deformation(F[0], d, dtime, kappa)
             strain[2,v] = e[v]
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))

@@ -2,7 +2,8 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, dot, dev, mag, ddot, dyad
+from ..core.mmlabpack import VOIGT, deviatoric_part, magnitude, \
+    double_dot, symmetric_dyad
 
 ROOT2 = np.sqrt(2.)
 ROOT3 = np.sqrt(3.)
@@ -79,11 +80,11 @@ class NonhardeningPlasticMaterial(Material):
 
         # Trial stress
         de = d * dtime
-        T = stress + dot(C, de)
+        T = stress + np.dot(C, de)
 
         # check yield
-        S = dev(T)
-        RTJ2 = mag(S) / ROOT2
+        S = deviatoric_part(T)
+        RTJ2 = magnitude(S) / ROOT2
         f = RTJ2 - k
 
         if f <= TOLER:
@@ -101,12 +102,12 @@ class NonhardeningPlasticMaterial(Material):
         for i in range(20):
 
             # Update all quantities
-            dGamma = f * ROOT2 / ddot(N, A)
+            dGamma = f * ROOT2 / double_dot(N, A)
             Gamma += dGamma
 
             T = Ttrial - Gamma * A
-            S = dev(T)
-            RTJ2 = mag(S) / ROOT2
+            S = deviatoric_part(T)
+            RTJ2 = magnitude(S) / ROOT2
             f = RTJ2 - k
 
             # Calculate the flow direction, projection direction
@@ -128,7 +129,7 @@ class NonhardeningPlasticMaterial(Material):
         deqp = ROOT2 / ROOT3 * Gamma
 
         # Elastic stiffness
-        D = C - 1 / ddot(N, A) * dyad(Q, A)
+        D = C - 1 / double_dot(N, A) * symmetric_dyad(Q, A)
 
         # Equivalent plastic strain
         X[0] += deqp

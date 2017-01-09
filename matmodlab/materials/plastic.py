@@ -2,7 +2,8 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, dev, iso, mag, invariants, I6
+from ..core.mmlabpack import VOIGT, deviatoric_part, isotropic_part, \
+    magnitude, invariants, I6
 
 class PlasticMaterial(Material):
     """Implements linear pressure dependent plasticity
@@ -92,8 +93,8 @@ class PlasticMaterial(Material):
         else:
             statev[idx('ISPLASTIC')] = 1.0
 
-            s = dev(stress)
-            N = np.sqrt(2.) * A4 * I6 + s / mag(s)
+            s = deviatoric_part(stress)
+            N = np.sqrt(2.) * A4 * I6 + s / magnitude(s)
             N = N / np.sqrt(6.0 * A4 ** 2 + 1.0)
             P = self.dot_with_elastic_stiffness(N)
 
@@ -106,8 +107,8 @@ class PlasticMaterial(Material):
                     rootj2 / (i1 - A1 / A4) < rootj2_p / i1_p):
                 dstress = stress - A1 / A4 / 3.0 * I6
                 # convert all of the extra strain into plastic strain
-                ep += iso(dstress) / (3.0 * self.params['K'])
-                ep += dev(dstress) / (2.0 * self.params['G'])
+                ep += isotropic_part(dstress) / (3.0 * self.params['K'])
+                ep += deviatoric_part(dstress) / (2.0 * self.params['G'])
                 stress = A1 / A4 / 3.0 * I6
             else:
                 # not in vertex; do regular return
@@ -126,5 +127,5 @@ class PlasticMaterial(Material):
         return stress, statev, None
 
     def dot_with_elastic_stiffness(self, A):
-        return (3.0 * self.params['K'] * iso(A) +
-                2.0 * self.params['G'] * dev(A))
+        return (3.0 * self.params['K'] * isotropic_part(A) +
+                2.0 * self.params['G'] * deviatoric_part(A))

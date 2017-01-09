@@ -2,7 +2,7 @@ from numpy import dot, zeros, trace, array, sum, eye
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import asarray, det, I6
+from ..core.mmlabpack import asarray, determinant, I6
 
 class MooneyRivlinMaterial(Material):
     name = "mooney-rivlin"
@@ -50,7 +50,7 @@ class MooneyRivlinMaterial(Material):
 
         # Reshape the deformation gradient
         F = F.reshape(3,3)
-        Jac = det(F)
+        Jac = determinant(F)
 
         # left Cauchy deformation
         B = dot(F, F.T)

@@ -2,8 +2,8 @@ from numpy import zeros, ix_, sqrt
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, dot
-from .tensor import dyad, dev, mag, ddot
+from ..core.mmlabpack import VOIGT, symmetric_dyad, deviatoric_part, \
+    magnitude, double_dot
 
 TOLER = 1e-8
 ROOT3, ROOT2 = sqrt(3.), sqrt(2.)
@@ -95,8 +95,8 @@ class HardeningPlasticMaterial(Material):
         T = stress + dot(C, de)
 
         # check yield
-        S = dev(T)
-        RTJ2 = mag(S) / ROOT2
+        S = deviatoric_part(T)
+        RTJ2 = magnitude(S) / ROOT2
         f = RTJ2 - self.Y(Y0, Y1, m, eqps) / ROOT3
 
         if f <= TOLER:
@@ -121,12 +121,12 @@ class HardeningPlasticMaterial(Material):
                 hy *= m * ((self.Y(Y0, Y1, m, eqps) - Y0) / Y1) ** ((m - 1.) / m)
                 dydG *= m * eqps ** (m - 1.)
 
-            dGamma = f * ROOT2 / (ddot(N, A) - dfdy * dydG)
+            dGamma = f * ROOT2 / (double_dot(N, A) - dfdy * dydG)
             Gamma += dGamma
 
             T = Ttrial - Gamma * A
-            S = dev(T)
-            RTJ2 = mag(S) / ROOT2
+            S = deviatoric_part(T)
+            RTJ2 = magnitude(S) / ROOT2
             eqps += ROOT2 / ROOT3 * dGamma
 
             f = RTJ2 - self.Y(Y0, Y1, m, eqps) / ROOT3
@@ -151,7 +151,7 @@ class HardeningPlasticMaterial(Material):
 
         # Elastic stiffness
         H = -2. * dfdy * hy / ROOT2
-        D = C - 1 / (ddot(N, A) + H) * dyad(Q, A)
+        D = C - 1 / (double_dot(N, A) + H) * symmetric_dyad(Q, A)
 
         # Equivalent plastic strain
         X[0] += deqp

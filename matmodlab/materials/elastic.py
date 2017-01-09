@@ -2,7 +2,6 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import dot
 
 class ElasticMaterial(Material):
     """Implements linear elasticity
@@ -34,5 +33,5 @@ class ElasticMaterial(Material):
         ddsdde[range(3),range(3)] += G2
         ddsdde[range(3,6),range(3,6)] = self.G
         # stress update
-        stress = stress + dot(ddsdde, d * dtime)
+        stress = stress + np.dot(ddsdde, d * dtime)
         return stress, statev, ddsdde

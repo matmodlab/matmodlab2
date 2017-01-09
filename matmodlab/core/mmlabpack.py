@@ -8,7 +8,6 @@ VOIGT = np.array([1, 1, 1, 2, 2, 2], dtype=np.float64)
 I6 = np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
 epsilon = np.finfo(float).eps
 
-
 def is_listlike(item):
     """Is item list like?"""
     try:
@@ -28,35 +27,35 @@ def is_stringlike(item):
 def is_scalarlike(item):
     """Is item scalar like?"""
     try:
-        item + 4.
+        float(item)
         return True
     except TypeError:
         return False
 
-def determinant(a):
-    """Determinant of a"""
-    return apply_matrix_fun_to_array(a, np.linalg.det)
+def determinant(A):
+    """Determinant of A"""
+    return apply_matrix_fun_to_array(A, np.linalg.det)
 
-def inverse(a):
-    """Inverse of a"""
-    return apply_matrix_fun_to_array(a, np.linalg.inv)
+def inverse(A):
+    """Inverse of A"""
+    return apply_matrix_fun_to_array(A, np.linalg.inv)
 
-def expm(a):
+def expm(A):
     """Compute the matrix exponential of a 3x3 matrix"""
-    return apply_matrix_fun_to_array(a, scipy.linalg.expm)
+    return apply_matrix_fun_to_array(A, scipy.linalg.expm)
 
-def powm(a, m):
+def powm(A, m):
     """Compute the matrix power of a 3x3 matrix"""
     fun = lambda x: scipy.linalg.fractional_matrix_power(x, m)
-    return apply_matrix_fun_to_array(a, fun)
+    return apply_matrix_fun_to_array(A, fun)
 
-def sqrtm(a):
+def sqrtm(A):
     """Compute the square root of a 3x3 matrix"""
-    return apply_matrix_fun_to_array(a, scipy.linalg.sqrtm)
+    return apply_matrix_fun_to_array(A, scipy.linalg.sqrtm)
 
-def logm(a):
+def logm(A):
     """Compute the matrix logarithm of a 3x3 matrix"""
-    return apply_matrix_fun_to_array(a, scipy.linalg.logm)
+    return apply_matrix_fun_to_array(A, scipy.linalg.logm)
 
 def apply_matrix_fun_to_array(arr, matrix_fun):
     """Apply the matrix fun to array arr
@@ -82,10 +81,6 @@ def apply_matrix_fun_to_array(arr, matrix_fun):
     except TypeError:
         return mat_to_array(mat2, orig_shape)
 
-def dot(a, b):
-    """perform matrix multiplication on two 3x3 matricies"""
-    return np.dot(a, b)
-
 def stretch_to_strain(u, k):
     """Convert the 3x3 stretch tensor to a strain tensor using the
     Seth-Hill parameter k and return a 6x1 array"""
@@ -95,45 +90,45 @@ def stretch_to_strain(u, k):
         return apply_matrix_fun_to_array(u, fun) * VOIGT
     return apply_matrix_fun_to_array(u, scipy.linalg.logm) * VOIGT
 
-def symarray(a):
+def symarray(A):
     """Convert a 3x3 matrix to a 6x1 array representing a symmetric matix."""
-    mat = (a + a.T) / 2.0
+    mat = (A + A.T) / 2.0
     return np.array([mat[0, 0], mat[1, 1], mat[2, 2],
                      mat[0, 1], mat[1, 2], mat[0, 2]])
 
-def asarray(a, n=6):
+def asarray(A, n=6):
     """Convert a 3x3 matrix to array form"""
     if n == 6:
-        return symarray(a)
+        return symarray(A)
     elif n == 9:
-        return np.reshape(a, (1, 9))[0]
+        return np.reshape(A, (1, 9))[0]
     else:
         raise Exception("Invalid value for n. Given {0}".format(n))
 
-def as_3x3_matrix(a):
+def as_3x3_matrix(A):
     """Convert a 6x1 array to a 3x3 symmetric matrix"""
-    a = np.asarray(a)
-    if a.shape == (6,):
+    A = np.asarray(A)
+    if A.shape == (6,):
         # Symmetric matrix
-        return np.array([[a[0], a[3], a[5]],
-                         [a[3], a[1], a[4]],
-                         [a[5], a[4], a[2]]])
-    elif a.shape == (9,):
-        return np.reshape(a, (3,3))
-    elif a.shape == (3,3):
-        return a
+        return np.array([[A[0], A[3], A[5]],
+                         [A[3], A[1], A[4]],
+                         [A[5], A[4], A[2]]])
+    elif A.shape == (9,):
+        return np.reshape(A, (3,3))
+    elif A.shape == (3,3):
+        return A
     raise ValueError('Unknown shape')
 
-def array_to_mat(a):
+def array_to_mat(A):
     """Convert array to matrix"""
-    if a.shape == (6,):
-        mat = as_3x3_matrix(a)
+    if A.shape == (6,):
+        mat = as_3x3_matrix(A)
         orig_shape = (6,)
-    elif a.shape == (9,):
-        mat = np.reshape(a, (3,3))
+    elif A.shape == (9,):
+        mat = np.reshape(A, (3,3))
         orig_shape = (9,)
-    elif a.shape == (3,3):
-        mat = a
+    elif A.shape == (3,3):
+        mat = A
         orig_shape = (3,3)
     else:
         raise ValueError('Unknown shape')
@@ -149,25 +144,25 @@ def mat_to_array(mat, shape):
         return mat
     raise ValueError('Unknown shape')
 
-def diag(a):
+def diag(A):
     """Returns the diagonal part of a 3x3 matrix."""
-    return np.array([[a[0, 0],     0.0,     0.0],
-                       [0.0,   a[1, 1],     0.0],
-                       [0.0,       0.0, a[2, 2]]])
+    return np.array([[A[0, 0],     0.0,     0.0],
+                       [0.0,   A[1, 1],     0.0],
+                       [0.0,       0.0, A[2, 2]]])
 
-def isdiag(a):
+def isdiag(A):
     """Determines if a matrix is diagonal."""
-    return np.sum(np.abs(a - diag(a))) <= epsilon(a)
+    return np.sum(np.abs(A - diag(A))) <= epsilon
 
-def apply_fun_to_matrix(a, f):
+def apply_fun_to_matrix(A, f):
     """Apply function to eigenvalues of a 3x3 matrix then recontruct the matrix
     with the new eigenvalues and the eigenprojectors"""
-    if isdiag(a):
-        return np.array([[f(a[0, 0]),        0.0,        0.0],
-                         [       0.0, f(a[1, 1]),        0.0],
-                         [       0.0,        0.0, f(a[2, 2])]])
+    if isdiag(A):
+        return np.array([[f(A[0, 0]),        0.0,        0.0],
+                         [       0.0, f(A[1, 1]),        0.0],
+                         [       0.0,        0.0, f(A[2, 2])]])
 
-    vals, vecs = np.linalg.eig(a)
+    vals, vecs = np.linalg.eig(A)
 
     # Compute eigenprojections
     p0 = np.outer(vecs[:, 0], vecs[:, 0])
@@ -432,61 +427,63 @@ def defgrad_from_strain(E, kappa, flatten=1):
         return F.flatten()
     return F
 
-def _isotropic_part(A):
-    assert A.shape == (3,3)
-    return np.trace(A) / 3. * np.eye(3)
-
-def isotropic_part(a):
+def isotropic_part(A):
     """Return isotropic part of A"""
-    return apply_matrix_fun_to_array(a, _isotropic_part)
+    def _isotropic_part(Ax):
+        assert Ax.shape == (3,3)
+        return np.trace(Ax) / 3. * np.eye(3)
+    return apply_matrix_fun_to_array(A, _isotropic_part)
 
-def _deviatoric_part(A):
+def deviatoric_part(A):
+    """Return deviatoric part of A"""
+    def _deviatoric_part(Ax):
+        assert Ax.shape == (3,3)
+        return Ax - isotropic_part(Ax)
+    return apply_matrix_fun_to_array(A, _deviatoric_part)
+
+def double_dot(A, B):
+    """Return A:B"""
+    A_mat, A_shape = array_to_mat(A)
+    B_mat, B_shape = array_to_mat(B)
     assert A.shape == (3,3)
-    return A - isotropic_part(A)
+    assert B.shape == A.shape
+    return np.sum(A * B)
 
-def deviatoric_part(a):
-    return apply_matrix_fun_to_array(a, _deviatoric_part)
-
-def double_dot(a, b):
-    a_mat, a_shape = array_to_mat(a)
-    b_mat, b_shape = array_to_mat(b)
-    assert a.shape == (3,3)
-    assert b.shape == a.shape
-    return np.sum(a * b)
-
-def magnitude(a):
+def magnitude(A):
+    """Return magnitude of A"""
     fun = lambda x: np.sqrt(double_dot(x, x))
-    m = apply_matrix_fun_to_array(a, fun)
+    m = apply_matrix_fun_to_array(A, fun)
     return m
 
-def symmetric_dyad(a, b):
-    a = np.asarray(a)
-    b = np.asarray(b)
-    assert a.shape == (3,)
-    assert a.shape == b.shape
-    return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2],
-                     a[0] * b[1], a[1] * b[2], a[0] * b[2]],
-                    dtype=np.float64)
+def symmetric_dyad(A, B):
+    """Compute the symmetric dyad AB_ij = A_i B_j"""
+    A = np.asarray(A)
+    B = np.asarray(B)
+    assert A.shape == (3,)
+    assert A.shape == B.shape
+    return np.array([A[0] * B[0], A[1] * B[1], A[2] * B[2],
+                     A[0] * B[1], A[1] * B[2], A[0] * B[2]])
 
-def ddot(a, b):
-    # double of symmetric tensors stored as 6x1 arrays
-    assert a.shape == (6,)
-    assert a.shape == b.shape
-    return np.sum(a * b * VOIGT)
+def ddot(A, B):
+    """Double of symmetric tensors stored as 6x1 arrays"""
+    assert A.shape == (6,)
+    assert A.shape == B.shape
+    return np.sum(A * B * VOIGT)
 
-def trace(a):
-    return apply_matrix_fun_to_array(a, np.trace)
+def trace(A):
+    """Return trace of A"""
+    return apply_matrix_fun_to_array(A, np.trace)
 
-def invariants(a, n=None, mechanics=False):
+def invariants(A, n=None, mechanics=False):
     if mechanics:
-        i1 = trace(a)
-        rootj2 = magnitude(deviatoric_part(a)) / np.sqrt(2.)
+        i1 = trace(A)
+        rootj2 = magnitude(deviatoric_part(A)) / np.sqrt(2.)
         return i1, rootj2
 
-    a = as_3x3_matrix(a)
-    asq = np.dot(a, a)
-    deta = np.linalg.det(a)
-    tra = np.trace(a)
+    A = as_3x3_matrix(A)
+    asq = np.dot(A, A)
+    deta = np.linalg.det(A)
+    tra = np.trace(A)
 
     b = np.zeros(5)
     b[0] = tra
@@ -495,7 +492,7 @@ def invariants(a, n=None, mechanics=False):
     if n in None:
         return b[:3]
 
-    b[3] = np.dot(np.dot(n, a), n)
+    b[3] = np.dot(np.dot(n, A), n)
     b[4] = np.dot(np.dot(n, asq), n)
 
     return b

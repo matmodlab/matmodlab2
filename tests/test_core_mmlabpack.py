@@ -7,6 +7,7 @@ import sys
 import pathlib
 import pytest
 import numpy as np
+from testing_utils import isclose
 
 
 # Ensure that 'matmodlab' is imported from parent directory.
@@ -251,25 +252,116 @@ def test_mechanics_invariants_dev():
 def test_trace():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])
     A_ident = np.eye(3)
-    assert abs(mcm.trace(a_ident) - 3.) <= 1e-12
-    assert abs(mcm.trace(A_ident) - 3.) <= 1e-12
+    assert isclose(mcm.trace(a_ident), 3.)
+    assert isclose(mcm.trace(A_ident), 3.)
 
     a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
     A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
-    assert abs(mcm.trace(a_dev)) <= 1e-12
-    assert abs(mcm.trace(A_dev)) <= 1e-12
+    assert isclose(mcm.trace(a_dev), 0.)
+    assert isclose(mcm.trace(A_dev), 0.)
 
 def test_magnitude():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])
     A_ident = np.eye(3)
-    assert abs(mcm.magnitude(a_ident) - np.sqrt(3.)) <= 1e-12
-    assert abs(mcm.magnitude(A_ident) - np.sqrt(3.)) <= 1e-12
+    assert isclose(mcm.magnitude(a_ident), np.sqrt(3.))
+    assert isclose(mcm.magnitude(A_ident), np.sqrt(3.))
 
     mag = np.sqrt(1 + 2. * .5 ** 2)
     a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
     A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
-    assert abs(mcm.magnitude(a_dev) - mag) <= 1e-12
-    assert abs(mcm.magnitude(A_dev) - mag) <= 1e-12
+    assert isclose(mcm.magnitude(a_dev), mag)
+    assert isclose(mcm.magnitude(A_dev), mag)
+
+def test_is_listlike():
+    """Is item list like?"""
+    assert not mcm.is_listlike('aaa')
+    assert mcm.is_listlike([0,1,2])
+    assert mcm.is_listlike((0,1,2))
+    assert not mcm.is_listlike(None)
+
+def test_is_stringlike():
+    """Is item string like?"""
+    assert mcm.is_stringlike('aaa')
+    assert not mcm.is_stringlike([0,1,2])
+    assert not mcm.is_stringlike((0,1,2))
+
+def test_is_scalarlike():
+    """Is item scalar like?"""
+    assert mcm.is_scalarlike(5)
+    assert mcm.is_scalarlike(5.)
+    assert mcm.is_scalarlike(np.array(5.))
+    assert mcm.is_scalarlike(np.array(5))
+    assert not mcm.is_scalarlike([1,2])
+    assert not mcm.is_scalarlike(np.array([1,2]))
+
+def test_determinant():
+    """Determinant of A"""
+    x, y, z = 1., 2., 3.
+    a = np.array([x, y, z, 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    assert isclose(mcm.determinant(a), x*y*z)
+    assert isclose(mcm.determinant(A), x*y*z)
+
+def test_inverse():
+    """Inverse of A"""
+    x, y, z = 1., 2., 3.
+    fun = lambda _: 1./ _
+    mcm_fun = mcm.inverse
+    a = np.array([x, y, z, 0, 0, 0])
+    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
+    assert np.allclose(mcm_fun(a), a_fun)
+    assert np.allclose(mcm_fun(A), A_fun)
+
+def test_expm():
+    """Compute the matrix exponential of a 3x3 matrix"""
+    x, y, z = 1., 2., 3.
+    fun = np.exp
+    mcm_fun = mcm.expm
+    a = np.array([x, y, z, 0, 0, 0])
+    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
+    assert np.allclose(mcm_fun(a), a_fun)
+    assert np.allclose(mcm_fun(A), A_fun)
+
+def test_powm():
+    """Compute the matrix power of a 3x3 matrix"""
+    x, y, z = 1., 2., 3.
+    m = 1.2
+    fun = lambda _: _ ** m
+    mcm_fun = lambda _: mcm.powm(_, m)
+    a = np.array([x, y, z, 0, 0, 0])
+    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
+    assert np.allclose(mcm_fun(a), a_fun)
+    assert np.allclose(mcm_fun(A), A_fun)
+
+def test_sqrtm():
+    """Compute the square root of a 3x3 matrix"""
+    x, y, z = 1., 2., 3.
+    fun = np.sqrt
+    mcm_fun = mcm.sqrtm
+    a = np.array([x, y, z, 0, 0, 0])
+    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
+    assert np.allclose(mcm_fun(a), a_fun)
+    assert np.allclose(mcm_fun(A), A_fun)
+
+def test_logm():
+    """Compute the matrix logarithm of a 3x3 matrix"""
+    x, y, z = 1., 2., 3.
+    fun = np.log
+    mcm_fun = mcm.logm
+    a = np.array([x, y, z, 0, 0, 0])
+    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
+    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
+    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
+    assert np.allclose(mcm_fun(a), a_fun)
+    assert np.allclose(mcm_fun(A), A_fun)
 
 if __name__ == '__main__':
     test_import()

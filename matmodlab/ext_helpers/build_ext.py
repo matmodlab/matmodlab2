@@ -39,7 +39,11 @@ assert os.path.isfile(aba_utils)
 umat_pyf = os.path.join(aba_support_dir, 'umat.pyf')
 assert os.path.isfile(umat_pyf)
 
+class ExtensionNotBuilt(Exception):
+    pass
+
 def which(name):
+    """Find the executable name on PATH"""
     for path in os.getenv('PATH', '').split(os.pathsep):
         if not os.path.isdir(path):
             continue
@@ -49,7 +53,31 @@ def which(name):
 
 def build_extension_module(name, sources, include_dirs=None, verbose=False,
                            package_path=None, user_ics=False, fc=None):
-    """Build the fortran extension module"""
+    """Build the fortran extension module (material model)
+
+    Parameters
+    ----------
+    name : str
+        The name of the extension module to build
+    sources : list of str
+        List of source files
+    include_dirs : list of str
+        List of extra include directories
+    verbose : bool
+        Write output to stdout if True, otherwise suppress stdout
+    package_path : str
+        Directory path to build module
+    user_ics : bool
+        List of source files includes source defining subroutine SDVINI.
+        Applicable only for Abaqus umats.
+    fc : str
+        Fortran compiler
+
+    Notes
+    -----
+    To build abaqus umats, the name must be 'umat'
+
+    """
     the_loglevel = environ.loglevel
     environ.loglevel = logging.DEBUG
     logger = get_logger('build-ext')
@@ -177,7 +205,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
 
     if failed:
         logger.error('Failed to build')
-        raise RuntimeError('{0}: failed to build'.format(name))
+        raise ExtensionNotBuilt(name)
 
     return
 
@@ -225,6 +253,58 @@ def stdout_redirected(to=os.devnull, stdout=None):
             stdout.flush()
             os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
 
-
 def merged_stderr_stdout():  # $ exec 2>&1
     return stdout_redirected(to=sys.stdout, stdout=sys.stderr)
+
+def build_extension_module_as_subprocess(name, sources,
+                                         include_dirs=None, verbose=False,
+                                         package_path=None, user_ics=False,
+                                         fc=None):
+    """Build the extension module, but call as a subprocess.
+
+    Parameters
+    ----------
+    Same as build_extension_module
+
+    Notes
+    -----
+    This function exists since distutils can only be initialized once and we want to run build several different extensions
+    """
+    python = sys.executable
+    this_file = os.path.realpath(__file__)
+    command = [sys.executable, this_file, name]
+    command.extend(sources)
+    if include_dirs is not None:
+        for include_dir in include_dirs:
+            command.append('--include-dirs={0}'.format(include_dir))
+    if verbose:
+        command.append('--verbose')
+    if package_path is not None:
+        command.append('--package-path={0}'.format(package_path))
+    if user_ics:
+        command.append('--user-ics')
+    if fc is not None:
+        command.append('--fc={0}'.format(fc))
+    p = Popen(command)
+    p.wait()
+    return p.returncode
+
+def main():
+    p = ArgumentParser()
+    p.add_argument('name')
+    p.add_argument('sources', nargs='+')
+    p.add_argument('--include-dirs', action='append', default=None)
+    p.add_argument('--verbose', action='store_true', default=False)
+    p.add_argument('--package-path', default=None)
+    p.add_argument('--user-ics', action='store_true', default=False)
+    p.add_argument('--fc', default=False)
+    args = p.parse_args()
+    build_extension_module(args.name, args.sources,
+                           include_dirs=args.include_dirs,
+                           verbose=args.verbose,
+                           package_path=args.package_path,
+                           user_ics=args.user_ics,
+                           fc=args.fc)
+
+if __name__ == '__main__':
+    main()

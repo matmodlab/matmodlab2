@@ -30,7 +30,7 @@ and the Apple Mac OSX 10 operating systems.
 
 ## Documentation
 
-The documentation consists of Jupyter notebooks contained in the `matmodlab/notebooks` directory and vieweable at [Introduction to Matmodlab](https://github.com/tjfulle/matmodlab2/blob/master/matmodlab/notebooks/Introduction.ipynb)
+The documentation consists of Jupyter notebooks contained in the `matmodlab/notebooks` directory and vieweable at [Introduction to Matmodlab](https://github.com/tjfulle/matmodlab2/blob/master/notebooks/Introduction.ipynb)
 
 ## Troubleshooting
 

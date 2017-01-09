@@ -29,7 +29,7 @@ subroutine mml_comm(ierr, msg, intv, realv, charv)
   character(8), intent(in) :: charv(*)
   character(1) :: c(2)
   character(12) :: s
-  character(220) :: string
+  character(120) :: string
   integer :: i, j, k, n, ls, ii, ir, ic
   external log_message
   external log_warning
@@ -70,16 +70,13 @@ subroutine mml_comm(ierr, msg, intv, realv, charv)
   end do
 
   if (ierr == -3) then
-     string = "*** ERROR: " // adjustl(string)
-     call log_error(string)
+     call log_error("*** ERROR: " // adjustl(string))
   else if (ierr == -1) then
-     string = "*** WARNING: " // adjustl(string)
-     call log_warning(string)
+     call log_warning("*** WARNING: " // adjustl(string))
   else if (ierr == -2) then
-     string = "*** ERROR: " // adjustl(string)
-     call log_warning(trim(string))
+     call log_warning("*** ERROR: " // adjustl(string))
   else
-     call log_message(trim(string))
+     call log_message(string)
   end if
   return
 end subroutine mml_comm

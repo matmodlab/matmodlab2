@@ -19,18 +19,27 @@ from numpy.distutils.core import setup
 from matmodlab.core.logio import get_logger
 from matmodlab.core.environ import environ
 
-D = os.path.dirname(os.path.realpath(__file__))
-UD = os.path.join(D, '../umat')
-environ.loglevel = logging.DEBUG
-logger = get_logger('build-umat')
+dd = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../umat')
 
-lapack_lite = os.path.join(UD, 'blas_lapack-lite.f')
-assert os.path.isfile(lapack_lite)
+# "Lite" version of blas/lapack
+lapack_lite = os.path.join(dd, 'blas_lapack-lite.f')
 lapack_lite_obj = os.path.splitext(lapack_lite)[0] + '.o'
-aba_utils = os.path.join(UD, 'aba_utils.f90')
-umat_pyf = os.path.join(UD, 'umat.pyf')
-aba_sdvini = os.path.join(UD, 'aba_sdvini.f90')
-mml_io = os.path.join(UD, 'mml_io.f90')
+assert os.path.isfile(lapack_lite)
+
+# Fortran I/O
+mml_io = os.path.join(dd, 'mml_io.f90')
+assert os.path.isfile(mml_io)
+
+# Abaqus related files
+aba_sdvini = os.path.join(dd, 'aba_sdvini.f90')
+assert os.path.isfile(aba_sdvini)
+aba_utils = os.path.join(dd, 'aba_utils.f90')
+assert os.path.isfile(aba_utils)
+umat_pyf = os.path.join(dd, 'umat.pyf')
+assert os.path.isfile(umat_pyf)
+
+ext_include_dir = dd
+del dd
 
 def which(name):
     for path in os.getenv('PATH', '').split(os.pathsep):
@@ -40,9 +49,12 @@ def which(name):
             return os.path.join(path, name)
     return None
 
-def build_extension_module(name, sources, include_dirs=None,
-                           user_ics=False, fc=None):
-
+def build_extension_module(name, sources, include_dirs=None, verbose=False,
+                           package_path=None, user_ics=False, fc=None):
+    """Build the fortran extension module"""
+    the_loglevel = environ.loglevel
+    environ.loglevel = logging.DEBUG
+    logger = get_logger('build-ext')
     fc = fc or which('gfortran')
     if fc is None:
         raise OSError('Fortran compiler not found')
@@ -57,6 +69,7 @@ def build_extension_module(name, sources, include_dirs=None,
 
     umat = name.lower() == 'umat'
     if umat:
+        # Build the umat module - add some Abaqus utility files
         name = '_umat'
         sources.extend([aba_utils, umat_pyf])
         if not user_ics:
@@ -70,7 +83,7 @@ def build_extension_module(name, sources, include_dirs=None,
     # Build a "lite" version of lapack
     options['extra_objects'] = [lapack_lite_obj]
     options['extra_compile_args'] = ['-fPIC', '-shared']
-    options['include_dirs'] = include_dirs + [D]
+    options['include_dirs'] = include_dirs + [ext_include_dir]
 
     # Explicitly add this python distributions lib directory. This
     # shouldn't be necessary, but on some RHEL systems I have found that
@@ -86,13 +99,16 @@ def build_extension_module(name, sources, include_dirs=None,
                          'libraries will not be importable')
 
     cwd = os.getcwd()
-    package_path = cwd
+    if package_path is None:
+        package_path = cwd
+
     build_dir = os.path.join(package_path, 'build')
     had_build_dir = os.path.isdir(build_dir)
 
-    config = Configuration(name, parent_package='', top_path='',
+    config = Configuration(package_name='', parent_package='', top_path='',
                            package_path=package_path)
     config.add_extension(name, sources=sources, **options)
+    os.chdir(package_path)
 
     fexec = '--f77exec={0} --f90exec={0}'.format(fc)
     argv = ['./setup.py', 'config_fc'] + fexec.split()
@@ -102,7 +118,7 @@ def build_extension_module(name, sources, include_dirs=None,
     fflags = ' '.join(fflags)
     fflags = '--f77flags={0!r} --f90flags={0!r}'.format(fflags).split()
     argv.extend(fflags)
-    argv.extend('build_ext -i'.split())
+    argv.extend(['build_ext', '-i'])
 
     # build the extension modules with distutils setup
     logger.info('building extension module {0!r}... '.format(name),
@@ -113,15 +129,18 @@ def build_extension_module(name, sources, include_dirs=None,
     hold = [x for x in sys.argv]
     sys.argv = [x for x in argv]
     logfile = None
+    config_dict = config.todict()
     try:
-        if environ.notebook:
+        if verbose:
+            setup(**config_dict)
+        elif environ.notebook:
             from IPython.utils import io
             with io.capture_output() as captured:
-                setup(**config.todict())
+                setup(**config_dict)
         else:
             logfile = os.path.join(package_path, 'build.log')
             with stdout_redirected(to=logfile), merged_stderr_stdout():
-                setup(**config.todict())
+                setup(**config_dict)
         logger.info('done')
     except:
         logger.info('failed')
@@ -130,21 +149,24 @@ def build_extension_module(name, sources, include_dirs=None,
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         sys.argv = [x for x in hold]
 
-    if failed:
-        logger.error('Failed to build')
-        raise SystemExit('{0}: failed to build'.format(name))
-
     if not had_build_dir:
         shutil.rmtree(build_dir)
-    if logfile is not None:
+    if logfile is not None and logfile != sys.stdout:
         os.remove(logfile)
     for item in glob.glob(os.path.join(package_path, '*.so.dSYM')):
         if os.path.isdir(item):
             shutil.rmtree(item)
         else:
             os.remove(item)
+    os.chdir(cwd)
 
+    environ.loglevel = the_loglevel
 
+    if failed:
+        logger.error('Failed to build')
+        raise RuntimeError('{0}: failed to build'.format(name))
+
+    return
 
 def build_blas_lapack(fc=None):
     fc = fc or which('gfortran')
@@ -196,15 +218,3 @@ def stdout_redirected(to=os.devnull, stdout=None):
 
 def merged_stderr_stdout():  # $ exec 2>&1
     return stdout_redirected(to=sys.stdout, stdout=sys.stderr)
-
-
-def main():
-    p = ArgumentParser()
-    p.add_argument('name')
-    p.add_argument('sources', nargs='+')
-    args = p.parse_args()
-
-    build_extension_module(args.name, args.sources)
-
-if __name__ == '__main__':
-    main()

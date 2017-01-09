@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+from argparse import ArgumentParser
+from build_ext import build_extension_module
+def main():
+    p = ArgumentParser()
+    p.add_argument('name')
+    p.add_argument('sources', nargs='+')
+    p.add_argument('--include-dirs', action='append', default=None)
+    p.add_argument('--verbose', action='store_true', default=False)
+    p.add_argument('--package-path', default=None)
+    p.add_argument('--user-ics', action='store_true', default=False)
+    p.add_argument('--fc', default=False)
+    args = p.parse_args()
+    build_extension_module(args.name, args.sources,
+                           include_dirs=args.include_dirs,
+                           verbose=args.verbose,
+                           package_path=args.package_path,
+                           user_ics=args.user_ics,
+                           fc=args.fc)
+
+if __name__ == '__main__':
+    main()

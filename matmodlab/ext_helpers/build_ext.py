@@ -18,6 +18,7 @@ from numpy.distutils.core import setup
 
 from matmodlab.core.logio import get_logger
 from matmodlab.core.environ import environ
+from matmodlab.core.mmlabpack import is_listlike
 
 ext_support_dir = os.path.dirname(os.path.realpath(__file__))
 aba_support_dir = os.path.join(ext_support_dir, '../umat')
@@ -273,6 +274,10 @@ def build_extension_module_as_subprocess(name, sources,
     python = sys.executable
     this_file = os.path.realpath(__file__)
     command = [sys.executable, this_file, name]
+    if not is_listlike(sources):
+        sources = [sources]
+    if not isinstance(sources, list):
+        sources = [x for x in sources]
     command.extend(sources)
     if include_dirs is not None:
         for include_dir in include_dirs:
@@ -287,7 +292,9 @@ def build_extension_module_as_subprocess(name, sources,
         command.append('--fc={0}'.format(fc))
     p = Popen(command)
     p.wait()
-    return p.returncode
+    if p.returncode != 0:
+        raise ExtensionNotBuilt(name)
+    return 0
 
 def main():
     p = ArgumentParser()

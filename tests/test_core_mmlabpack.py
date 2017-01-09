@@ -214,6 +214,11 @@ def test_deformation_measures_from_strain_db(db, idx):
     # Teardown
     pass
 
+# NOTE: In many of the tests to follow, only a trivial tensor is sent to test
+# the matrix function. This is by design. Since all of the matrix functions are
+# just wrappers to scipy functions, these tests just test the wrapper (the
+# ability to call the function with a 3x3 "matrix" or 6x1 array)
+
 def test_isotropic_part():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])
     A_ident = np.eye(3)

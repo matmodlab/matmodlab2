@@ -132,6 +132,51 @@ def funcm(a, f):
 
     return f(vals[0]) * p0 + f(vals[1]) * p1 + f(vals[2]) * p2
 
+
+def rate_of_matrix_function(*, A, Adot, f, fprime):
+    """
+    For a diagonalizable tensor A (the strain) which has a
+    quasi-arbitrary spectral expansion
+
+        A = \sum_{i=1}^3 \lambda_i P_{i}
+
+    and if a second tensor Y is a principal function of A, defined by
+
+        Y = \sum_{i=1}^3 f(\lambda_i) P_i,
+
+    compute the time rate \dot{Y}. Algorithm taken from Brannon's
+    Tensor book, from the highlighted box near Equation (28.404) on
+    page 550.
+
+    INPUTS
+    ------
+      A      = 3x3 matrix
+      Adot   = 3x3 matrix
+      f      = function
+      fprime = function (derivative of f)
+
+    OUTPUTS
+    -------
+      Ydot   = 3x3 matrix
+    """
+
+    # Compute the eigenvalues and eigenprojections.
+    eig_vals, eig_vecs = np.linalg.eig(A)
+    eig_projs = [np.outer(eig_vecs[:, i], eig_vecs[:, i]) for i in [0, 1, 2]]
+
+    # Assemble the rate of Y.
+    Ydot = np.zeros((3, 3))
+    for eigi, proji in zip(eig_vals, eig_projs):
+        for eigj, projj in zip(eig_vals, eig_projs):
+            if eigi == eigj:
+                gamma = fprime(eigi)
+            else:
+                gamma = (f(eigi) - f(eigj)) / (eigi - eigj)
+            Ydot += gamma * np.dot(proji, np.dot(Adot, projj))
+
+    return Ydot
+
+
 def deps2d(dt, k, e, de):
     """
     ! ----------------------------------------------------------------------- !
@@ -143,41 +188,43 @@ def deps2d(dt, k, e, de):
     ! where F, I, R, U are the deformation gradient, identity, rotation, and
     ! right stretch tensor, respectively. d*dt and *inv are the rate and
     ! inverse or *, respectively,
-
+    !
     ! The stretch U is given by
     !              if k != 0:
     !                  U = (k*E + I)**(1/k)
     !              else:
     !                  U = exp(E)
-    ! and its rate
-    !                  dUdt = 1/k*(k*E + I)**(1/k - 1)*k*dEdt
-    !                       = (k*E + I)**(1/k)*(k*E + I)**(-1)*dEdt
-    !                       = U*X*dEdt
-    !                  where X = (kE + I)**(-1)
+    ! and its rate (dUdt) is calculated using 'rate_of_matrix_function()'.
     !    Then
+    !              L = dot(dUdt, inv(U))
     !              d = sym(L)
     !              w = skew(L)
+    !
+    ! Argument 'dt' is unused but is retained for backwards compatibility.
     """
 
     D = np.zeros((3,3))
     eps = as3x3(e / VOIGT)
     depsdt = as3x3(de / VOIGT)
-    epsf = eps + depsdt * dt
 
-    # stretch and its rate
+    # Calculate the right stretch (U) and its rate
     if k == 0:
-        u = expm(epsf)
+        u = scipy.linalg.expm(eps)
+        dudt = rate_of_matrix_function(A=eps, Adot=depsdt,
+                                       f=np.exp, fprime=np.exp)
     else:
-        u = powm(k * epsf + np.eye(3, 3), 1.0 / k)
+        u = scipy.linalg.fractional_matrix_power(k * eps + np.eye(3), 1.0 / k)
+        f = lambda x: (k * x + 1.0) ** (1.0 / k)
+        fprime = lambda x: (k * x + 1.0) ** (1.0 / k - 1.0)
+        dudt = rate_of_matrix_function(A=eps, Adot=depsdt,
+                                       f=f, fprime=fprime)
 
-    x = 1.0 / 2.0 * (np.linalg.inv(k * epsf + np.eye(3, 3)) +
-                     np.linalg.inv(k * eps + np.eye(3, 3)))
-    du = np.dot(np.dot(u, x), depsdt)
+    # Calculate the velocity gradient (L) and its symmetric part
+    l = np.dot(dudt, np.linalg.inv(u))
+    d = (l + l.T) / 2.0
 
-    L = np.dot(du, np.linalg.inv(u))
-    D = (L + L.T) / 2.0
+    return symarray(d) * VOIGT
 
-    return symarray(D) * VOIGT
 
 def update_deformation(dt, k, farg, darg):
     """

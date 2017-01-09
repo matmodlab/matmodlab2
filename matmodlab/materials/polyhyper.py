@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..logio import logger
-from ..material import Material
-from ..mmlabpack import I6
+from ..core.logio import logger
+from ..core.material import Material
+from ..core.mmlabpack import I6
 from .tensor import (symsq, det, invariants, inv, push,
                      dyad, symshuffle, II1, II5)
 

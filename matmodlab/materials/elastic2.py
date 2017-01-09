@@ -1,7 +1,7 @@
 from numpy import dot, zeros, ix_, eye, triu
 from numpy.linalg import cholesky, LinAlgError
-from matmodlab.core.logio import logger
-from matmodlab.core.material import Material
+from ..core.logio import logger
+from ..core.material import Material
 
 class AnisotropicElasticMaterial(Material):
     name = "elastic2"

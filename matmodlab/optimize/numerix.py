@@ -1,1 +1,1 @@
-from ..tests.numerix import *
+from ..core.numerix import *

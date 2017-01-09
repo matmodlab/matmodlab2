@@ -5,12 +5,7 @@ import random
 import numpy as np
 
 from matmodlab import *
-from numerix import rms_error, same_as_baseline, responses_are_same
-
-def teardown_module():
-    for ext in ('.log', '.exo', '*.dat'):
-        for filename in glob.glob('*'+ext):
-            os.remove(filename)
+from testing_utils import *
 
 K = 9.980040E+09
 G = 3.750938E+09
@@ -18,8 +13,39 @@ E = 9. * K * G / (3. * K + G)
 Nu  = (3.0 * K - 2.0 * G) / (2.0 * (3.0 * K + G))
 parameters = {'K': K, 'G': G, 'E': E, 'Nu': Nu}
 
-@pytest.mark.material
 @pytest.mark.elastic
+@pytest.mark.material
+def test_elastic_consistency():
+    """Test the elastic and plastic materials for equivalence"""
+    environ.SQA = True
+    E = 10.
+    Nu = .1
+    G = E / 2. / (1. + Nu)
+    K = E / 3. / (1. - 2. * Nu)
+
+    jobid = 'Job-El'
+    mps_el = MaterialPointSimulator(jobid)
+    material = ElasticMaterial(E=E, Nu=Nu)
+    mps_el.assign_material(material)
+    mps_el.add_step('E'*6, [1,0,0,0,0,0], scale=.1, frames=1)
+    mps_el.add_step('S'*6, [0,0,0,0,0,0], frames=5)
+    mps_el.run()
+    df_el = mps_el.df
+
+    jobid = 'Job-Pl'
+    mps_pl = MaterialPointSimulator(jobid)
+    material = PlasticMaterial(K=K, G=G)
+    mps_pl.assign_material(material)
+    mps_pl.add_step('E'*6, [1,0,0,0,0,0], scale=.1, frames=1)
+    mps_pl.add_step('S'*6, [0,0,0,0,0,0], frames=5)
+    mps_pl.run()
+    df_pl = mps_pl.df
+
+    for key in ('S.XX', 'S.YY', 'S.ZZ', 'E.XX', 'E.YY', 'E.ZZ'):
+        assert np.allclose(df_el[key], df_pl[key])
+
+@pytest.mark.elastic
+@pytest.mark.material
 def test_uniaxial_strain():
     pathtable = [[1.0, 0.0, 0.0],
                  [2.0, 0.0, 0.0],
@@ -40,8 +66,8 @@ def test_uniaxial_strain():
     assert np.allclose(a[:,2], Q * a[:,0])
     assert np.allclose(eps_xx, a[:,0])
 
-@pytest.mark.material
 @pytest.mark.elastic
+@pytest.mark.material
 def test_uniaxial_stress():
     pathtable = [[1.0, 0.0, 0.0],
                  [2.0, 0.0, 0.0],
@@ -59,8 +85,8 @@ def test_uniaxial_stress():
     diff = (a[:,1] - parameters['E'] * a[:,0]) / parameters['E']
     assert max(abs(diff)) < 1e-10
 
-@pytest.mark.material
 @pytest.mark.elastic
+@pytest.mark.material
 def test_uniaxial_strain_with_stress_control():
     pathtable = [[ -7490645504., -3739707392., -3739707392.],
                  [-14981291008., -7479414784., -7479414784.],
@@ -79,8 +105,8 @@ def test_uniaxial_strain_with_stress_control():
     diff = (a[:,3] - H * a[:,0]) / H
     assert max(abs(diff)) < 1e-7
 
-@pytest.mark.material
 @pytest.mark.elastic
+@pytest.mark.material
 @pytest.mark.parametrize('realization', range(1,4))
 def test_random_linear_elastic(realization):
     difftol = 5.e-08
@@ -101,11 +127,9 @@ def test_random_linear_elastic(realization):
     simulation = mps.get2(*myvars)
     assert responses_are_same(analytic, simulation, myvars)
 
-@pytest.mark.material
 @pytest.mark.elastic
-@pytest.mark.fast
-@pytest.mark.analytic
 @pytest.mark.material
+@pytest.mark.analytic
 def test_supreme():
     ''' This test is 'supreme' because it compares the following values
     against the analytical solution:

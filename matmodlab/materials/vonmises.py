@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..logio import logger
-from ..material import Material
-from ..mmlabpack import VOIGT, dot, dev, iso, mag, ddot, dyad
+from ..core.logio import logger
+from ..core.material import Material
+from ..core.mmlabpack import VOIGT, dot, dev, iso, mag, ddot, dyad
 
 ROOT2 = np.sqrt(2.)
 ROOT3 = np.sqrt(3.)

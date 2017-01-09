@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..logio import logger
-from ..material import Material
-from ..mmlabpack import dot
+from ..core.logio import logger
+from ..core.material import Material
+from ..core.mmlabpack import dot
 
 class ElasticMaterial(Material):
     """Implements linear elasticity

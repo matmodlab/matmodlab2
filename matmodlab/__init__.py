@@ -1,8 +1,8 @@
 from .core.matmodlab import MaterialPointSimulator
 from .core.material import Material
-from .core.materials import *
 from .core.database import DatabaseFile
 from .core.environ import environ
+from .materials import *
 try:
     get_ipython()
     print('Setting up the Matmodlab notebook environment')

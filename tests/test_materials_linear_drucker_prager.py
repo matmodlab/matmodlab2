@@ -5,17 +5,9 @@ import random
 from math import *
 import numpy as np
 
-from numerix import rms_error, same_as_baseline, responses_are_same
 from matmodlab import *
-
-difftol = 5.e-08
-failtol = 1.e-07
-I6 = np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-
-def teardown_module():
-    for ext in ('.log', '.exo'):
-        for filename in glob.glob('*'+ext):
-            os.remove(filename)
+from testing_utils import *
+from matmodlab.core.mmlabpack import I6
 
 @pytest.mark.material
 @pytest.mark.drucker_prager

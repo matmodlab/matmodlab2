@@ -19,27 +19,25 @@ from numpy.distutils.core import setup
 from matmodlab.core.logio import get_logger
 from matmodlab.core.environ import environ
 
-dd = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../umat')
+ext_support_dir = os.path.dirname(os.path.realpath(__file__))
+aba_support_dir = os.path.join(ext_support_dir, '../umat')
 
 # "Lite" version of blas/lapack
-lapack_lite = os.path.join(dd, 'blas_lapack-lite.f')
+lapack_lite = os.path.join(ext_support_dir, 'blas_lapack-lite.f')
 lapack_lite_obj = os.path.splitext(lapack_lite)[0] + '.o'
 assert os.path.isfile(lapack_lite)
 
 # Fortran I/O
-mml_io = os.path.join(dd, 'mml_io.f90')
+mml_io = os.path.join(ext_support_dir, 'mml_io.f90')
 assert os.path.isfile(mml_io)
 
 # Abaqus related files
-aba_sdvini = os.path.join(dd, 'aba_sdvini.f90')
+aba_sdvini = os.path.join(aba_support_dir, 'aba_sdvini.f90')
 assert os.path.isfile(aba_sdvini)
-aba_utils = os.path.join(dd, 'aba_utils.f90')
+aba_utils = os.path.join(aba_support_dir, 'aba_utils.f90')
 assert os.path.isfile(aba_utils)
-umat_pyf = os.path.join(dd, 'umat.pyf')
+umat_pyf = os.path.join(aba_support_dir, 'umat.pyf')
 assert os.path.isfile(umat_pyf)
-
-ext_include_dir = dd
-del dd
 
 def which(name):
     for path in os.getenv('PATH', '').split(os.pathsep):
@@ -83,7 +81,10 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     # Build a "lite" version of lapack
     options['extra_objects'] = [lapack_lite_obj]
     options['extra_compile_args'] = ['-fPIC', '-shared']
-    options['include_dirs'] = include_dirs + [ext_include_dir]
+    if umat:
+        options['include_dirs'] = include_dirs + [aba_support_dir]
+    elif include_dirs:
+        options['include_dirs'] = include_dirs
 
     # Explicitly add this python distributions lib directory. This
     # shouldn't be necessary, but on some RHEL systems I have found that
@@ -93,7 +94,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     options["library_dirs"] = [d]
 
     if not os.path.isfile(lapack_lite_obj):
-        stat = build_blas_lapack()
+        stat = _build_blas_lapack(logger, fc)
         if stat != 0:
             logger.error('failed to build blas_lapack, dependent '
                          'libraries will not be importable')
@@ -110,28 +111,39 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     config.add_extension(name, sources=sources, **options)
     os.chdir(package_path)
 
-    fexec = '--f77exec={0} --f90exec={0}'.format(fc)
-    argv = ['./setup.py', 'config_fc'] + fexec.split()
+    # Build argv. Since we are calling the setuptools directly, argv[0] is
+    # meaningless. Put the name ./setup.py there because that is the standard
+    # setup script name.
+    argv = ['./setup.py',
+            'config_fc',
+            '--f77exec={0}'.format(fc),
+            '--f90exec={0}'.format(fc)]
+
+    # Build the fortran flags argument
     fflags = ['-Wno-unused-dummy-argument']
     if os.getenv('FCFLAGS'):
         fflags.extend(os.environ['FCFLAGS'].split())
-    fflags = ' '.join(fflags)
-    fflags = '--f77flags={0!r} --f90flags={0!r}'.format(fflags).split()
+    fflags = ['--f77flags={0!r}'.format(' '.join(fflags)),
+              '--f90flags={0!r}'.format(' '.join(fflags))]
+
+    # Extend argv to include fortran flags
     argv.extend(fflags)
     argv.extend(['build_ext', '-i'])
 
     # build the extension modules with distutils setup
     logger.info('building extension module {0!r}... '.format(name),
                 extra={'continued':1})
+
     failed = 0
+    logfile = None
 
     # change sys.argv for distutils
     hold = [x for x in sys.argv]
     sys.argv = [x for x in argv]
-    logfile = None
     config_dict = config.todict()
     try:
         if verbose:
+            # Call directly - LOTS of output!
             setup(**config_dict)
         elif environ.notebook:
             from IPython.utils import io
@@ -142,7 +154,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
             with stdout_redirected(to=logfile), merged_stderr_stdout():
                 setup(**config_dict)
         logger.info('done')
-    except:
+    except: # Bare except clause to pick up anything
         logger.info('failed')
         failed = 1
     finally:
@@ -160,6 +172,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
             os.remove(item)
     os.chdir(cwd)
 
+    # Return the loglevel back to what it was
     environ.loglevel = the_loglevel
 
     if failed:
@@ -168,10 +181,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
 
     return
 
-def build_blas_lapack(fc=None):
-    fc = fc or which('gfortran')
-    if fc is None:
-        raise OSError('Fortran compiler not found')
+def _build_blas_lapack(logger, fc):
     logger.info('building blas_lapack-lite... ', extra={'continued':1})
     cmd = [fc, '-fPIC', '-shared', '-O3', lapack_lite, '-o' + lapack_lite_obj]
     proc = Popen(cmd, stdout=open(os.devnull, 'a'), stderr=STDOUT)
@@ -179,7 +189,7 @@ def build_blas_lapack(fc=None):
     if proc.returncode == 0:
         logger.info('done')
     else:
-        logger.info('no')
+        logger.info('failed')
     return proc.returncode
 
 def fileno(file_or_fd):

@@ -8,12 +8,7 @@ import pytest
 import numpy as np
 
 from matmodlab import *
-from numerix import rms_error, responses_are_same
-
-def teardown_module():
-    for ext in ('.log', '.exo'):
-        for filename in glob.glob('*'+ext):
-            os.remove(filename)
+from testing_utils import *
 
 @pytest.mark.material
 @pytest.mark.analytic

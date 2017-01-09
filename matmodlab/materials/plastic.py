@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..logio import logger
-from ..material import Material
-from ..mmlabpack import VOIGT, dev, iso, mag, invariants, I6
+from ..core.logio import logger
+from ..core.material import Material
+from ..core.mmlabpack import VOIGT, dev, iso, mag, invariants, I6
 
 class PlasticMaterial(Material):
     """Implements linear pressure dependent plasticity

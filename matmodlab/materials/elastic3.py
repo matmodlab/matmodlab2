@@ -1,7 +1,7 @@
 from numpy import dot, zeros, ix_, eye
-from matmodlab.core.logio import logger
-from matmodlab.core.material import Material
-from matmodlab.core.mmlabpack import logm, powm, asarray, \
+from ..core.logio import logger
+from ..core.material import Material
+from ..core.mmlabpack import logm, powm, asarray, \
     polar_decomp, iso, dev, VOIGT
 
 class ElasticMaterialTotal(Material):

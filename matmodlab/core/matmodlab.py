@@ -43,29 +43,42 @@ class MaterialPointSimulator(object):
 
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
-    def __init__(self, jobid, initial_temp=0.):
+    def __init__(self, jobid, initial_temp=0., write_db=None):
+
         logger.info('Initializing the simulation')
-        self.init(jobid, initial_temp)
-        logger.info('Done initializing the simulation')
-
-    def init(self, jobid, initial_temp):
-
         self.jobid = jobid
-        self.material = None
-        self.initial_temp = initial_temp
-        add_filehandler(logger, self.jobid+'.log')
+
+        # File I/O
+        if environ.notebook:
+            if write_db:
+                logger.warning('Database will not automatically be created in '
+                               'the notebook environment.  Use the '
+                               'MaterialPointSimulator.dump method to create '
+                               'a database file, if desired.')
+            self.write_db = False
+        else:
+            self.write_db = True if write_db is None else write_db
+        if self.write_db:
+            # No log file if not db
+            add_filehandler(logger, self.jobid+'.log')
         splash(logger)
         logger.info('Matmodlab simulation: {0!r}'.format(self.jobid))
 
+        # Create initial step
+        self.initial_temp = initial_temp
         logger.info('Creating initial step... ', extra=continued)
         self.steps = self._initialize_steps(self.initial_temp)
         logger.info('done')
+
+        # Set defaults
         self.ran = False
         self._df = None
         self._columns = None
+        self._material = None
         self._elem_var_names = None
         self.db = None
         self.data = None
+        logger.info('Done initializing the simulation')
 
     def _initialize_steps(self, temp):
         """Create the initial step"""
@@ -290,6 +303,14 @@ class MaterialPointSimulator(object):
 
         return step
 
+    @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, material):
+        self.assign_material(material)
+
     def assign_material(self, material):
         """Assign the material model to the `MaterialPointSimulator`
 
@@ -319,12 +340,15 @@ class MaterialPointSimulator(object):
         See the documentation for the `Material` base class for more information
 
         """
-        self.material = material
-
-    def reset(self):
-        logger.info('Resetting the simulation... ', extra=continued)
-        self.init(self.jobid, self.initial_temp)
-        logger.info('done')
+        required_attrs = ('num_sdv', 'sdv_names', 'sdvini', 'eval')
+        for attr in required_attrs:
+            try:
+                getattr(material, attr)
+            except AttributeError:
+                attrs = ', '.join(required_attrs)
+                raise Exception('Material models must define the following '
+                                'attributes: {0}'.format(attrs))
+            self._material = material
 
     def run(self):
         """Run the simulation
@@ -343,7 +367,7 @@ class MaterialPointSimulator(object):
         if self.ran:
             raise RuntimeError('Already run')
 
-        if not environ.notebook:
+        if self.write_db:
             self.initialize_db()
 
         # Setup the array of simulation data
@@ -367,7 +391,7 @@ class MaterialPointSimulator(object):
         self.data[0, 0  ] = step.end
         self.data[0, 1:4] = glo_var_vals
         self.data[0, 4:] = elem_var_vals
-        if not environ.notebook:
+        if self.db is not None:
             self.db.save(step.end, glo_var_vals, elem_var_vals)
         step.ran = True
 
@@ -385,7 +409,7 @@ class MaterialPointSimulator(object):
             step.ran = True
         logger.info('All steps complete')
 
-        if not environ.notebook:
+        if self.db is not None:
             self.db.close()
 
         logger.info('Simulation complete')
@@ -480,7 +504,7 @@ class MaterialPointSimulator(object):
             raise RuntimeError('Simulation must first be run')
         self.initialize_db(filename=filename)
         num_glo_vars = len(self.glo_var_names)
-        i, j = 1, 1  + len(num_glo_vars)
+        i, j = 1, 1  + num_glo_vars
         for row in self.data:
             time = row[0]
             glo_var_vals = row[i:j]
@@ -681,7 +705,7 @@ class MaterialPointSimulator(object):
             data[iframe+1, 1:4] = glo_var_vals
             data[iframe+1, 4:] = elem_var_vals
 
-            if not environ.notebook:
+            if self.db is not None:
                 self.db.save(time[2], glo_var_vals, elem_var_vals)
 
 class Step(object):

@@ -5,15 +5,11 @@ import random
 import numpy as np
 
 from matmodlab import *
-from numerix import rms_error, same_as_baseline, responses_are_same
-
-def teardown_module():
-    for ext in ('.log', '.exo'):
-        for filename in glob.glob('*'+ext):
-            os.remove(filename)
+from testing_utils import *
 
 @pytest.mark.random
 @pytest.mark.material
+@pytest.mark.j2plasticity
 @pytest.mark.parametrize('realization', range(1,4))
 def test_random_j2_1(realization):
     myvars = ('Time',
@@ -35,6 +31,7 @@ def test_random_j2_1(realization):
 
 @pytest.mark.random
 @pytest.mark.material
+@pytest.mark.j2plasticity
 @pytest.mark.parametrize('realization', range(1,4))
 def test_random_j2_2(realization):
 
@@ -72,6 +69,8 @@ def test_random_j2_2(realization):
     simulation = mps.get2(*myvars)
     assert responses_are_same(analytic, simulation, myvars)
 
+@pytest.mark.material
+@pytest.mark.j2plasticity
 def test_j2_1():
     jobid = 'j2_plast'
     mps = MaterialPointSimulator(jobid)
@@ -86,6 +85,8 @@ def test_j2_1():
     mps.run()
     assert same_as_baseline(mps, interp=1)
 
+@pytest.mark.material
+@pytest.mark.j2plasticity
 @pytest.mark.isotropic_hardening
 def test_j2_iso_hard():
     jobid = 'j2_plast_iso_hard'
@@ -103,6 +104,8 @@ def test_j2_iso_hard():
     mps.run()
     assert same_as_baseline(mps, interp=1)
 
+@pytest.mark.material
+@pytest.mark.j2plasticity
 @pytest.mark.kinematic_hardening
 def test_j2_kin_hard():
     jobid = 'j2_plast_kin_hard'
@@ -121,6 +124,8 @@ def test_j2_kin_hard():
     mps.run()
     assert same_as_baseline(mps, interp=1)
 
+@pytest.mark.material
+@pytest.mark.j2plasticity
 @pytest.mark.mixed_hardening
 def test_j2_mix_hard():
     jobid = 'j2_plast_mix_hard'

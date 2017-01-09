@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
-from build_ext import build_extension_module
+from matmodlab.ext_helpers.build_ext import build_extension_module
 def main():
     p = ArgumentParser()
     p.add_argument('name')

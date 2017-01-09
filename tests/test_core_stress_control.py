@@ -5,16 +5,8 @@ import random
 import numpy as np
 
 from matmodlab import *
-from numerix import rms_error, same_as_baseline, responses_are_same
+from testing_utils import *
 
-def teardown_module():
-    for ext in ('.log', '.exo', '*.dat'):
-        for filename in glob.glob('*'+ext):
-            os.remove(filename)
-
-
-@pytest.mark.material
-@pytest.mark.elastic
 @pytest.mark.stresscontrol
 @pytest.mark.parametrize('realization', range(0, 10))
 def test_stress_control(realization):

@@ -323,6 +323,7 @@ class MaterialPointSimulator(object):
         -----
         `material` is assumed to be subclassed from the `Material` class.  Accordingly, the following members are assumed to exist:
 
+        - `material.name`: The name of the material. Default is `None`
         - `material.num_sdv`: Number of state dependent variables. Default is
           `None`
         - `material.sdv_names`: Names of state dependent variables (in order
@@ -340,15 +341,16 @@ class MaterialPointSimulator(object):
         See the documentation for the `Material` base class for more information
 
         """
-        required_attrs = ('num_sdv', 'sdv_names', 'sdvini', 'eval')
+        required_attrs = ('name', 'num_sdv', 'sdv_names', 'sdvini', 'eval')
         for attr in required_attrs:
             try:
                 getattr(material, attr)
             except AttributeError:
                 attrs = ', '.join(required_attrs)
-                raise Exception('Material models must define the following '
-                                'attributes: {0}'.format(attrs))
-            self._material = material
+                raise Exception('Material models must define all of the '
+                                'following attributes: {0}'.format(attrs))
+        logger.info('Assigning material {0!r}'.format(material.name))
+        self._material = material
 
     def run(self):
         """Run the simulation

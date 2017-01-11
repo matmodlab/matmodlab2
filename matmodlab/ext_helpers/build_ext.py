@@ -46,21 +46,18 @@ def which(name):
             return os.path.join(path, name)
     return None
 
-def clean_f2py_tracks(paths, dirs_to_remove):
-    for dirname in paths:
-        if not os.path.isdir(dirname):
-            continue
-        for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*module.c'):
-            for item in glob.glob(os.path.join(dirname, pat)):
-                if os.path.isdir(item):
-                    shutil.rmtree(item)
-                else:
-                    os.remove(item)
-    for dirname in dirs_to_remove:
-        shutil.rmtree(dirname)
+def clean_f2py_tracks(dirname):
+    if not os.path.isdir(dirname):
+        return
+    for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*module.c'):
+        for item in glob.glob(os.path.join(dirname, pat)):
+            if os.path.isdir(item):
+                shutil.rmtree(item)
+            else:
+                os.remove(item)
 
 def build_extension_module(name, sources, include_dirs=None, verbose=False,
-                           user_ics=False, fc=None):
+                           user_ics=False, fc=None, cwd=None):
     """Build the fortran extension module (material model)
 
     Parameters
@@ -99,8 +96,14 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     if name != '_matfuncs_sq3':
         sources.append(mml_io)
 
-    if lapack_lite not in sources:
-        sources.append(lapack_lite)
+    if lapack_lite in sources:
+        sources.remove(lapack_lite)
+
+    if lapack_lite_obj not in sources:
+        sources.append(lapack_lite_obj)
+
+    if not os.path.isfile(lapack_lite_obj):
+        _build_blas_lapack(logger, fc)
 
     include_dirs = include_dirs or []
 
@@ -132,19 +135,20 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
                 extra={'continued':1})
 
     logfile = None
+    cwd = cwd or os.getcwd()
     if verbose:
         # Call directly - LOTS of output!
-        p = Popen(command)
+        p = Popen(command, cwd=cwd)
         p.wait()
     elif environ.notebook:
         from IPython.utils import io
         with io.capture_output() as captured:
-            p = Popen(command)
+            p = Popen(command, cwd=cwd)
             p.wait()
     else:
         logfile = os.path.join(os.getcwd(), 'build.log')
         with stdout_redirected(to=logfile), merged_stderr_stdout():
-            p = Popen(command)
+            p = Popen(command, cwd=cwd)
             p.wait()
     logger.info('done')
 
@@ -154,16 +158,19 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     # Return the loglevel back to what it was
     environ.loglevel = the_loglevel
 
+    clean_f2py_tracks(cwd)
+
     if p.returncode != 0:
         logger.error('Failed to build')
         raise ExtensionNotBuilt(name)
 
-    return
+    return 0
 
 def _build_blas_lapack(logger, fc):
     logger.info('building blas_lapack-lite... ', extra={'continued':1})
     cmd = [fc, '-fPIC', '-shared', '-O3', lapack_lite, '-o' + lapack_lite_obj]
-    proc = Popen(cmd, stdout=open(os.devnull, 'a'), stderr=STDOUT)
+    proc = Popen(cmd, stdout=open(os.devnull, 'a'), stderr=STDOUT,
+                 cwd=ext_support_dir)
     proc.wait()
     if proc.returncode == 0:
         logger.info('done')
@@ -209,7 +216,8 @@ def merged_stderr_stdout():  # $ exec 2>&1
 
 def build_extension_module_as_subprocess(name, sources,
                                          include_dirs=None, verbose=False,
-                                         user_ics=False, fc=None):
+                                         user_ics=False, fc=None,
+                                         cwd=None):
     """Build the extension module, but call as a subprocess.
 
     Parameters
@@ -222,6 +230,7 @@ def build_extension_module_as_subprocess(name, sources,
     """
     build_extension_module(name, sources, include_dirs=include_dirs,
                            verbose=verbose, user_ics=user_ics, fc=fc)
+    return 0
 
 def build_mml_matrix_functions():
     """Build the mml linear algebra library"""
@@ -257,7 +266,7 @@ def main():
                            include_dirs=args.include_dirs,
                            verbose=args.verbose,
                            user_ics=args.user_ics,
-                           fc=args.fc)
+                           fc=args.fc, cwd=args.package_path)
 
 if __name__ == '__main__':
     main()

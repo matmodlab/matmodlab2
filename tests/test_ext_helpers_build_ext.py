@@ -32,7 +32,9 @@ def teardown_module():
         os.remove(filename)
 
 def build_extension_module(name, sources, user_ics=False):
-    return build_extension_module_as_subprocess(name, sources, user_ics=user_ics, verbose=True)
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    print(this_dir)
+    return build_extension_module_as_subprocess(name, sources, user_ics=user_ics, verbose=True, cwd=this_dir)
 
 @pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
 def test_build_umat_ext_no_user_ics():

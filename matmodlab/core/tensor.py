@@ -8,17 +8,6 @@ VOIGT = np.array([1, 1, 1, 2, 2, 2], dtype=np.float64)
 I6 = np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
 epsilon = np.finfo(float).eps
 
-def stretch_to_strain(u, k):
-    """Convert the 3x3 stretch tensor to a strain tensor using the
-    Seth-Hill parameter k and return a 6x1 array"""
-    mat, orig_shape = matfuncs.array_to_mat(u)
-    assert orig_shape == (6,)
-    if abs(k) > 1e-12:
-        mat = 1. / k * matfuncs.powm(mat, k) - np.eye(3)
-    else:
-        mat = matfuncs.logm(mat)
-    return matfuncs.mat_to_array(mat, orig_shape)
-
 def symarray(A):
     """Convert a 3x3 matrix to a 6x1 array representing a symmetric matix."""
     mat = (A + A.T) / 2.0
@@ -140,77 +129,6 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
     if not disp:
         return d
     return d, dudt
-
-def strain_from_defgrad(farg, kappa):
-    """Compute the strain measure from the deformation gradient
-
-    Parameters
-    ----------
-    farg : ndarray (9,)
-        Deformation gradient
-    kappa : int or float
-        Seth-Hill strain parameter
-    flatten : bool, optional
-        If True (default), return a flattened array
-
-    Returns
-    -------
-    E : ndarray
-        The strain measure
-
-    Notes
-    -----
-    Update strain by
-
-                 E = 1/k * (U**k - I)
-
-    where k is the Seth-Hill strain parameter.
-    """
-    f = farg.reshape((3, 3))
-    u = matfuncs.sqrtm(np.dot(f.T, f))
-    if kappa == 0:
-        eps = matfuncs.logm(u)
-    else:
-        eps = 1.0 / kappa * (matfuncs.powm(u, kappa) - np.eye(3, 3))
-
-    if matfuncs.determinant(f) <= 0.0:
-        raise Exception("negative jacobian encountered")
-
-    e = matfuncs.mat_to_array(eps, (6,)) * VOIGT
-
-    return e
-
-def defgrad_from_strain(E, kappa, flatten=1):
-    """Compute the deformation gradient from the strain measure
-
-    Parameters
-    ----------
-    E : ndarray (6,)
-        Strain measure
-    kappa : int or float
-        Seth-Hill strain parameter
-    flatten : bool, optional
-        If True (default), return a flattened array
-
-    Returns
-    -------
-    F : ndarray
-        The deformation gradient
-
-    """
-    R = np.eye(3)
-    I = np.eye(3)
-    E, _ = matfuncs.array_to_mat(E / VOIGT)
-    if kappa == 0:
-        U = matfuncs.expm(E)
-    else:
-        U = powm(k * E + I, 1. / k)
-    F = np.dot(R, U)
-    if matfuncs.determinant(F) <= 0.0:
-        raise Exception("negative jacobian encountered")
-    if flatten:
-        return F.flatten()
-    return F
 
 def isotropic_part(A):
     """Return isotropic part of A"""

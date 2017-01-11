@@ -27,7 +27,7 @@ def DatabaseFile(jobid, mode='r'):
     if mode not in 'rw':
         raise ValueError('Mode must be r or w')
 
-    exts = ('.exo', '.gen', '.base_exo', '.e', '.g')
+    exts = ('.exo', '.gen', '.base_exo', '.e', '.g', '.npz')
     if jobid.endswith(exts):
         filename = jobid
         jobid = os.path.splitext(os.path.basename(jobid))[0]
@@ -38,10 +38,18 @@ def DatabaseFile(jobid, mode='r'):
         raise ValueError('Not a valid ExodusII file extension')
 
     if mode == 'w':
+        if not filename.endswith(exts[:-1]):
+            raise ValueError('DatabaseWriter is only for exodus files')
         return DatabaseFileWriter(jobid, filename)
-    db = DatabaseFileReader(filename)
-    db.fh.close()
-    return db.df
+    if filename.endswith('.npz'):
+        from pandas import DataFrame
+        f = np.load(filename)
+        df = DataFrame(f['data'], columns=f['columns'])
+    else:
+        db = DatabaseFileReader(filename)
+        db.fh.close()
+        df = db.df
+    return df
 
 def groupby_names(names, sep=None, disp=0):
     return _DatabaseFile.groupby_names(names, sep=sep, disp=disp)

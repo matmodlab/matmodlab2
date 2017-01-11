@@ -7,7 +7,7 @@ from matmodlab.core.numerix import *
 
 def teardown_module():
     """Remove generated files after a test"""
-    for ext in ('.log', '.exo', '.dat'):
+    for ext in ('.log', '.exo', '.dat', '.npz'):
         for filename in glob.glob('*'+ext):
             os.remove(filename)
 

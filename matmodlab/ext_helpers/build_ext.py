@@ -56,7 +56,7 @@ def clean_f2py_tracks(paths, dirs_to_remove):
     for dirname in paths:
         if not os.path.isdir(dirname):
             continue
-        for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*pymodule.c'):
+        for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*module.c'):
             for item in glob.glob(os.path.join(dirname, pat)):
                 if os.path.isdir(item):
                     shutil.rmtree(item)

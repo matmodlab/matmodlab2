@@ -78,13 +78,12 @@ def test_expm():
     assert np.allclose(mf_fun(A), A_fun)
 
 def test_expm_logm_consistency():
-    A = np.random.rand(9).reshape(3,3)
+    A = random_symmetric_positive_definite_matrix()
     B = mf.expm(A)
     assert np.allclose(mf.logm(B), A)
 
 def test_logm_expm_consistency():
-    A = np.random.rand(9)
-    A = np.where(np.abs(A)<1e-14, 1., A)
+    A = random_symmetric_positive_definite_matrix()
     A = A.reshape(3,3)
     B = mf.logm(A)
     assert np.allclose(mf.expm(B), A)
@@ -128,12 +127,22 @@ def test_sqrtm():
     A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
     assert np.allclose(mf_fun(a), a_fun)
     assert np.allclose(mf_fun(A), A_fun)
-    A = np.array([[x, y, 0], [y, y, 0], [0, 0, z]])
+    A = random_symmetric_positive_definite_matrix()
     B = mf_fun(A)
     assert np.allclose(np.dot(B,B), A)
-    A = np.random.rand(9).reshape(3,3)
-    B = mf_fun(A)
-    assert np.allclose(np.dot(B,B), A)
+
+def random_symmetric_positive_definite_matrix():
+    theta = np.random.uniform(0, 2*np.pi, 1)[0]
+    a = np.random.rand(3)
+    a = a / np.sqrt(np.dot(a,a))
+    aa = np.outer(a,a)
+    I = np.eye(3)
+    A = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
+    R = I + 2*np.sin(theta/2.)**2*(aa-I)+np.sin(theta)*A
+    L = np.zeros((3,3))
+    L[([0,1,2],[0,1,2])] = np.random.rand(3)
+    X = np.dot(np.dot(R, L), R.T)
+    return (X + X.T) / 2.
 
 if __name__ == '__main__':
     test_import()

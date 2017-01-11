@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 import scipy.linalg
 from .logio import logger
+import matmodlab.core._matfuncs_sq3
 try:
     import matmodlab.core._matfuncs_sq3
     la = matmodlab.core._matfuncs_sq3.linalg

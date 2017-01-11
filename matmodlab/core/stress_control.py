@@ -3,78 +3,11 @@ import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
 from .tensor import VOIGT
+from .deformation import update_deformation
 import matmodlab.core.matfuncs as matfuncs
 
-def update_deformation(farg, darg, dt, k):
-    """Update the deformation gradient and strain
-
-    Parameters
-    ----------
-    farg : ndarray
-        The deformation gradient
-    darg : ndarray
-        The symmetric part of the velocity gradient
-    dt : float
-        The time increment
-    k : int or real
-        The Seth-Hill parameter
-
-    Returns
-    -------
-    f : ndarray
-        The updated deformation gradient
-    e : ndarray
-        The updated strain
-
-    Notes
-    -----
-    From the value of the Seth-Hill parameter kappa, current strain E,
-    deformation gradient F, and symmetric part of the velocit gradient d,
-    update the strain and deformation gradient.
-    Deformation gradient is given by
-
-                 dFdt = L*F                                             (1)
-
-    where F and L are the deformation and velocity gradients, respectively.
-    The solution to (1) is
-
-                 F = F0*exp(Lt)
-
-    Solving incrementally,
-
-                 Fc = Fp*exp(Lp*dt)
-
-    where the c and p refer to the current and previous values, respectively.
-
-    With the updated F, Fc, known, the updated stretch is found by
-
-                 U = (trans(Fc)*Fc)**(1/2)
-
-    Then, the updated strain is found by
-
-                 E = 1/k * (U**k - I)
-
-    where k is the Seth-Hill strain parameter.
-    """
-    f0 = farg.reshape((3, 3))
-    d = matfuncs.array_to_mat(darg / VOIGT)[0]
-    ff = np.dot(matfuncs.expm(d * dt), f0)
-    u = matfuncs.sqrtm(np.dot(ff.T, ff))
-    if k == 0:
-        eps = matfuncs.logm(u)
-    else:
-        eps = 1.0 / k * (powm(u, k) - np.eye(3, 3))
-
-    if matfuncs.determinant(ff) <= 0.0:
-        raise Exception("negative jacobian encountered")
-
-    f = np.reshape(ff, (9,))
-    e = matfuncs.mat_to_array(eps, (6,)) * VOIGT
-
-    return f, e
-
-def sig2d(material, t, dt, temp, dtemp, f0, f, stran, d, sig, statev,
-          v, sigspec):
+def d_from_prescribed_stress(material, t, dt, temp, dtemp, f0, f,
+                             stran, d, sig, statev, v, sigspec):
     '''Determine the symmetric part of the velocity gradient given stress
 
     Parameters

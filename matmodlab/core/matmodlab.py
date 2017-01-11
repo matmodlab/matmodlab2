@@ -8,9 +8,10 @@ from .environ import environ
 from .logio import logger, add_filehandler, splash
 from .database import DatabaseFile, COMPONENT_SEP, groupby_names
 from .matfuncs import determinant, mat_to_array
-from .mmlabpack import sig2d, update_deformation
-from .tensor import stretch_to_strain, rate_of_strain_to_rate_of_deformation, \
-    defgrad_from_strain, VOIGT
+from .stress_control import d_from_prescribed_stress
+from .deformation import update_deformation, strain_from_stretch, \
+    defgrad_from_strain
+from .tensor import rate_of_strain_to_rate_of_deformation, VOIGT
 continued = {'continued': 1}
 
 __all__ = ['MaterialPointSimulator']
@@ -48,7 +49,8 @@ class MaterialPointSimulator(object):
 
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
-    def __init__(self, jobid, initial_temp=0., write_db=None):
+    def __init__(self, jobid, initial_temp=0., write_db=None,
+                 db_fmt='npz'):
 
         logger.info('Initializing the simulation')
         self.jobid = jobid
@@ -67,6 +69,10 @@ class MaterialPointSimulator(object):
             # No log file if not db
             add_filehandler(logger, self.jobid+'.log')
         splash(logger)
+        if db_fmt not in ('npz', 'exo'):
+            raise ValueError('db_fmt must by npz or exo')
+        self.db_fmt = db_fmt
+
         logger.info('Matmodlab simulation: {0!r}'.format(self.jobid))
 
         # Create initial step
@@ -254,7 +260,7 @@ class MaterialPointSimulator(object):
                                  'gave unexpected rotations (rotations are '
                                  'not yet supported)')
             U = np.dot(R.T, np.dot(V, R))
-            components = stretch_to_strain(mat_to_array(U,(6,)), kappa)
+            components = strain_from_stretch(mat_to_array(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'U' in descriptors:
@@ -262,7 +268,7 @@ class MaterialPointSimulator(object):
             U = np.zeros((3, 3))
             DI3 = np.diag_indices(3)
             U[DI3] = components + 1.
-            components = stretch_to_strain(mat_to_array(U,(6,)), kappa)
+            components = strain_from_stretch(mat_to_array(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'E' in descriptors and len(descriptors) == 1:
@@ -388,9 +394,6 @@ class MaterialPointSimulator(object):
         if self.ran:
             raise RuntimeError('Already run')
 
-        if self.write_db:
-            self.initialize_db()
-
         # Setup the array of simulation data
         columns = list(self.columns.keys())
         num_vars = len(columns)
@@ -412,8 +415,6 @@ class MaterialPointSimulator(object):
         self.data[0, 0  ] = step.end
         self.data[0, 1:4] = glo_var_vals
         self.data[0, 4:] = elem_var_vals
-        if self.db is not None:
-            self.db.save(step.end, glo_var_vals, elem_var_vals)
         step.ran = True
 
         # Run each step, skipping the first
@@ -437,13 +438,16 @@ class MaterialPointSimulator(object):
         logger.info(' done ({0:g} sec.)'.format(dt))
         logger.info('All steps complete')
 
-        if self.db is not None:
-            self.db.close()
+        self.ran = True
+
+        if self.write_db:
+            if self.db_fmt == 'npz':
+                self.dumpz()
+            else:
+                self.dump()
 
         dt = time.time() - start_sim
         logger.info('Simulation complete ({0:g} sec.)'.format(dt))
-
-        self.ran = True
 
     @property
     def df(self):
@@ -516,7 +520,11 @@ class MaterialPointSimulator(object):
     def plot(self, *args, **kwargs):
         return self.df.plot(*args, **kwargs)
 
-    def initialize_db(self, filename=None):
+    def dump(self, filename=None):
+        """Write results to output database"""
+        if not self.ran:
+            raise RuntimeError('Simulation must first be run')
+
         logger.info('Opening the output database... ', extra=continued)
         if filename is None:
             filename = self.jobid
@@ -527,19 +535,35 @@ class MaterialPointSimulator(object):
         self.db.initialize(self.glo_var_names, self.elem_var_names)
         logger.info('done')
 
-    def dump(self, filename=None):
+        logger.info('Writing data to {0!r}'.format(self.db.filename))
+        num_glo_vars = len(self.glo_var_names)
+        i, j = 1, 1  + num_glo_vars
+        start = time.time()
+        for row in self.data:
+            end_time = row[0]
+            glo_var_vals = row[i:j]
+            elem_var_vals = row[j:]
+            self.db.save(end_time, glo_var_vals, elem_var_vals)
+        dt = time.time() - start
+        logger.info('Done writing data {0:.2f}'.format(dt))
+        logger.info('Closing the output database... ', extra=continued)
+        self.db.close()
+        logger.info('done')
+
+    def dumpz(self, filename=None):
         """Write results to output database"""
         if not self.ran:
             raise RuntimeError('Simulation must first be run')
-        self.initialize_db(filename=filename)
-        num_glo_vars = len(self.glo_var_names)
-        i, j = 1, 1  + num_glo_vars
-        for row in self.data:
-            time = row[0]
-            glo_var_vals = row[i:j]
-            elem_var_vals = row[j:]
-            self.db.save(time, glo_var_vals, elem_var_vals)
-        self.db.close()
+        if filename is None:
+            filename = self.jobid
+        if not filename.endswith('.npz'):
+            filename += '.npz'
+        logger.info('Writing data to {0!r}... '.format(filename),
+                    extra=continued)
+        columns = list(self.columns.keys())
+        with open(filename, 'wb') as fh:
+            np.savez(fh, columns=columns, data=self.data)
+        logger.info('done')
 
     def expand_name_to_keys(self, key, columns):
         names_and_cols = groupby_names(columns)
@@ -703,9 +727,10 @@ class MaterialPointSimulator(object):
 
             if nv:
                 # One or more stresses prescribed
-                d = sig2d(self.material, time[2], dtime, temp[2], dtemp,
-                          F[0], F[1], strain[2], dedt, stress[2],
-                          statev[0], v, pstress[v])
+                d = d_from_prescribed_stress(
+                    self.material, time[2], dtime, temp[2], dtemp,
+                    F[0], F[1], strain[2], dedt, stress[2],
+                    statev[0], v, pstress[v])
 
             # compute the current deformation gradient and strain from
             # previous values and the deformation rate
@@ -733,9 +758,6 @@ class MaterialPointSimulator(object):
             data[iframe+1, 0] = time[2]
             data[iframe+1, 1:4] = glo_var_vals
             data[iframe+1, 4:] = elem_var_vals
-
-            if self.db is not None:
-                self.db.save(time[2], glo_var_vals, elem_var_vals)
 
 class Step(object):
     def __init__(self, begin, end, frames,

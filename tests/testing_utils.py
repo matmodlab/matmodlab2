@@ -20,8 +20,6 @@ def same_as_baseline(mps, baseline=None, interp=0,
     """Is the response from the MaterialPointSimulator object mps the same as the
     baseline?"""
 
-    floor = 1.E-12
-
     df1 = mps.df
     if baseline is None:
         baseline = os.path.join('data', mps.jobid+'.base_dat')

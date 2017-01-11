@@ -1,8 +1,9 @@
 from numpy import dot, zeros, ix_, eye
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import stretch_to_strain, asarray, \
+from ..core.tensor import stretch_to_strain, \
     polar_decomp, isotropic_part, deviatoric_part, VOIGT
+from ..core.matfuncs import mat_to_array
 
 class ElasticMaterialTotal(Material):
     name = "elastic3"
@@ -54,7 +55,7 @@ class ElasticMaterialTotal(Material):
         ddsdde[range(3,6),range(3,6)] = G
 
         R, U = polar_decomp(F.reshape(3,3))
-        e = stretch_to_strain(asarray(U), k)
+        e = stretch_to_strain(mat_to_array(U, (6,)), k)
 
         # stress update
         stress = K3 * isotropic_part(e) + G2 * deviatoric_part(e)

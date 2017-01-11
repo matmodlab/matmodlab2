@@ -1,11 +1,16 @@
 from __future__ import print_function
+import time
 import numpy as np
 from collections import OrderedDict
 
-from .mmlabpack import *
+from .misc import is_stringlike, is_listlike
 from .environ import environ
 from .logio import logger, add_filehandler, splash
 from .database import DatabaseFile, COMPONENT_SEP, groupby_names
+from .matfuncs import determinant, mat_to_array
+from .mmlabpack import sig2d, update_deformation
+from .tensor import stretch_to_strain, rate_of_strain_to_rate_of_deformation, \
+    defgrad_from_strain, VOIGT
 continued = {'continued': 1}
 
 __all__ = ['MaterialPointSimulator']
@@ -116,7 +121,7 @@ class MaterialPointSimulator(object):
         return descriptors
 
     def add_step(self, descriptors, components, increment=1., frames=1,
-                 scale=1., kappa=0., temperature=0.):
+                 scale=1., kappa=0., temperature=0., time_whole=None):
         """Create a deformation step for the simulation
 
         Parameters
@@ -130,20 +135,23 @@ class MaterialPointSimulator(object):
                 - `DS`: representing an increment in stress
                 - `F`: representing the deformation gradient
                 - `U`: representing displacement
-        components : listlike of reals
+        components : listlike of floats
             The components of deformation. `components[i]` is interpreted as
             `descriptors[i]`. Thus, `len(components)` must equal
             `len(descriptors)`
-        increment : real, optional
+        increment : float, optional
             The length of the step in time units, default is 1.
         frames : int, optional
             The number of discrete increments in the step, default is 1
-        scale : real or listlike of real
+        scale : float or listlike of float
             Scaling factor to be applied to components.  If scale
-        kappa : real
+        kappa : float
             The Seth-Hill parameter of generalized strain.  Default is 0.
-        temperature : real
+        temperature : float
             The temperature at the end of the step.  Default is 0.
+        time_whole : float
+            The whole time at the end of the step.  Default is `None`.
+            If defined, the `increment` argument is ignored.
 
         Tensor Component Ordering
         -------------------------
@@ -246,7 +254,7 @@ class MaterialPointSimulator(object):
                                  'gave unexpected rotations (rotations are '
                                  'not yet supported)')
             U = np.dot(R.T, np.dot(V, R))
-            components = stretch_to_strain(symarray(U), kappa)
+            components = stretch_to_strain(mat_to_array(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'U' in descriptors:
@@ -254,7 +262,7 @@ class MaterialPointSimulator(object):
             U = np.zeros((3, 3))
             DI3 = np.diag_indices(3)
             U[DI3] = components + 1.
-            components = stretch_to_strain(symarray(U), kappa)
+            components = stretch_to_strain(mat_to_array(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'E' in descriptors and len(descriptors) == 1:
@@ -291,11 +299,21 @@ class MaterialPointSimulator(object):
                 components = np.append(components, [0.] * n)
 
         n = len(self.steps)
+        xc = '[{0}]'.format(', '.join(['{0:g}'.format(x) for x in components]))
         logger.debug('Adding step {0:4d} with descriptors: {1}\n'
                      '                   and components: {2}'.format(
-                         n, descriptors, components))
+                         n, ''.join(descriptors), xc))
 
         begin = self.steps[-1].end
+
+        if time_whole is not None:
+            time_whole = float(time_whole)
+            if time_whole < begin:
+                i = len(self.steps)+1
+                raise ValueError('time_whole for step {0} '
+                                 '< beginning time'.format(i))
+            increment = time_whole - begin
+
         end = begin + increment
         step = Step(begin, end, frames, descriptors, components,
                     temperature, kappa)
@@ -361,6 +379,7 @@ class MaterialPointSimulator(object):
         step of the simulation.
 
         """
+        start_sim = time.time()
         logger.info('Running the simulation')
 
         if self.material is None:
@@ -398,23 +417,31 @@ class MaterialPointSimulator(object):
         step.ran = True
 
         # Run each step, skipping the first
-        logger.info('Running each step')
+        num_steps = len(self.steps)
+        m = len(str(num_steps))
+        string = '\rRunning simulation steps [{{0:{0}d}}/{1}]'.format(
+            m, num_steps-1)
+        start_steps = time.time()
         for i in range(len(self.steps)-1):
             istep = i + 1
             irow = sum(step.frames for step in self.steps[:istep])-1
             previous_step = self.steps[i]
             step = self.steps[istep]
             assert step.begin == previous_step.end
+            logger.info(string.format(istep), extra=continued)
             self.run_istep(istep, step.begin, step.end, step.frames,
                            step.descriptors, step.components,
                            step.temp, step.kappa, self.data[irow:, :])
             step.ran = True
+        dt = time.time() - start_steps
+        logger.info(' done ({0:g} sec.)'.format(dt))
         logger.info('All steps complete')
 
         if self.db is not None:
             self.db.close()
 
-        logger.info('Simulation complete')
+        dt = time.time() - start_sim
+        logger.info('Simulation complete ({0:g} sec.)'.format(dt))
 
         self.ran = True
 

@@ -2,8 +2,8 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, deviatoric_part, isotropic_part, \
-    magnitude, invariants, I6
+from ..core.tensor import VOIGT, deviatoric_part, isotropic_part, \
+    invariants, I6, magnitude
 
 class PlasticMaterial(Material):
     """Implements linear pressure dependent plasticity

@@ -3,7 +3,7 @@ import sys
 import logging
 import numpy as np
 from matmodlab.core.logio import logger
-from matmodlab.core.mmlabpack import ddot
+from matmodlab.core.tensor import VOIGT
 from matmodlab.core.material import Material
 
 try:
@@ -72,7 +72,7 @@ class UMat(Material):
         spd = scd = rpl = drpldt = pnewdt = 0.
         noel = npt = layer = kspt = kinc = 1
         rho = 1.
-        sse = ddot(stress, stran) / rho
+        sse = np.dot(stress, stran*VOIGT) / rho
         celent = 1.
         kstep = 1
         time = np.array([time, time])

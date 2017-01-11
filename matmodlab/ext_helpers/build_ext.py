@@ -18,7 +18,7 @@ from numpy.distutils.core import setup
 
 from matmodlab.core.logio import get_logger
 from matmodlab.core.environ import environ
-from matmodlab.core.mmlabpack import is_listlike
+from matmodlab.core.misc import is_listlike
 
 ext_support_dir = os.path.dirname(os.path.realpath(__file__))
 aba_support_dir = os.path.join(ext_support_dir, '../umat')
@@ -51,6 +51,19 @@ def which(name):
         if os.path.isfile(os.path.join(path, name)):
             return os.path.join(path, name)
     return None
+
+def clean_f2py_tracks(paths, dirs_to_remove):
+    for dirname in paths:
+        if not os.path.isdir(dirname):
+            continue
+        for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*pymodule.c'):
+            for item in glob.glob(os.path.join(dirname, pat)):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+    for dirname in dirs_to_remove:
+        shutil.rmtree(dirname)
 
 def build_extension_module(name, sources, include_dirs=None, verbose=False,
                            package_path=None, user_ics=False, fc=None):
@@ -90,7 +103,9 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     for source_file in sources:
         if not os.path.isfile(source_file):
             raise OSError('{0!r}: file not found'.format(source_file))
-    sources.append(mml_io)
+
+    if name != '_matfuncs_sq3':
+        sources.append(mml_io)
 
     include_dirs = include_dirs or []
 
@@ -122,7 +137,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     assert os.path.isdir(d)
     options["library_dirs"] = [d]
 
-    if not os.path.isfile(lapack_lite_obj):
+    if lapack_lite_obj in sources and not os.path.isfile(lapack_lite_obj):
         stat = _build_blas_lapack(logger, fc)
         if stat != 0:
             logger.error('failed to build blas_lapack, dependent '
@@ -131,6 +146,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     cwd = os.getcwd()
     if package_path is None:
         package_path = cwd
+    os.chdir(package_path)
 
     build_dir = os.path.join(package_path, 'build')
     had_build_dir = os.path.isdir(build_dir)
@@ -138,7 +154,6 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     config = Configuration(package_name='', parent_package='', top_path='',
                            package_path=package_path)
     config.add_extension(name, sources=sources, **options)
-    os.chdir(package_path)
 
     # Build argv. Since we are calling the setuptools directly, argv[0] is
     # meaningless. Put the name ./setup.py there because that is the standard
@@ -190,15 +205,13 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         sys.argv = [x for x in hold]
 
-    if not had_build_dir:
-        shutil.rmtree(build_dir)
     if logfile is not None and logfile != sys.stdout:
         os.remove(logfile)
-    for item in glob.glob(os.path.join(package_path, '*.so.dSYM')):
-        if os.path.isdir(item):
-            shutil.rmtree(item)
-        else:
-            os.remove(item)
+
+    dirs_to_remove = []
+    if not had_build_dir:
+        dirs_to_remove.append(build_dir)
+    clean_f2py_tracks([package_path, cwd], dirs_to_remove)
     os.chdir(cwd)
 
     # Return the loglevel back to what it was
@@ -296,16 +309,32 @@ def build_extension_module_as_subprocess(name, sources,
         raise ExtensionNotBuilt(name)
     return 0
 
+def build_mml_matrix_functions():
+    """Build the mml linear algebra library"""
+    name = '_matfuncs_sq3'
+    mfuncs_pyf = os.path.join(ext_support_dir, 'matrix_funcs.pyf')
+    mfuncs_f90 = os.path.join(ext_support_dir, 'matrix_funcs.f90')
+    dgpadm_f = os.path.join(ext_support_dir, 'dgpadm.f')
+    sources = [mfuncs_pyf, mfuncs_f90, lapack_lite, dgpadm_f]
+    package_path = os.path.join(ext_support_dir, '../core')
+    build_extension_module(name, sources, package_path=package_path,
+                           verbose=True)
+    return 0
+
 def main():
     p = ArgumentParser()
     p.add_argument('name')
-    p.add_argument('sources', nargs='+')
+    p.add_argument('sources', nargs='*')
     p.add_argument('--include-dirs', action='append', default=None)
     p.add_argument('--verbose', action='store_true', default=False)
     p.add_argument('--package-path', default=None)
     p.add_argument('--user-ics', action='store_true', default=False)
     p.add_argument('--fc', default=False)
     args = p.parse_args()
+    if args.name == 'matfuncs':
+        return build_mml_matrix_functions()
+    if not args.sources:
+        raise ValueError('Missing sources argument')
     build_extension_module(args.name, args.sources,
                            include_dirs=args.include_dirs,
                            verbose=args.verbose,

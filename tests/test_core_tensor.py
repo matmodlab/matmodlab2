@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains tests for mmlabpack.py
+This file contains tests for tensor.py
 """
 
 import sys
@@ -8,7 +8,6 @@ import pathlib
 import pytest
 import numpy as np
 from testing_utils import isclose
-
 
 # Ensure that 'matmodlab' is imported from parent directory.
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
@@ -18,8 +17,7 @@ try:
 except ImportError:
     matmodlab = None
 
-import matmodlab.core.mmlabpack as mcm
-
+import matmodlab.core.tensor as tens
 
 def vec_isclose(name, comp, gold, rtol=1.0e-12, atol=1.0e-12):
     print("===== {0}".format(name))
@@ -29,7 +27,6 @@ def vec_isclose(name, comp, gold, rtol=1.0e-12, atol=1.0e-12):
     PASS = np.allclose(comp, gold, rtol=rtol, atol=atol)
     print("PASS" if PASS else "FAIL")
     return PASS
-
 
 tovoigt = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
 
@@ -108,13 +105,6 @@ deformation_measures_db = [
      },
     ]
 
-
-
-
-
-
-
-
 @pytest.mark.parametrize('a', np.linspace(0.0, 1.0e+1, 10))
 @pytest.mark.parametrize('t', np.linspace(0.0, 1.0e+1, 10))
 def test_deformation_measures_from_strain_uni_strain(a, t):
@@ -126,12 +116,11 @@ def test_deformation_measures_from_strain_uni_strain(a, t):
     d_g = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     # Test
-    d = mcm.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
+    d = tens.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
     assert vec_isclose("D", d, d_g*tovoigt)
 
     # Teardown
     pass
-
 
 def test_deformation_measures_from_strain_dissertation_test():
     """ Verify that we are converting from strain to D correctly. """
@@ -164,12 +153,11 @@ def test_deformation_measures_from_strain_dissertation_test():
                     0.0, 0.0])
 
     # Test
-    d = mcm.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
+    d = tens.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
     assert vec_isclose("D", d, d_g*tovoigt)
 
     # Teardown
     pass
-
 
 def test_deformation_measures_from_strain_dissertation_static():
     """ Verify that we are converting from strain to D correctly. """
@@ -182,12 +170,11 @@ def test_deformation_measures_from_strain_dissertation_static():
     d_g=np.array([-4.3525785227788080461,5.6602708304711157384,0,11.902909607738023219,0,0])
 
     # Test
-    d = mcm.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
+    d = tens.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
     assert vec_isclose("D", d, d_g*tovoigt)
 
     # Teardown
     pass
-
 
 @pytest.mark.parametrize('db', deformation_measures_db)
 @pytest.mark.parametrize('idx', [0, 1, 2, 3, 4])
@@ -207,39 +194,34 @@ def test_deformation_measures_from_strain_db(db, idx):
     print("kappa=", kappa)
 
     # Test
-    d = mcm.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt,
+    d = tens.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt,
                                                   eps*tovoigt, kappa)
     assert vec_isclose("D", d, d_g*tovoigt)
 
     # Teardown
     pass
 
-# NOTE: In many of the tests to follow, only a trivial tensor is sent to test
-# the matrix function. This is by design. Since all of the matrix functions are
-# just wrappers to scipy functions, these tests just test the wrapper (the
-# ability to call the function with a 3x3 "matrix" or 6x1 array)
-
 def test_isotropic_part():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])
     A_ident = np.eye(3)
-    iso_a_ident = mcm.isotropic_part(a_ident)
-    iso_A_ident = mcm.isotropic_part(A_ident)
+    iso_a_ident = tens.isotropic_part(a_ident)
+    iso_A_ident = tens.isotropic_part(A_ident)
     assert np.allclose(iso_a_ident, a_ident)
     assert np.allclose(iso_A_ident, A_ident)
-    dev_a_ident = mcm.deviatoric_part(a_ident)
-    dev_A_ident = mcm.deviatoric_part(A_ident)
+    dev_a_ident = tens.deviatoric_part(a_ident)
+    dev_A_ident = tens.deviatoric_part(A_ident)
     assert np.allclose(dev_a_ident, 0)
     assert np.allclose(dev_A_ident, 0)
 
 def test_deviatoric_part():
     a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
     A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
-    iso_a_dev = mcm.isotropic_part(a_dev)
-    iso_A_dev = mcm.isotropic_part(A_dev)
+    iso_a_dev = tens.isotropic_part(a_dev)
+    iso_A_dev = tens.isotropic_part(A_dev)
     assert np.allclose(iso_a_dev, 0)
     assert np.allclose(iso_A_dev, 0)
-    dev_a_dev = mcm.deviatoric_part(a_dev)
-    dev_A_dev = mcm.deviatoric_part(A_dev)
+    dev_a_dev = tens.deviatoric_part(a_dev)
+    dev_A_dev = tens.deviatoric_part(A_dev)
     assert np.allclose(dev_a_dev, a_dev)
     assert np.allclose(dev_A_dev, A_dev)
 
@@ -249,124 +231,21 @@ def test_mechanics_invariants_dev():
     a_i1 = 0.
     a_mag_a = np.sqrt((1 + 2. * .5 ** 2))
     a_rootj2 = a_mag_a / np.sqrt(2.)
-    i1, rootj2 = mcm.invariants(a_dev, mechanics=True)
+    i1, rootj2 = tens.invariants(a_dev, mechanics=True)
     assert np.allclose(a_i1, i1)
     assert np.allclose(a_rootj2, rootj2)
-
-
-def test_trace():
-    a_ident = np.array([1., 1., 1., 0., 0., 0.])
-    A_ident = np.eye(3)
-    assert isclose(mcm.trace(a_ident), 3.)
-    assert isclose(mcm.trace(A_ident), 3.)
-
-    a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
-    A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
-    assert isclose(mcm.trace(a_dev), 0.)
-    assert isclose(mcm.trace(A_dev), 0.)
 
 def test_magnitude():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])
     A_ident = np.eye(3)
-    assert isclose(mcm.magnitude(a_ident), np.sqrt(3.))
-    assert isclose(mcm.magnitude(A_ident), np.sqrt(3.))
+    assert isclose(tens.magnitude(a_ident), np.sqrt(3.))
+    assert isclose(tens.magnitude(A_ident), np.sqrt(3.))
 
     mag = np.sqrt(1 + 2. * .5 ** 2)
     a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
     A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
-    assert isclose(mcm.magnitude(a_dev), mag)
-    assert isclose(mcm.magnitude(A_dev), mag)
-
-def test_is_listlike():
-    """Is item list like?"""
-    assert not mcm.is_listlike('aaa')
-    assert mcm.is_listlike([0,1,2])
-    assert mcm.is_listlike((0,1,2))
-    assert not mcm.is_listlike(None)
-
-def test_is_stringlike():
-    """Is item string like?"""
-    assert mcm.is_stringlike('aaa')
-    assert not mcm.is_stringlike([0,1,2])
-    assert not mcm.is_stringlike((0,1,2))
-
-def test_is_scalarlike():
-    """Is item scalar like?"""
-    assert mcm.is_scalarlike(5)
-    assert mcm.is_scalarlike(5.)
-    assert mcm.is_scalarlike(np.array(5.))
-    assert mcm.is_scalarlike(np.array(5))
-    assert not mcm.is_scalarlike([1,2])
-    assert not mcm.is_scalarlike(np.array([1,2]))
-
-def test_determinant():
-    """Determinant of A"""
-    x, y, z = 1., 2., 3.
-    a = np.array([x, y, z, 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    assert isclose(mcm.determinant(a), x*y*z)
-    assert isclose(mcm.determinant(A), x*y*z)
-
-def test_inverse():
-    """Inverse of A"""
-    x, y, z = 1., 2., 3.
-    fun = lambda _: 1./ _
-    mcm_fun = mcm.inverse
-    a = np.array([x, y, z, 0, 0, 0])
-    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
-    assert np.allclose(mcm_fun(a), a_fun)
-    assert np.allclose(mcm_fun(A), A_fun)
-
-def test_expm():
-    """Compute the matrix exponential of a 3x3 matrix"""
-    x, y, z = 1., 2., 3.
-    fun = np.exp
-    mcm_fun = mcm.expm
-    a = np.array([x, y, z, 0, 0, 0])
-    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
-    assert np.allclose(mcm_fun(a), a_fun)
-    assert np.allclose(mcm_fun(A), A_fun)
-
-def test_powm():
-    """Compute the matrix power of a 3x3 matrix"""
-    x, y, z = 1., 2., 3.
-    m = 1.2
-    fun = lambda _: _ ** m
-    mcm_fun = lambda _: mcm.powm(_, m)
-    a = np.array([x, y, z, 0, 0, 0])
-    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
-    assert np.allclose(mcm_fun(a), a_fun)
-    assert np.allclose(mcm_fun(A), A_fun)
-
-def test_sqrtm():
-    """Compute the square root of a 3x3 matrix"""
-    x, y, z = 1., 2., 3.
-    fun = np.sqrt
-    mcm_fun = mcm.sqrtm
-    a = np.array([x, y, z, 0, 0, 0])
-    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
-    assert np.allclose(mcm_fun(a), a_fun)
-    assert np.allclose(mcm_fun(A), A_fun)
-
-def test_logm():
-    """Compute the matrix logarithm of a 3x3 matrix"""
-    x, y, z = 1., 2., 3.
-    fun = np.log
-    mcm_fun = mcm.logm
-    a = np.array([x, y, z, 0, 0, 0])
-    a_fun = np.array([fun(x), fun(y), fun(z), 0, 0, 0])
-    A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
-    A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
-    assert np.allclose(mcm_fun(a), a_fun)
-    assert np.allclose(mcm_fun(A), A_fun)
+    assert isclose(tens.magnitude(a_dev), mag)
+    assert isclose(tens.magnitude(A_dev), mag)
 
 if __name__ == '__main__':
     test_import()

@@ -7,7 +7,7 @@ import numpy as np
 
 from matmodlab import *
 from testing_utils import *
-from matmodlab.core.mmlabpack import I6
+from matmodlab.core.tensor import I6
 
 @pytest.mark.material
 @pytest.mark.drucker_prager

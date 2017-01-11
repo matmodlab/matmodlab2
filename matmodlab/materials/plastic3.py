@@ -2,8 +2,8 @@ from numpy import zeros, ix_, sqrt
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, symmetric_dyad, deviatoric_part, \
-    magnitude, double_dot
+from ..core.tensor import VOIGT, symmetric_dyad, deviatoric_part, \
+    double_dot, magnitude
 
 TOLER = 1e-8
 ROOT3, ROOT2 = sqrt(3.), sqrt(2.)

@@ -2,7 +2,8 @@ from numpy import dot, zeros, trace, array, sum, eye
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import asarray, determinant, I6
+from ..core.tensor import I6
+from ..core.matfuncs import mat_to_array, determinant
 
 class MooneyRivlinMaterial(Material):
     name = "mooney-rivlin"
@@ -71,8 +72,8 @@ class MooneyRivlinMaterial(Material):
         I2B = I2 / (scale ** 4)
 
         # convert symmetric tensors to arrays
-        BBsq = asarray(Bsq, 6) / scale ** 4
-        BB = asarray(B, 6) / scale ** 2
+        BBsq = mat_to_array(Bsq, (6,)) / scale ** 4
+        BB = mat_to_array(B, (6,)) / scale ** 2
 
         if not incompressible:
             p = -2. / D1 * (Jac - 1.)

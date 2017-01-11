@@ -2,9 +2,8 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import I6
 from .tensor import (symsq, det, invariants, inv, push,
-                     dyad, symshuffle, II1, II5)
+                     dyad, symshuffle, II1, II5, I6)
 
 class PolyHyperMaterial(Material):
     name = "polyhyper"

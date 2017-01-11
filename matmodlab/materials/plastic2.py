@@ -2,8 +2,8 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT, deviatoric_part, magnitude, \
-    double_dot, symmetric_dyad
+from ..core.tensor import VOIGT, deviatoric_part, double_dot, \
+    symmetric_dyad, magnitude
 
 ROOT2 = np.sqrt(2.)
 ROOT3 = np.sqrt(3.)

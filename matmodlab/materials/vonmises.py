@@ -2,7 +2,7 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.mmlabpack import VOIGT
+from ..core.tensor import VOIGT
 
 ROOT2 = np.sqrt(2.)
 ROOT3 = np.sqrt(3.)

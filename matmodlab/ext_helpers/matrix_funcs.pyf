@@ -1,0 +1,50 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module _matfuncs_sq3 ! in 
+    interface  ! in :_matfuncs_sq3
+        module linalg ! in :_matfuncs_sq3:matrix_funcs.f90
+            function expm(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) dimension(3,3) :: expm
+            end function expm
+            function powm(a,m) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) intent(in) :: m
+                real(kind=8) dimension(3,3) :: powm
+            end function powm
+            function sqrtm(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) dimension(3,3) :: sqrtm
+            end function sqrtm
+            function logm(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) dimension(3,3) :: logm
+            end function logm
+            function isdiag(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                logical :: isdiag
+            end function isdiag
+            function eye(n) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                integer intent(in) :: n
+                real(kind=8) dimension(n,n) :: eye
+            end function eye
+            function det(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) :: det
+            end function det
+            function inv(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: a
+                real(kind=8) dimension(3,3) :: inv
+            end function inv
+            subroutine polar_decomp(f,r,u) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+                real(kind=8) dimension(3,3),intent(in) :: f
+                real(kind=8) dimension(3,3),intent(out) :: r
+                real(kind=8) dimension(3,3),intent(out) :: u
+            end subroutine polar_decomp
+        end module linalg
+    end interface 
+end python module _matfuncs_sq3
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

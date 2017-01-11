@@ -6,8 +6,8 @@ import testing_utils as tu
 from subprocess import Popen, STDOUT
 from matmodlab.ext_helpers import build_extension_module_as_subprocess
 
-pytestmark = pytest.mark.skipif('linux' in sys.platform.lower(),
-                                reason='Does not pass on linux')
+#pytestmark = pytest.mark.skipif('linux' in sys.platform.lower(),
+#                                reason='Does not pass on linux')
 
 # matmodlab.ext_helpers.build_ext defines the actual function that builds the
 # extension modules. It adds some Matmodlab specific fortran I/O files (and
@@ -33,8 +33,9 @@ def teardown_module():
 
 def build_extension_module(name, sources, user_ics=False):
     this_dir = os.path.dirname(os.path.realpath(__file__))
-    print(this_dir)
-    return build_extension_module_as_subprocess(name, sources, user_ics=user_ics, verbose=True, cwd=this_dir)
+    return build_extension_module_as_subprocess(name, sources,
+                                                user_ics=user_ics,
+                                                verbose=True, cwd=this_dir)
 
 @pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
 def test_build_umat_ext_no_user_ics():

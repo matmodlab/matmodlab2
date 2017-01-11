@@ -10,12 +10,6 @@ from argparse import ArgumentParser
 from subprocess import Popen, STDOUT
 from contextlib import contextmanager
 
-# distutils
-import numpy as np
-from numpy.distutils.misc_util import Configuration
-from numpy.distutils.system_info import get_info
-from numpy.distutils.core import setup
-
 from matmodlab.core.logio import get_logger
 from matmodlab.core.environ import environ
 from matmodlab.core.misc import is_listlike
@@ -66,7 +60,7 @@ def clean_f2py_tracks(paths, dirs_to_remove):
         shutil.rmtree(dirname)
 
 def build_extension_module(name, sources, include_dirs=None, verbose=False,
-                           package_path=None, user_ics=False, fc=None):
+                           user_ics=False, fc=None):
     """Build the fortran extension module (material model)
 
     Parameters
@@ -79,8 +73,6 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
         List of extra include directories
     verbose : bool
         Write output to stdout if True, otherwise suppress stdout
-    package_path : str
-        Directory path to build module
     user_ics : bool
         List of source files includes source defining subroutine SDVINI.
         Applicable only for Abaqus umats.
@@ -107,6 +99,9 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     if name != '_matfuncs_sq3':
         sources.append(mml_io)
 
+    if lapack_lite not in sources:
+        sources.append(lapack_lite)
+
     include_dirs = include_dirs or []
 
     umat = name.lower() == 'umat'
@@ -116,108 +111,50 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
         sources.extend([aba_utils, umat_pyf])
         if not user_ics:
             sources.append(aba_sdvini)
+        include_dirs = include_dirs + [aba_support_dir]
 
     if any(' ' in x for x in sources):
         logger.warning('File paths with spaces are known to fail to build')
 
-    options = {}
-
-    # Build a "lite" version of lapack
-    options['extra_objects'] = [lapack_lite_obj]
-    options['extra_compile_args'] = ['-fPIC', '-shared']
-    if umat:
-        options['include_dirs'] = include_dirs + [aba_support_dir]
-    elif include_dirs:
-        options['include_dirs'] = include_dirs
-
-    # Explicitly add this python distributions lib directory. This
-    # shouldn't be necessary, but on some RHEL systems I have found that
-    # it is
-    d = os.path.join(os.path.dirname(sys.executable), '../lib')
-    assert os.path.isdir(d)
-    options["library_dirs"] = [d]
-
-    if lapack_lite_obj in sources and not os.path.isfile(lapack_lite_obj):
-        stat = _build_blas_lapack(logger, fc)
-        if stat != 0:
-            logger.error('failed to build blas_lapack, dependent '
-                         'libraries will not be importable')
-
-    cwd = os.getcwd()
-    if package_path is None:
-        package_path = cwd
-    os.chdir(package_path)
-
-    build_dir = os.path.join(package_path, 'build')
-    had_build_dir = os.path.isdir(build_dir)
-
-    config = Configuration(package_name='', parent_package='', top_path='',
-                           package_path=package_path)
-    config.add_extension(name, sources=sources, **options)
-
-    # Build argv. Since we are calling the setuptools directly, argv[0] is
-    # meaningless. Put the name ./setup.py there because that is the standard
-    # setup script name.
-    argv = ['./setup.py',
-            'config_fc',
-            '--f77exec={0}'.format(fc),
-            '--f90exec={0}'.format(fc)]
+    command = ['f2py', '-c']
 
     # Build the fortran flags argument
-    fflags = ['-Wno-unused-dummy-argument']
+    fflags = ['-Wno-unused-dummy-argument', '-fPIC', '-shared']
     if os.getenv('FCFLAGS'):
         fflags.extend(os.environ['FCFLAGS'].split())
-    fflags = ['--f77flags={0!r}'.format(' '.join(fflags)),
-              '--f90flags={0!r}'.format(' '.join(fflags))]
+    command.extend(['--f77flags={0!r}'.format(' '.join(fflags)),
+                    '--f90flags={0!r}'.format(' '.join(fflags))])
+    command.extend(['--include-paths', ':'.join(include_dirs)])
+    command.extend(['-m', name])
+    command.extend(sources)
 
-    # Extend argv to include fortran flags
-    argv.extend(fflags)
-    argv.extend(['build_ext', '-i'])
-
-    # build the extension modules with distutils setup
     logger.info('building extension module {0!r}... '.format(name),
                 extra={'continued':1})
 
-    failed = 0
     logfile = None
-
-    # change sys.argv for distutils
-    hold = [x for x in sys.argv]
-    sys.argv = [x for x in argv]
-    config_dict = config.todict()
-    try:
-        if verbose:
-            # Call directly - LOTS of output!
-            setup(**config_dict)
-        elif environ.notebook:
-            from IPython.utils import io
-            with io.capture_output() as captured:
-                setup(**config_dict)
-        else:
-            logfile = os.path.join(package_path, 'build.log')
-            with stdout_redirected(to=logfile), merged_stderr_stdout():
-                setup(**config_dict)
-        logger.info('done')
-    except: # Bare except clause to pick up anything
-        logger.info('failed')
-        failed = 1
-    finally:
-        sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
-        sys.argv = [x for x in hold]
+    if verbose:
+        # Call directly - LOTS of output!
+        p = Popen(command)
+        p.wait()
+    elif environ.notebook:
+        from IPython.utils import io
+        with io.capture_output() as captured:
+            p = Popen(command)
+            p.wait()
+    else:
+        logfile = os.path.join(os.getcwd(), 'build.log')
+        with stdout_redirected(to=logfile), merged_stderr_stdout():
+            p = Popen(command)
+            p.wait()
+    logger.info('done')
 
     if logfile is not None and logfile != sys.stdout:
         os.remove(logfile)
 
-    dirs_to_remove = []
-    if not had_build_dir:
-        dirs_to_remove.append(build_dir)
-    clean_f2py_tracks([package_path, cwd], dirs_to_remove)
-    os.chdir(cwd)
-
     # Return the loglevel back to what it was
     environ.loglevel = the_loglevel
 
-    if failed:
+    if p.returncode != 0:
         logger.error('Failed to build')
         raise ExtensionNotBuilt(name)
 
@@ -272,8 +209,7 @@ def merged_stderr_stdout():  # $ exec 2>&1
 
 def build_extension_module_as_subprocess(name, sources,
                                          include_dirs=None, verbose=False,
-                                         package_path=None, user_ics=False,
-                                         fc=None):
+                                         user_ics=False, fc=None):
     """Build the extension module, but call as a subprocess.
 
     Parameters
@@ -284,30 +220,8 @@ def build_extension_module_as_subprocess(name, sources,
     -----
     This function exists since distutils can only be initialized once and we want to run build several different extensions
     """
-    python = sys.executable
-    this_file = os.path.realpath(__file__)
-    command = [sys.executable, this_file, name]
-    if not is_listlike(sources):
-        sources = [sources]
-    if not isinstance(sources, list):
-        sources = [x for x in sources]
-    command.extend(sources)
-    if include_dirs is not None:
-        for include_dir in include_dirs:
-            command.append('--include-dirs={0}'.format(include_dir))
-    if verbose:
-        command.append('--verbose')
-    if package_path is not None:
-        command.append('--package-path={0}'.format(package_path))
-    if user_ics:
-        command.append('--user-ics')
-    if fc is not None:
-        command.append('--fc={0}'.format(fc))
-    p = Popen(command)
-    p.wait()
-    if p.returncode != 0:
-        raise ExtensionNotBuilt(name)
-    return 0
+    build_extension_module(name, sources, include_dirs=include_dirs,
+                           verbose=verbose, user_ics=user_ics, fc=fc)
 
 def build_mml_matrix_functions():
     """Build the mml linear algebra library"""
@@ -317,8 +231,12 @@ def build_mml_matrix_functions():
     dgpadm_f = os.path.join(ext_support_dir, 'dgpadm.f')
     sources = [mfuncs_pyf, mfuncs_f90, lapack_lite, dgpadm_f]
     package_path = os.path.join(ext_support_dir, '../core')
-    build_extension_module(name, sources, package_path=package_path,
-                           verbose=True)
+    command = ['f2py', '-c']
+    command.extend(sources)
+    p = Popen(command, cwd=package_path)
+    p.wait()
+    if p.returncode != 0:
+        raise ExtensionNotBuilt(name)
     return 0
 
 def main():
@@ -338,7 +256,6 @@ def main():
     build_extension_module(args.name, args.sources,
                            include_dirs=args.include_dirs,
                            verbose=args.verbose,
-                           package_path=args.package_path,
                            user_ics=args.user_ics,
                            fc=args.fc)
 

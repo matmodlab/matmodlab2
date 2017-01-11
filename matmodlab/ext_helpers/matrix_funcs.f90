@@ -69,14 +69,14 @@ function powm(a, m)
      powm(1,1) = a(1,1) ** m
      powm(2,2) = a(2,2) ** m
      powm(3,3) = a(3,3) ** m
-     return
+  else
+     call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
+     l = 0.e+00_8
+     l(1,1) = w(1) ** m
+     l(2,2) = w(2) ** m
+     l(3,3) = w(3) ** m
+     powm = matmul(matmul(v, l ), transpose(v))
   end if
-  call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
-  l = 0.e+00_8
-  l(1,1) = w(1) ** m
-  l(2,2) = w(2) ** m
-  l(3,3) = w(3) ** m
-  powm = matmul(matmul(v, l ), transpose(v))
   return
 end function powm
 
@@ -95,16 +95,16 @@ function sqrtm(a)
      sqrtm(1,1) = sqrt(a(1,1))
      sqrtm(2,2) = sqrt(a(2,2))
      sqrtm(3,3) = sqrt(a(3,3))
-     return
+  else
+     ! eigenvalues/vectors of a
+     v = a
+     call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
+     l = 0.e+00_8
+     l(1,1) = sqrt(w(1))
+     l(2,2) = sqrt(w(2))
+     l(3,3) = sqrt(w(3))
+     sqrtm = matmul(matmul(v, l ), transpose(v))
   end if
-  ! eigenvalues/vectors of a
-  v = a
-  call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
-  l = 0.e+00_8
-  l(1,1) = sqrt(w(1))
-  l(2,2) = sqrt(w(2))
-  l(3,3) = sqrt(w(3))
-  sqrtm = matmul(matmul(v, l ), transpose(v))
   return
 end function sqrtm
 
@@ -123,16 +123,16 @@ function logm(a)
      logm(1,1) = log(a(1,1))
      logm(2,2) = log(a(2,2))
      logm(3,3) = log(a(3,3))
-     return
+  else
+     ! eigenvalues/vectors of a
+     v = a
+     call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
+     l = 0.e+00_8
+     l(1,1) = log(w(1))
+     l(2,2) = log(w(2))
+     l(3,3) = log(w(3))
+     logm = matmul(matmul(v, l), transpose(v))
   end if
-  ! eigenvalues/vectors of a
-  v = a
-  call DSYEV("V", "L", 3, v, 3, w, work, lwork, info)
-  l = 0.e+00_8
-  l(1,1) = log(w(1))
-  l(2,2) = log(w(2))
-  l(3,3) = log(w(3))
-  logm = matmul(matmul(v, l), transpose(v))
   return
 end function logm
 

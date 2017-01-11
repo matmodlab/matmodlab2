@@ -85,3 +85,27 @@ def responses_are_same(a, b, vars, diff_tolerance=5e-3, fail_tolerance=1e-2):
         else:
             failed += 1
     return passed == len(vars[1:])
+
+def random_matrix():
+    return np.random.rand(9).reshape(3,3)
+
+def random_symmetric_positive_definite_matrix():
+    R = random_rotation_matrix()
+    L = random_diagonal_matrix()
+    X = np.dot(np.dot(R, L), R.T)
+    return (X + X.T) / 2.
+
+def random_diagonal_matrix():
+    L = np.zeros((3,3))
+    L[([0,1,2],[0,1,2])] = np.random.rand(3)
+    return L
+
+def random_rotation_matrix():
+    theta = np.random.uniform(0, 2*np.pi, 1)[0]
+    a = np.random.rand(3)
+    a = a / np.sqrt(np.dot(a,a))
+    aa = np.outer(a,a)
+    I = np.eye(3)
+    A = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
+    R = I + 2*np.sin(theta/2.)**2*(aa-I)+np.sin(theta)*A
+    return R

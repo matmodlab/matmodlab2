@@ -2,137 +2,15 @@ import warnings
 import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
-import matmodlab.core.matfuncs as matfuncs
+import matmodlab.core.linalg as la
 
-VOIGT = np.array([1, 1, 1, 2, 2, 2], dtype=np.float64)
-I6 = np.array([1, 1, 1, 0, 0, 0], dtype=np.float64)
+VOIGT = np.array([1., 1., 1., 2., 2., 2.])
+I6 = np.array([1., 1., 1., 0., 0., 0.])
 epsilon = np.finfo(float).eps
-
-def symarray(A):
-    """Convert a 3x3 matrix to a 6x1 array representing a symmetric matix."""
-    mat = (A + A.T) / 2.0
-    return mat[([0,1,2,0,1,0],[0,1,2,1,2,2])]
-
-def rate_of_matrix_function(A, Adot, f, fprime):
-    """Find the rate of the tensor A
-
-    Parameters
-    ----------
-    A : ndarray (3,3)
-        A diagonalizable tensor
-    Adot : ndarray (3,3)
-        Rate of A
-    f : callable
-    fprime : callable
-        Derivative of f
-
-    Returns
-    -------
-    Ydot : ndarray (3,3)
-
-    Notes
-    -----
-    For a diagonalizable tensor A (the strain) which has a quasi-arbitrary
-    spectral expansion
-
-    .. math::
-        A = \sum_{i=1}^3 \lambda_i P_{i}
-
-    and if a second tensor Y is a principal function of A, defined by
-
-    .. math::
-        Y = \sum_{i=1}^3 f(\lambda_i) P_i,
-
-    compute the time rate \dot{Y}. Algorithm taken from Brannon's
-    Tensor book, from the highlighted box near Equation (28.404) on
-    page 550.
-
-    """
-
-    # Compute the eigenvalues and eigenprojections.
-    eig_vals, eig_vecs = np.linalg.eig(A)
-    eig_projs = [np.outer(eig_vecs[:, i], eig_vecs[:, i]) for i in [0, 1, 2]]
-
-    # Assemble the rate of Y.
-    Ydot = np.zeros((3, 3))
-    for eigi, proji in zip(eig_vals, eig_projs):
-        for eigj, projj in zip(eig_vals, eig_projs):
-            if eigi == eigj:
-                gamma = fprime(eigi)
-            else:
-                gamma = (f(eigi) - f(eigj)) / (eigi - eigj)
-            Ydot += gamma * np.dot(proji, np.dot(Adot, projj))
-
-    return Ydot
-
-def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
-    """ Compute symmetric part of velocity gradient given depsdt
-
-    Parameters
-    ----------
-    dedt : ndarray
-        Strain rate
-    e : ndarray
-        Strain
-    k : int or float
-        Seth-Hill parameter
-    disp : bool, optional
-        If True, return both d and dU
-
-    Returns
-    -------
-    d : ndarray
-        Symmetric part of the velocity gradient
-    dU : ndarray
-        Rate of stretch (if disp is True)
-
-    Notes
-    -----
-    Velocity gradient L is given by
-                L = dFdt * Finv
-                  = dRdt*I*Rinv + R*dUdt*Uinv*Rinv
-    where F, I, R, U are the deformation gradient, identity, rotation, and
-    right stretch tensor, respectively. d*dt and *inv are the rate and
-    inverse or *, respectively,
-
-    The stretch U is given by
-                 if k != 0:
-                     U = (k*E + I)**(1/k)
-                 else:
-                     U = exp(E)
-    and its rate (dUdt) is calculated using `rate_of_matrix_function`.
-       Then
-                 L = dot(dUdt, inv(U))
-                 d = sym(L)
-                 w = skew(L)
-
-    """
-
-    eps = matfuncs.array_to_mat(e / VOIGT)[0]
-    depsdt = matfuncs.array_to_mat(dedt / VOIGT)[0]
-
-    # Calculate the right stretch (U) and its rate
-    if abs(k) <= 1e-12:
-        u = matfuncs.expm(eps)
-        dudt = rate_of_matrix_function(eps, depsdt, np.exp, np.exp)
-    else:
-        u = matfuncs.powm(k*eps+np.eye(3), 1./k)
-        f = lambda x: (k * x + 1.0) ** (1.0 / k)
-        fprime = lambda x: (k * x + 1.0) ** (1.0 / k - 1.0)
-        dudt = rate_of_matrix_function(eps, depsdt, f, fprime)
-
-    # Calculate the velocity gradient (L) and its symmetric part
-    l = np.dot(dudt, matfuncs.inverse(u))
-    d = (l + l.T) / 2.0
-
-    d = symarray(d) * VOIGT
-    if not disp:
-        return d
-    return d, dudt
 
 def isotropic_part(A):
     """Return isotropic part of A"""
-    if A.shape == (6,):
+    if is_symmetric_rep(A):
         return np.sum(A[:3]) / 3. * np.array([1.,1.,1.,0.,0.,0.])
     elif A.shape == (3,3):
         return np.trace(A) / 3. * np.eye(3)
@@ -142,6 +20,9 @@ def isotropic_part(A):
 def deviatoric_part(A):
     """Return deviatoric part of A"""
     return A - isotropic_part(A)
+
+def is_symmetric_rep(A):
+    return A.shape == (6,)
 
 def symmetric_dyad(A, B):
     """Compute the symmetric dyad AB_ij = A_i B_j"""
@@ -154,14 +35,14 @@ def symmetric_dyad(A, B):
 
 def invariants(A, n=None, mechanics=False):
     if mechanics:
-        i1 = matfuncs.trace(A)
+        i1 = trace(A)
         rootj2 = magnitude(deviatoric_part(A)) / np.sqrt(2.)
         return i1, rootj2
 
-    A = matfuncs.array_to_mat(A)[0]
+    A = matrix_rep(A, 0)
     asq = np.dot(A, A)
-    deta = matfuncs.determinant(A)
-    tra = np.trace(A)
+    deta = la.det(A)
+    tra = la.trace(A)
 
     b = np.zeros(5)
     b[0] = tra
@@ -177,13 +58,13 @@ def invariants(A, n=None, mechanics=False):
 
 def magnitude(A):
     """Return magnitude of A"""
-    mat = matfuncs.array_to_mat(A)[0]
+    mat = matrix_rep(A, 0)
     return np.sqrt(np.sum(np.dot(mat, mat)))
 
 def double_dot(A, B):
     """Return A:B"""
-    A_mat, A_shape = matfuncs.array_to_mat(A)
-    B_mat, B_shape = matfuncs.array_to_mat(B)
+    A_mat, A_shape = matrix_rep(A)
+    B_mat, B_shape = matrix_rep(B)
     assert A.shape == (3,3)
     assert B.shape == A.shape
     return np.sum(A * B)
@@ -198,3 +79,77 @@ def polar_decomp(F):
             U = np.dot(R.T, F)
             return R, U
     raise RuntimeError('Fast polar decompositon failed to converge')
+
+def det(A):
+    """Determinant of tensor A"""
+    mat, orig_shape = matrix_rep(A)
+    return la.det(mat)
+
+def trace(A):
+    """Return trace of A"""
+    mat, orig_shape = matrix_rep(A)
+    ix = ([0,1,2],[0,1,2])
+    return np.sum(mat[ix])
+
+def inv(A):
+    """Inverse of A"""
+    mat, orig_shape = matrix_rep(A)
+    mat2 = la.inv(mat)
+    return array_rep(mat2, orig_shape)
+
+def expm(A):
+    """Compute the matrix exponential of a 3x3 matrix"""
+    mat, orig_shape = matrix_rep(A)
+    mat2 = la.expm(mat)
+    return array_rep(mat2, orig_shape)
+
+def logm(A):
+    """Compute the matrix logarithm of a 3x3 matrix"""
+    mat, orig_shape = matrix_rep(A)
+    mat2 = la.logm(mat)
+    return array_rep(mat2, orig_shape)
+
+def powm(A, t):
+    """Compute the matrix power of a 3x3 matrix"""
+    mat, orig_shape = matrix_rep(A)
+    mat2 = la.powm(mat)
+    return array_rep(mat2, orig_shape)
+
+def sqrtm(A):
+    """Compute the square root of a 3x3 matrix"""
+    mat, orig_shape = matrix_rep(A)
+    mat2 = la.sqrtm(mat)
+    return array_rep(mat2, orig_shape)
+
+def matrix_rep(A, disp=1):
+    """Convert array to matrix"""
+    orig_shape = A.shape
+    if orig_shape == (6,):
+        ix1 = ([0,1,2,0,1,0,1,2,2],[0,1,2,1,2,2,0,0,1])
+        ix2 = [0,1,2,3,4,5,3,5,4]
+        mat = np.zeros((3,3))
+        mat[ix1] = A[ix2]
+    elif orig_shape == (9,):
+        mat = np.reshape(A, (3,3))
+    elif orig_shape == (3,3):
+        mat = np.array(A)
+    else:
+        raise ValueError('Unknown shape')
+    if not disp:
+        return mat
+    return mat, orig_shape
+
+def array_rep(mat, shape):
+    """Reverse of matrix_rep"""
+    if shape == (6,):
+        mat = .5 * (mat + mat.T)
+        return mat[([0,1,2,0,1,0],[0,1,2,1,2,2])]
+    if shape == (9,):
+        return np.flatten(mat)
+    if shape == (3,3):
+        return np.array(mat)
+    raise ValueError('Unknown shape')
+
+def isdiag(A):
+    """Determines if a matrix is diagonal."""
+    return np.all(np.abs(A[([0,0,1,1,2,2],[1,2,0,2,0,1])])<=epsilon)

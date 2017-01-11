@@ -7,11 +7,16 @@ import numpy as np
 from testing_utils import *
 
 try:
-    import matmodlab.core._matfuncs_sq3
-    la = matmodlab.core._matfuncs_sq3.linalg
+    import matmodlab
 except ImportError:
-    la = None
-pytestmark = pytest.mark.skipif(la is None, reason='Fortran linalg not imported')
+    matmodlab = None
+
+import matmodlab.core.linalg as la
+
+# NOTE: In many of the tests to follow, only a trivial tensor is sent to test
+# the matrix function. This is by design. Since all of the matrix functions are
+# just wrappers to scipy functions, these tests just test the wrapper (the
+# ability to call the function with a 3x3 "matrix" or 6x1 array)
 
 def test_inv():
     """Inverse of A"""
@@ -51,10 +56,10 @@ def test_powm():
     A = np.array([[x, 0, 0], [0, y, 0], [0, 0, z]])
     pow_A = np.array([[x**m, 0, 0], [0, y**m, 0], [0, 0, z**m]])
     assert np.allclose(la.powm(A, m), pow_A)
-    A = random_symmetric_positive_definite_matrix()
+    A = random_matrix()
     B = la.powm(A, .5)
     assert np.allclose(np.dot(B,B), A)
-    A = random_symmetric_positive_definite_matrix()
+    A = random_matrix()
     B = la.powm(A, 2)
     assert np.allclose(np.dot(A,A), B)
 

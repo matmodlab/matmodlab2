@@ -2,8 +2,7 @@ from numpy import dot, zeros, trace, array, sum, eye
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.tensor import I6
-from ..core.matfuncs import mat_to_array, determinant
+from ..core.tensor import array_rep, det, I6
 
 class MooneyRivlinMaterial(Material):
     name = "mooney-rivlin"
@@ -51,7 +50,7 @@ class MooneyRivlinMaterial(Material):
 
         # Reshape the deformation gradient
         F = F.reshape(3,3)
-        Jac = determinant(F)
+        Jac = det(F)
 
         # left Cauchy deformation
         B = dot(F, F.T)
@@ -72,8 +71,8 @@ class MooneyRivlinMaterial(Material):
         I2B = I2 / (scale ** 4)
 
         # convert symmetric tensors to arrays
-        BBsq = mat_to_array(Bsq, (6,)) / scale ** 4
-        BB = mat_to_array(B, (6,)) / scale ** 2
+        BBsq = array_rep(Bsq, (6,)) / scale ** 4
+        BB = array_rep(B, (6,)) / scale ** 2
 
         if not incompressible:
             p = -2. / D1 * (Jac - 1.)

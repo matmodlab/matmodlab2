@@ -4,7 +4,6 @@ from copy import deepcopy as copy
 from .environ import environ
 from .tensor import VOIGT
 from .deformation import update_deformation
-import matmodlab.core.matfuncs as matfuncs
 
 def d_from_prescribed_stress(material, t, dt, temp, dtemp, f0, f,
                              stran, d, sig, statev, v, sigspec):

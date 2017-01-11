@@ -436,7 +436,7 @@ class MaterialPointSimulator(object):
                            step.temp, step.kappa, self.data[irow:, :])
             step.ran = True
         dt = time.time() - start_steps
-        logger.info(' done ({0:g} sec.)'.format(dt))
+        logger.info(' done ({0:.2f} sec.)'.format(dt))
         logger.info('All steps complete')
 
         self.ran = True
@@ -448,7 +448,7 @@ class MaterialPointSimulator(object):
                 self.dump()
 
         dt = time.time() - start_sim
-        logger.info('Simulation complete ({0:g} sec.)'.format(dt))
+        logger.info('Simulation complete ({0:.2f} sec.)'.format(dt))
 
     @property
     def df(self):
@@ -765,9 +765,9 @@ class Step(object):
                  descriptors, components, temp, kappa):
         assert len(components) == 6
         assert len(descriptors) == 6
-        self.begin = begin
-        self.end = end
-        self.increment = end - begin
+        self.begin = float(begin)
+        self.end = float(end)
+        self.increment = self.end - self.begin
         if abs(self.increment) > 0.:
             assert end > begin
         self.frames = frames

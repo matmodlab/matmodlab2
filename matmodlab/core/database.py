@@ -6,6 +6,28 @@ from scipy.io.netcdf import NetCDFFile
 
 COMPONENT_SEP = '.'
 
+def read_exodb(filename):
+    db = DatabaseFileReader(filename)
+    return db.df
+
+def read_npzdb(filename):
+    from pandas import DataFrame
+    f = np.load(filename)
+    return DataFrame(f['data'], columns=f['columns'])
+
+def read_db(filename):
+    print(filename)
+    if filename.endswith('npz'):
+        return read_npzdb(filename)
+    elif filename.endswith('exo'):
+        db = DatabaseFileReader(filename)
+        return db.df
+    elif filename.endswith(('dat', 'txt')):
+        from pandas import read_table
+        return read_table(filename, sep='\s+')
+    else:
+        raise ValueError('Unknown file extension')
+
 def cat(*args):
     return ''.join(str(a).strip() for a in args)
 
@@ -325,6 +347,7 @@ class DatabaseFileReader(_DatabaseFile):
         self.fh = NetCDFFile(self.filename, 'r')
         self.df = self.read_db()
         self.jobid = self.get_jobid()
+        self.fh.close()
 
     def read_db(self, blk_num=1, elem_num=1):
         """Read the ExodusII database file filename.

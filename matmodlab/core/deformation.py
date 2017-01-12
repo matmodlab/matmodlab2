@@ -63,7 +63,7 @@ def update_deformation(farg, darg, dt, k):
     if k == 0:
         eps = la.logm(u)
     else:
-        eps = 1.0 / k * (powm(u, k) - np.eye(3, 3))
+        eps = 1.0 / k * (la.powm(u, k) - np.eye(3, 3))
 
     if la.det(ff) <= 0.0:
         raise Exception("negative jacobian encountered")
@@ -97,7 +97,7 @@ def defgrad_from_strain(E, kappa, flatten=1):
     if kappa == 0:
         U = la.expm(E)
     else:
-        U = powm(k * E + I, 1. / k)
+        U = la.powm(k * E + I, 1. / k)
     F = np.dot(R, U)
     if la.det(F) <= 0.0:
         raise Exception("negative jacobian encountered")

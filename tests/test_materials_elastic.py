@@ -125,7 +125,7 @@ def test_random_linear_elastic(realization):
         mps.add_step('E', row[1:7], increment=incr, frames=10)
     mps.run()
     simulation = mps.get2(*myvars)
-    assert responses_are_same(analytic, simulation, myvars)
+    assert responses_are_same(jobid, analytic, simulation, myvars)
 
 @pytest.mark.elastic
 @pytest.mark.material
@@ -186,7 +186,7 @@ def test_supreme():
     mps = MaterialPointSimulator(jobid)
 
     N = 25
-    solfile = mps.jobid + '.dat'
+    solfile = os.path.join(os.getcwd(), 'data', mps.jobid + '.base_dat')
     path, LAM, G, tablepath = generate_solution(solfile, N)
 
     # set up the material
@@ -204,7 +204,7 @@ def test_supreme():
     mps.run()
 
     # check output with analytic (all shared variables)
-    assert same_as_baseline(mps, baseline=solfile)
+    assert same_as_baseline(mps.jobid, mps.df)
 
 def get_D_E_F_SIG(dadt, a, LAM, G, loc):
     # This is just an implementation of the above derivations.

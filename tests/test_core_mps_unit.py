@@ -45,7 +45,7 @@ def test_mps_db_exo():
     filename = 'a_different_filename_exo'
     mps2.dump(filename)
     assert os.path.isfile(filename+'.exo')
-    df = DatabaseFile(filename+'.exo')
+    df = read_exodb(filename+'.exo')
 
     exx_1 = mps1.df['E.XX'].iloc[:]
     exx_2 = mps2.df['E.XX'].iloc[:]
@@ -79,7 +79,7 @@ def test_mps_db_npz():
     filename = 'a_different_filename_npz'
     mps2.dumpz(filename)
     assert os.path.isfile(filename+'.npz')
-    df = DatabaseFile(filename+'.npz')
+    df = read_npzdb(filename+'.npz')
 
     exx_1 = mps1.df['E.XX'].iloc[:]
     exx_2 = mps2.df['E.XX'].iloc[:]

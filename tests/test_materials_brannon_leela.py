@@ -81,7 +81,8 @@ def test_brannon_lellavanichkul_2():
     variables = ['Time',
                  'E.XX', 'E.YY', 'E.ZZ', 'S.XX', 'S.YY', 'S.ZZ']
     simulate_response = mps.get2(*variables)
-    assert responses_are_same(analytic_response, simulate_response, variables)
+    assert responses_are_same(jobid, analytic_response, simulate_response,
+                              variables)
 
 def get_stress_2(t):
     # this function evaluates equations #59, #60, and #61

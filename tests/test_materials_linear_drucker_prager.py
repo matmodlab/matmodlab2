@@ -35,7 +35,7 @@ def test_spherical_drucker_prager():
         dt = data[k][t] - data[k-1][t]
         mps.add_step('E', row[i:j], increment=dt, frames=1)
     mps.run()
-    assert same_as_baseline(mps, interp=1)
+    assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 @pytest.mark.material
 @pytest.mark.drucker_prager
@@ -57,7 +57,7 @@ def test_random_linear_drucker_prager(realization):
         mps.add_step('E', row, increment=1.0, frames=25)
     mps.run()
     simulation = mps.get2(*myvars)
-    assert responses_are_same(analytic, simulation, myvars)
+    assert responses_are_same(jobid, analytic, simulation, myvars)
 
 def gen_rand_elastic_params():
     # poisson_ratio and young's modulus

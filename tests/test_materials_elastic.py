@@ -4,7 +4,7 @@ import pytest
 import random
 import numpy as np
 
-from matmodlab import *
+from matmodlab2 import *
 from testing_utils import *
 
 K = 9.980040E+09

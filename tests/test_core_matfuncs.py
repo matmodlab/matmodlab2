@@ -7,8 +7,8 @@ import numpy as np
 from testing_utils import *
 
 try:
-    import matmodlab.core._matfuncs_sq3
-    la = matmodlab.core._matfuncs_sq3.linalg
+    import matmodlab2.core._matfuncs_sq3
+    la = matmodlab2.core._matfuncs_sq3.linalg
 except ImportError:
     la = None
 pytestmark = pytest.mark.skipif(la is None, reason='Fortran linalg not imported')

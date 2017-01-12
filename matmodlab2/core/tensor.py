@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
-import matmodlab.core.linalg as la
+import matmodlab2.core.linalg as la
 
 VOIGT = np.array([1., 1., 1., 2., 2., 2.])
 I6 = np.array([1., 1., 1., 0., 0., 0.])

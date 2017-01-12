@@ -13,9 +13,9 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
 
 try:
-    import matmodlab
+    import matmodlab2
 except ImportError:
-    matmodlab = None
+    matmodlab2 = None
 
 
 def test_absolute_truth():
@@ -43,7 +43,7 @@ def test_import():
     # Setup
 
     # Test
-    assert matmodlab is not None
+    assert matmodlab2 is not None
 
     # Teardown
 
@@ -53,7 +53,7 @@ def test_initialize():
     # Setup
 
     # Test
-    assert 'MaterialPointSimulator' in matmodlab.__all__
+    assert 'MaterialPointSimulator' in matmodlab2.__all__
 
     # Teardown
 

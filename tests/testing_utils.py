@@ -4,8 +4,8 @@ import sys
 import glob
 import inspect
 import numpy as np
-from matmodlab.core.numerix import *
-from matmodlab.core.database import read_db
+from matmodlab2.core.numerix import *
+from matmodlab2.core.database import read_db
 
 def teardown_module():
     """Remove generated files after a test"""

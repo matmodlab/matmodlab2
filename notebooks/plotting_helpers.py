@@ -1,4 +1,4 @@
-from matmodlab.core.environ import environ
+from matmodlab2.core.environ import environ
 
 def create_figure(**kwargs):
     bokeh = kwargs.pop('bokeh', False)

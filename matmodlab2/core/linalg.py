@@ -3,8 +3,8 @@ import numpy as np
 import scipy.linalg
 from .logio import logger
 try:
-    import matmodlab.core._matfuncs_sq3
-    la = matmodlab.core._matfuncs_sq3.linalg
+    import matmodlab2.core._matfuncs_sq3
+    la = matmodlab2.core._matfuncs_sq3.linalg
     logger.info('Using fortran linalg')
 except ImportError:
     la = scipy.linalg

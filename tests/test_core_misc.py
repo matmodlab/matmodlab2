@@ -7,11 +7,11 @@ import pytest
 import numpy as np
 
 try:
-    import matmodlab
+    import matmodlab2
 except ImportError:
     matmodlab = None
 
-import matmodlab.core.misc as misc
+import matmodlab2.core.misc as misc
 
 def test_is_listlike():
     """Is item list like?"""

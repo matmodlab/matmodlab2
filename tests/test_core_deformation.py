@@ -13,11 +13,11 @@ from testing_utils import isclose
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
 
 try:
-    import matmodlab
+    import matmodlab2
 except ImportError:
     matmodlab = None
 
-import matmodlab.core.deformation as df
+import matmodlab2.core.deformation as df
 
 def vec_isclose(name, comp, gold, rtol=1.0e-12, atol=1.0e-12):
     print("===== {0}".format(name))

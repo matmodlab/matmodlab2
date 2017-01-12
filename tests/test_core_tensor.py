@@ -13,11 +13,11 @@ from testing_utils import isclose
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
 
 try:
-    import matmodlab
+    import matmodlab2
 except ImportError:
     matmodlab = None
 
-import matmodlab.core.tensor as tens
+import matmodlab2.core.tensor as tens
 
 def test_isotropic_part():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])

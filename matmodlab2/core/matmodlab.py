@@ -12,7 +12,7 @@ from .stress_control import d_from_prescribed_stress
 from .deformation import update_deformation, strain_from_stretch, \
     defgrad_from_strain, rate_of_strain_to_rate_of_deformation
 from .tensor import VOIGT
-import matmodlab.core.linalg as la
+import matmodlab2.core.linalg as la
 continued = {'continued': 1}
 
 __all__ = ['MaterialPointSimulator']

@@ -10,9 +10,9 @@ from argparse import ArgumentParser
 from subprocess import Popen, STDOUT
 from contextlib import contextmanager
 
-from matmodlab.core.logio import get_logger
-from matmodlab.core.environ import environ
-from matmodlab.core.misc import is_listlike
+from matmodlab2.core.logio import get_logger
+from matmodlab2.core.environ import environ
+from matmodlab2.core.misc import is_listlike
 
 ext_support_dir = os.path.dirname(os.path.realpath(__file__))
 aba_support_dir = os.path.join(ext_support_dir, '../umat')
@@ -110,6 +110,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     umat = name.lower() == 'umat'
     if umat:
         # Build the umat module - add some Abaqus utility files
+        clean_f2py_tracks(aba_support_dir)
         name = '_umat'
         sources.extend([aba_utils, umat_pyf])
         if not user_ics:
@@ -146,7 +147,7 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
             p = Popen(command, cwd=cwd)
             p.wait()
     else:
-        logfile = os.path.join(os.getcwd(), 'build.log')
+        logfile = os.path.join(cwd, 'build.log')
         with stdout_redirected(to=logfile), merged_stderr_stdout():
             p = Popen(command, cwd=cwd)
             p.wait()

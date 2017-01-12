@@ -7,7 +7,7 @@ import glob
 import pytest
 import numpy as np
 
-from matmodlab import *
+from matmodlab2 import *
 from testing_utils import *
 
 @pytest.mark.material

@@ -3,7 +3,7 @@ import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
 from .tensor import VOIGT, array_rep, matrix_rep
-import matmodlab.core.linalg as la
+import matmodlab2.core.linalg as la
 
 def update_deformation(farg, darg, dt, k):
     """Update the deformation gradient and strain

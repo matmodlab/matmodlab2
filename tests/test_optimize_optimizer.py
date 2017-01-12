@@ -10,8 +10,8 @@ import glob
 import pytest
 import shutil
 import numpy as np
-from matmodlab import *
-from matmodlab.optimize import Optimizer, OptimizeVariable
+from matmodlab2 import *
+from matmodlab2.optimize import Optimizer, OptimizeVariable
 import testing_utils as tu
 
 def teardown_module():

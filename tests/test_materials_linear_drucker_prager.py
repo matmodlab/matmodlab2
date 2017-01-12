@@ -5,9 +5,9 @@ import random
 from math import *
 import numpy as np
 
-from matmodlab import *
+from matmodlab2 import *
 from testing_utils import *
-from matmodlab.core.tensor import I6
+from matmodlab2.core.tensor import I6
 
 @pytest.mark.material
 @pytest.mark.drucker_prager

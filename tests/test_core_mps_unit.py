@@ -1,7 +1,7 @@
 import os
 import glob
 import numpy as np
-from matmodlab import *
+from matmodlab2 import *
 from testing_utils import *
 
 def test_mps_assign_material():

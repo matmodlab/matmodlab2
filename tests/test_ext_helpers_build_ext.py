@@ -4,7 +4,7 @@ import glob
 import pytest
 import testing_utils as tu
 from subprocess import Popen, STDOUT
-from matmodlab.ext_helpers import build_extension_module_as_subprocess
+from matmodlab2.ext_helpers import build_extension_module_as_subprocess
 
 #pytestmark = pytest.mark.skipif('linux' in sys.platform.lower(),
 #                                reason='Does not pass on linux')
@@ -42,7 +42,7 @@ def test_build_umat_ext_no_user_ics():
     """Test building a umat"""
 
     name = 'umat'
-    sources = ['../matmodlab/umat/umats/umat_neohooke.f90']
+    sources = ['../matmodlab2/umat/umats/umat_neohooke.f90']
     assert os.path.isfile(sources[0])
     returncode = build_extension_module(name, sources)
     assert returncode == 0, 'umat not built'
@@ -61,8 +61,8 @@ def test_build_umat_ext_no_user_ics():
 def test_build_umat_ext_with_user_ics():
     """Test building a umat with user defined sdvini"""
     name = 'umat'
-    sources = ['../matmodlab/umat/umats/umat_neohooke.f90',
-               '../matmodlab/umat/aba_sdvini.f90']
+    sources = ['../matmodlab2/umat/umats/umat_neohooke.f90',
+               '../matmodlab2/umat/aba_sdvini.f90']
     assert os.path.isfile(sources[0])
     assert os.path.isfile(sources[1])
     returncode = build_extension_module(name, sources, user_ics=True)

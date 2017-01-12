@@ -2,9 +2,9 @@ import os
 import sys
 import logging
 import numpy as np
-from matmodlab.core.logio import logger
-from matmodlab.core.tensor import VOIGT
-from matmodlab.core.material import Material
+from matmodlab2.core.logio import logger
+from matmodlab2.core.tensor import VOIGT
+from matmodlab2.core.material import Material
 
 try:
     import _umat as lib

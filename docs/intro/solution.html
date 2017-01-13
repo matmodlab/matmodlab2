@@ -1,0 +1,553 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1.7. Solution Method &mdash; Material Model Laboratory 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
+    <link rel="up" title="1. Introduction and Overview" href="index.html" />
+    <link rel="next" title="1.8. Matmodlab File Formats" href="output.html" />
+    <link rel="prev" title="1.6. Environment Settings" href="environment.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="solution-method">
+<span id="intro-solution"></span><h1>1.7. Solution Method<a class="headerlink" href="#solution-method" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="conventions.html#intro-conventions"><span>Conventions</span></a></li>
+<li><a class="reference internal" href="../execution/index.html#model-create-and-execute"><span>Job Execution</span></a></li>
+<li><a class="reference external" href="http://nbviewer.ipython.org/github/tjfulle/fem-with-python/tree/master/Lessons">Introduction to the Finite Element Method using Python</a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Matmodlab exercises a material model directly by &#8220;driving&#8221; it through user
+specified paths. Matmodlab computes an increment in deformation for a given
+step and requires that the material model update the stress in the material to
+the end of that step.</p>
+</div>
+<div class="section" id="the-role-of-the-material-model-in-continuum-mechanics">
+<span id="role-of-material-model"></span><h2>The Role of the Material Model in Continuum Mechanics<a class="headerlink" href="#the-role-of-the-material-model-in-continuum-mechanics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="conservation-laws">
+<span id="id1"></span><h3>Conservation Laws<a class="headerlink" href="#conservation-laws" title="Permalink to this headline">¶</a></h3>
+<p>Conservation of mass, momentum, and energy are the central tenets of the
+analysis of the response of a continuous media to deformation and/or load.
+Each conservation law can be summarized by the statement that <em>the time rate
+of change of a quantity in a continuous body is equal to the rate of
+production in the interior plus flux through the boundary</em></p>
+<p>Mathematically, the conservation laws for a point in the continuum are</p>
+<ul>
+<li><p class="first">Conservation of mass</p>
+<div class="math">
+\[\dot{\rho} + \rho \frac{d}{dx_i} \dot{u}_i = 0\]</div>
+</li>
+<li><p class="first">Conservtion of momentum per unit volume</p>
+<div class="math">
+\[\rho \frac{d}{dt} \dot{u}_i =
+\underset{\text{internal forces}}{\boxed{\frac{d}{dx_j} \sigma_{ij}}} +
+\underset{\text{body forces}}{\boxed{b_i}}\]</div>
+</li>
+<li><p class="first">Conservation of energy per unit volume</p>
+<div class="math">
+\[\rho\frac{d}{dt}U =
+\underset{\text{heat source}}{\boxed{\rho s}} +
+\underset{\text{strain energy}}{\boxed{\sigma_{ij}\dot{\epsilon}_{ij}}} +
+\underset{\text{heat flux}}{\boxed{\frac{d}{dx_j}q_j}}\]</div>
+</li>
+</ul>
+<p>where <span class="math">\(u_i\)</span> is the displacement, <span class="math">\(\rho\)</span> the mass density,
+<span class="math">\(\sigma_{ij}\)</span> the stress, <span class="math">\(\dot{\epsilon}_{ij}\)</span> the rate of
+strain, <span class="math">\(b_i\)</span> the body force per unit volume, <span class="math">\(q_i\)</span> the heat flux,
+<span class="math">\(s\)</span> the heat source, and <span class="math">\(U\)</span> is the internal energy per unit mass.</p>
+<p>In solid mechanics, mass is conserved trivially, and many problems are
+adiabatic or isotrhermal, so that only the momentum balance is explicitly
+solved</p>
+<div class="math" id="equation-mbal">
+<span class="eqno">(1)</span>\[\rho\frac{d}{dt}\dot{u}_i =
+\underset{\text{internal forces}}{\boxed{\frac{d}{dx_j}\sigma_{ij}}} +
+\underset{\text{body forces}}{\boxed{b_i}}\]</div>
+<p>The balance of linear momentum is the continuum mechanics generalization of
+Newton&#8217;s second law <span class="math">\(F=ma\)</span>.</p>
+<p>The first term on the RHS of <a href="#equation-mbal">(1)</a> represents the internal forces, which
+arise in the medium to resist imposed deformation. This resistance is a
+fundamental response of matter and is given by the divergence of the stress
+field.</p>
+<p>The balance of linear momentum represents an initial boundary value problem
+for applications of interest in solid dynamics:</p>
+<div class="math" id="equation-ibvp">
+<span class="eqno">(2)</span>\[\begin{split}\begin{aligned}
+  \rho\frac{d}{dt}\dot{u}_i = \frac{d}{dx_j}\sigma_{ij} + b_i &amp;
+  &amp;&amp;\quad\text{in }\Omega \\
+  u_{i} = u_{i0}&amp; &amp;&amp;\quad\text{on }\Gamma_0 \\
+  \sigma_{ij} n_j = t_{i}&amp; &amp;&amp;\quad\text{on }\Gamma_t \\
+  \dot{u}_{i}\left(x_{i}, 0\right) =
+  \dot{u}_{i}\left(x_{i}\right)&amp;
+  &amp;&amp;\quad\text{on }x_{i}\in\Omega
+\end{aligned}\end{split}\]</div>
+</div>
+<div class="section" id="the-finite-element-method">
+<span id="femeth"></span><h3>The Finite Element Method<a class="headerlink" href="#the-finite-element-method" title="Permalink to this headline">¶</a></h3>
+<p>The form of the momentum equation in <a href="#equation-ibvp">(2)</a> is termed the <strong>strong</strong> form.
+The strong form of the initial BVP problem can also be expressed in the weak
+form by introducing a test function <span class="math">\(w_i\)</span> and integrating
+over space</p>
+<div class="math" id="equation-ibvp-1">
+<span class="eqno">(3)</span>\[\begin{split}  \begin{aligned}
+    \int_{\Omega}w_i\left(
+      \frac{d}{dx_j}\sigma_{ij} + b_i - \rho\frac{d}{dt}\dot{u}_i
+    \right)\,d\Omega&amp; &amp;&amp;\quad \forall w_i \\
+    u_i = u_{i0}&amp; &amp;&amp;\quad\text{on }\Gamma_0 \\
+    \sigma_{ij}n_j = t_i^{(n)} &amp; &amp;&amp;\quad\text{on }\Gamma_t \\
+    \dot{u}_i\left(x_i, 0\right) =
+    \dot{u}_i\left(x_i\right)&amp;
+    &amp;&amp;\quad\text{on }x_i\in\Omega
+  \end{aligned}\end{split}\]</div>
+<p>Integrating <a href="#equation-ibvp-1">(3)</a> by parts allows the traction boundary conditions to
+be incorporated in to the governing equations</p>
+<div class="math" id="equation-weak">
+<span class="eqno">(4)</span>\[\begin{split} \begin{aligned}
+    \int_{\Omega}\rho w_i a_i +
+    \sigma_{ij} \frac{d}{dx_i}w_j\,d\Omega
+    = \int_{\Omega} w_ib_i\,d\Omega +
+    \int_{\Gamma} w_i t_i\,d\Gamma_{t}&amp;
+    &amp;&amp;\forall w_i \\
+    %
+    u_i = u_{i0}&amp; &amp;&amp;\quad\text{on }\Gamma_0 \\
+    \dot{u}_i\left(x_j, 0\right) =
+    \dot{u}_{i0}\left(x_j\right)&amp;
+    &amp;&amp;\quad\text{on }x_j\in\Omega
+ \end{aligned}\end{split}\]</div>
+<p>This form of the IBVP is called the <strong>weak</strong> form. The weak form poses the
+IBVP as a integro-differential equation and eliminates singularities that may
+arise in the strong form. Traction boundary conditions are incorporated in the
+governing equations. The weak form forms the basis for finite element methods.</p>
+<p>In the finite element method, forms of <span class="math">\(w_i\)</span> are assumed in
+subdomains (elements) in <span class="math">\(\Omega\)</span> and displacements are sought such that
+the force imbalance <span class="math">\(R\)</span> is minimized:</p>
+<div class="math" id="equation-resid">
+<span class="eqno">(5)</span>\[R = \int_{\Omega}w_i b_i\,d\Omega +
+\int_{\Gamma}w_i t_i \,d\Gamma_{t} -
+ \int_{\Omega}\rho w_i a_i +
+        \sigma_{ij}\frac{d}{dx_j}w_i\,d\Omega\]</div>
+<p>The equations of motion as described in <a href="#equation-resid">(5)</a> are not closed, but
+require relationships relating <span class="math">\(\sigma_{ij}\)</span> to <span class="math">\(u_i\)</span></p>
+<p class="centered">
+<strong>Constitutive model <span class="math">\(\longrightarrow\)</span> relationship between
+<span class="math">\(\sigma_{ij}\)</span> and <span class="math">\(u_i\)</span></strong></p><p>In the typical finite element procedure, the host finite element code passes
+to the constitutive routine the stress and material state at the beginning of
+a finite step (in time) and kinematic quantities at the end of the step. The
+constitutive routine is responsible for updating the stress to the end of the
+step. At the completion of the step, the host code then uses the updated
+stress to compute kinematic quantities at the end of the next step. This
+process is continued until the simulation is completed. The host finite
+element handles the allocation and management of all memory, including memory
+required for material variables.</p>
+</div>
+</div>
+<div class="section" id="solution-procedure">
+<span id="mmlsol"></span><h2>Solution Procedure<a class="headerlink" href="#solution-procedure" title="Permalink to this headline">¶</a></h2>
+<p>In addition to providing a platform for material model developers to formulate
+and test constitutive routines, Matmodlab aims to provide users of material
+models an independent platform to exercise, parameterize, and compare material
+responses against single element finite element simulations. To this end, the
+solution procedure in Matmodlab is similar to that of the finite element
+method, in that the host code (Matmodlab) provides to the constitutive
+routine a measure of deformation at the end of a finite step and expects the
+updated stress in return. However, rather than solve the momentum equation at
+the beginning of each step and advancing kinematic quantities to the step&#8217;s
+end, Matmodlab retrieves updated kinematic quantities from user defined
+tables and/or functions.</p>
+<p>The path through which a material is exercised is defined by piecewise
+continuous &#8220;steps&#8221; in which tensor components of stress and/or deformation are
+specified at discrete points in time. The components are used to obtain a
+sequence of piecewise constant strain rates that are used to advance the
+kinematic state. Supported components are strain, strain rate, stress,
+stress rate, deformation gradient, displacement, and velocity. &#8220;Mixed-modes&#8221;
+of strain and stress (and their rates) are supported. Components of
+displacement and velocity control are applied only to the &#8220;+&#8221; faces of a unit
+cube centered at the coordinate origin.</p>
+<div class="section" id="the-strain-tensor">
+<span id="strain-tensor"></span><h3>The Strain Tensor<a class="headerlink" href="#the-strain-tensor" title="Permalink to this headline">¶</a></h3>
+<p>The components of strain are defined by</p>
+<div class="math">
+\[\epsilon_{ij} = \frac{1}{\kappa}\left(U_{ij}^\kappa - I_{ij}\right)\]</div>
+<p>where <span class="math">\(U_{ij}\)</span> is the right Cauchy stretch tensor, defined by the
+polar decomposition of the deformation gradient <span class="math">\(F_{iJ} =
+R_{iK}U_{KJ}\)</span>, and <span class="math">\(\kappa\)</span> is a user specified
+&#8220;Seth-Hill&#8221; parameter that controls the strain definition. Choosing
+<span class="math">\(\kappa=2\)</span> gives the Lagrange strain, which might be useful when testing
+models cast in a reference coordinate system. The choice <span class="math">\(\kappa=1\)</span>,
+which gives the engineering strain, is convenient when driving a problem over
+the same strain path as was used in an experiment. The choice <span class="math">\(\kappa=0\)</span>
+corresponds to the logarithmic (Hencky) strain. Common values of
+<span class="math">\(\kappa\)</span> and the associated names for each (there is some ambiguity in
+the names) are listed in <a class="reference internal" href="#table-1">Table 1</a></p>
+<table border="1" class="docutils" id="table-1">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><span class="math">\(\kappa\)</span></th>
+<th class="head">Name(s)</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>-2</td>
+<td>Green</td>
+</tr>
+<tr class="row-odd"><td>-1</td>
+<td>True, Cauchy</td>
+</tr>
+<tr class="row-even"><td>0</td>
+<td>Logarithmic, Hencky, True</td>
+</tr>
+<tr class="row-odd"><td>1</td>
+<td>Engineering, Swainger</td>
+</tr>
+<tr class="row-even"><td>2</td>
+<td>Lagrange, Almansi</td>
+</tr>
+</tbody>
+</table>
+<p>The volumetric strain <span class="math">\(\epsilon_v\)</span> is defined</p>
+<div class="math" id="equation-volstrain">
+<span class="eqno">(6)</span>\[\begin{split}\epsilon_v =
+\begin{cases}
+    \frac{1}{\kappa}\left(J^{\kappa} - 1\right)
+    &amp; \text{if }\kappa \ne 0 \\
+    \ln{J} &amp; \text{if }\kappa = 0
+\end{cases}\end{split}\]</div>
+<p>where the Jacobian <span class="math">\(J\)</span> is the determinant of the deformation gradient.</p>
+<p>Each step component, from time <span class="math">\(t=0\)</span> to <span class="math">\(t=t_f\)</span> is
+subdivided into a user-specified number of &#8220;frames&#8221; and the material model
+evaluated at each frame. When volumetric strain, deformation gradient,
+displacement, or velocity are specified for a step, Matmodlab internally
+determines the corresponding strain components. If a component of stress is
+specified, Matmodlab determines the strain increment that minimizes the
+distance between the prescribed stress component and model response.</p>
+</div>
+<div class="section" id="stress-control">
+<span id="id2"></span><h3>Stress Control<a class="headerlink" href="#stress-control" title="Permalink to this headline">¶</a></h3>
+<p>Stress control is accomplished through an iterative scheme that seeks to
+determine the unkown strain rates, <span class="math">\(\dot{\epsilon}_{\Box}\)</span>, that satisfy</p>
+<div class="math">
+\[\sigma_{ij}\left(\dot{\epsilon}_{\Box}\right) = \sigma_{ij}^p\]</div>
+<p>where, <span class="math">\(\Box\)</span> represents the components for which stresses are
+prescribed, and <span class="math">\(\sigma_{ij}^p\)</span> are the components of prescribed stress.</p>
+<p>The approach is an iterative scheme employing a multidimensional Newton&#8217;s
+method. Each iteration begins by determining the submatrix of the material
+stiffness <span class="math">\(C_{\Box kl}\)</span>, where <span class="math">\(C_{ijkl}\)</span> is the full stiffness
+matrix <span class="math">\(C_{ijkl}=d\sigma_{ij}/d\epsilon_{kl}\)</span>. The value of
+<span class="math">\(\dot{\epsilon}_{\Box}\)</span> is then updated according to</p>
+<div class="math">
+\[\dot{\epsilon}_{\Box}^{n+1} =
+    \dot{\epsilon}_{\Box}^{n} -
+    C_{\Box mn}^{-1}\sigma_{mn}^{e}(\dot{\epsilon}_{\Box}^{n})/dt\]</div>
+<p>where</p>
+<div class="math">
+\[\sigma_{mn}^{e}(\dot{\epsilon}_{\Box}) = \sigma_{mn}(\dot{\epsilon}_{\Box})
+                                  - \sigma_{mn}^p\]</div>
+<p>The Newton procedure will converge for valid stress states. However, it is
+possible to prescribe invalid stress state, e.g. a stress state beyond the
+material&#8217;s elastic limit. In these cases, the Newton procedure may not
+converge to within the acceptable tolerance and a Nelder-Mead simplex method
+is used as a back up procedure. A warning is logged in these cases.</p>
+</div>
+<div class="section" id="the-material-stiffness">
+<span id="id3"></span><h3>The Material Stiffness<a class="headerlink" href="#the-material-stiffness" title="Permalink to this headline">¶</a></h3>
+<p>As seen in <a class="reference internal" href="#stress-control">Stress Control</a>, the material tangent stiffness matrix, commonly
+referred to as the material&#8217;s &#8220;Jacobian&#8221;, plays an integral roll in the
+solution of the inverse stress problem (determining strains as a function of
+prescribed stress). Similarly, the Jacobian plays a role in implicit finite
+element methods. In general, the Jacobian is a fourth order tensor in
+<span class="math">\(\mathbb{R}^{3}\)</span> with 81 independent components. Casting the stress and
+strain second order tensors in <span class="math">\(\mathbb{R}^{3}\)</span> as first order tensors
+in <span class="math">\(\mathbb{R}^{9}\)</span> and the Jacobian as a second order tensor in
+<span class="math">\(\mathbb{R}^{9}\)</span>, the stress/strain relation in <a class="reference internal" href="#stress-control">Stress Control</a> can be
+written in matrix form as</p>
+<div class="math">
+\[\begin{split}\begin{Bmatrix}
+  \dot{\sigma}_{11} \\
+  \dot{\sigma}_{22} \\
+  \dot{\sigma}_{33} \\
+  \dot{\sigma}_{12} \\
+  \dot{\sigma}_{23} \\
+  \dot{\sigma}_{13} \\
+  \dot{\sigma}_{21} \\
+  \dot{\sigma}_{32} \\
+  \dot{\sigma}_{31}
+\end{Bmatrix} =
+\begin{bmatrix}
+  C_{1111} &amp; C_{1122} &amp; C_{1133} &amp; C_{1112} &amp; C_{1123} &amp; C_{1113} &amp; C_{1121} &amp; C_{1132} &amp; C_{1131} \\
+  C_{2211} &amp; C_{2222} &amp; C_{2233} &amp; C_{2212} &amp; C_{2223} &amp; C_{2213} &amp; C_{2221} &amp; C_{2232} &amp; C_{2231} \\
+  C_{3311} &amp; C_{3322} &amp; C_{3333} &amp; C_{3312} &amp; C_{3323} &amp; C_{3313} &amp; C_{3321} &amp; C_{3332} &amp; C_{3331} \\
+  C_{1211} &amp; C_{1222} &amp; C_{1233} &amp; C_{1212} &amp; C_{1223} &amp; C_{1213} &amp; C_{1221} &amp; C_{1232} &amp; C_{1231} \\
+  C_{2311} &amp; C_{2322} &amp; C_{2333} &amp; C_{2312} &amp; C_{2323} &amp; C_{2313} &amp; C_{2321} &amp; C_{2332} &amp; C_{2331} \\
+  C_{1311} &amp; C_{1322} &amp; C_{1333} &amp; C_{1312} &amp; C_{1323} &amp; C_{1313} &amp; C_{1321} &amp; C_{1332} &amp; C_{1331} \\
+  C_{2111} &amp; C_{2122} &amp; C_{2133} &amp; C_{2212} &amp; C_{2123} &amp; C_{2213} &amp; C_{2121} &amp; C_{2132} &amp; C_{2131} \\
+  C_{3211} &amp; C_{3222} &amp; C_{3233} &amp; C_{3212} &amp; C_{3223} &amp; C_{3213} &amp; C_{3221} &amp; C_{3232} &amp; C_{3231} \\
+  C_{3111} &amp; C_{3122} &amp; C_{3133} &amp; C_{3312} &amp; C_{3123} &amp; C_{3113} &amp; C_{3121} &amp; C_{3132} &amp; C_{3131}
+\end{bmatrix}
+\begin{Bmatrix}
+  \dot{\epsilon}_{11} \\
+  \dot{\epsilon}_{22} \\
+  \dot{\epsilon}_{33} \\
+  \dot{\epsilon}_{12} \\
+  \dot{\epsilon}_{23} \\
+  \dot{\epsilon}_{13} \\
+  \dot{\epsilon}_{21} \\
+  \dot{\epsilon}_{32} \\
+  \dot{\epsilon}_{31}
+\end{Bmatrix}\end{split}\]</div>
+<p>Due to the symmetries of the stiffness and strain tensors (<span class="math">\(C_{ijkl}=C_{ijlk}\)</span>, <span class="math">\(\dot{\epsilon}_{ij}=\dot{\epsilon}_{ji}\)</span>), the expression above can be simplified by removing the last three columns of <span class="math">\(C_{ijkl}\)</span>:</p>
+<div class="math">
+\[\begin{split}\begin{Bmatrix}
+  \dot{\sigma}_{11} \\
+  \dot{\sigma}_{22} \\
+  \dot{\sigma}_{33} \\
+  \dot{\sigma}_{12} \\
+  \dot{\sigma}_{23} \\
+  \dot{\sigma}_{13} \\
+  \dot{\sigma}_{21} \\
+  \dot{\sigma}_{32} \\
+  \dot{\sigma}_{31}
+\end{Bmatrix} =
+\begin{bmatrix}
+  C_{1111} &amp; C_{1122} &amp; C_{1133} &amp; C_{1112} &amp; C_{1123} &amp; C_{1113} \\
+  C_{2211} &amp; C_{2222} &amp; C_{2233} &amp; C_{2212} &amp; C_{2223} &amp; C_{2213} \\
+  C_{3311} &amp; C_{3322} &amp; C_{3333} &amp; C_{3312} &amp; C_{3323} &amp; C_{3313} \\
+  C_{1211} &amp; C_{1222} &amp; C_{1233} &amp; C_{1212} &amp; C_{1223} &amp; C_{1213} \\
+  C_{2311} &amp; C_{2322} &amp; C_{2333} &amp; C_{2312} &amp; C_{2323} &amp; C_{2313} \\
+  C_{1311} &amp; C_{1322} &amp; C_{1333} &amp; C_{1312} &amp; C_{1323} &amp; C_{1313} \\
+  C_{2111} &amp; C_{2122} &amp; C_{2133} &amp; C_{2212} &amp; C_{2123} &amp; C_{2213} \\
+  C_{3211} &amp; C_{3222} &amp; C_{3233} &amp; C_{3212} &amp; C_{3223} &amp; C_{3213} \\
+  C_{3111} &amp; C_{3122} &amp; C_{3133} &amp; C_{3112} &amp; C_{3123} &amp; C_{3113}
+\end{bmatrix}
+\begin{Bmatrix}
+  \dot{\epsilon}_{11} \\
+  \dot{\epsilon}_{22} \\
+  \dot{\epsilon}_{33} \\
+  2\dot{\epsilon}_{12} \\
+  2\dot{\epsilon}_{23} \\
+  2\dot{\epsilon}_{13}
+\end{Bmatrix}\end{split}\]</div>
+<p>Considering the symmetry of the stress tensor
+(<span class="math">\(\dot{\sigma}_{ij}=\dot{\sigma}_{ji}\)</span>) and the major symmetry of
+<span class="math">\(C_{ijkl}\)</span> (<span class="math">\(C_{ijkl}=C_{klij}\)</span>), the final three rows of
+<span class="math">\(C_{ijkl}\)</span> may also be ommitted, resulting in the symmetric form</p>
+<div class="math">
+\[\begin{split}\begin{Bmatrix}
+  \dot{\sigma}_{11} \\
+  \dot{\sigma}_{22} \\
+  \dot{\sigma}_{33} \\
+  \dot{\sigma}_{12} \\
+  \dot{\sigma}_{23} \\
+  \dot{\sigma}_{13}
+\end{Bmatrix} =
+\begin{bmatrix}
+  C_{1111} &amp; C_{1122} &amp; C_{1133} &amp; C_{1112} &amp; C_{1123} &amp; C_{1113} \\
+           &amp; C_{2222} &amp; C_{2233} &amp; C_{2212} &amp; C_{2223} &amp; C_{2213} \\
+           &amp;          &amp; C_{3333} &amp; C_{3312} &amp; C_{3323} &amp; C_{3313} \\
+           &amp;          &amp;          &amp; C_{1212} &amp; C_{1223} &amp; C_{1213} \\
+           &amp;          &amp;          &amp;          &amp; C_{2323} &amp; C_{2313} \\
+ \text{symm}&amp;         &amp;          &amp;          &amp;          &amp; C_{1313} \\
+\end{bmatrix}
+\begin{Bmatrix}
+  \dot{\epsilon}_{11} \\
+  \dot{\epsilon}_{22} \\
+  \dot{\epsilon}_{33} \\
+  2\dot{\epsilon}_{12} \\
+  2\dot{\epsilon}_{23} \\
+  2\dot{\epsilon}_{13}
+\end{Bmatrix}\end{split}\]</div>
+<p>Letting <span class="math">\(\{\dot{\sigma}_{1},\dot{\sigma}_{2},\dot{\sigma}_{3},
+\dot{\sigma}_{4}, \dot{\sigma}_{5}, \dot{\sigma}_{6}\}=
+\{\dot{\sigma}_{11},\dot{\sigma}_{22},\dot{\sigma}_{33},
+\dot{\sigma}_{12},\dot{\sigma}_{23},\dot{\sigma}_{13}\}\)</span> and
+<span class="math">\(\{\dot{\epsilon}_{1},\dot{\epsilon}_{2},\dot{\epsilon}_{3},
+\dot{\gamma}_4, \dot{\gamma}_5, \dot{\gamma}_6\}=
+\{\dot{\epsilon}_{11},\dot{\epsilon}_{22},\dot{\epsilon}_{33},2\dot{\epsilon}_{12},2\dot{\epsilon}_{23},2\dot{\epsilon}_{13}\}\)</span>,
+the above stress-strain relationship is re-written as</p>
+<div class="math">
+\[\begin{split}\begin{Bmatrix}
+  \dot{\sigma}_{1} \\
+  \dot{\sigma}_{2} \\
+  \dot{\sigma}_{3} \\
+  \dot{\sigma}_{4} \\
+  \dot{\sigma}_{5} \\
+  \dot{\sigma}_{6}
+\end{Bmatrix} =
+\begin{bmatrix}
+  C_{11} &amp; C_{12} &amp; C_{13} &amp; C_{14} &amp; C_{15} &amp; C_{16} \\
+         &amp; C_{22} &amp; C_{23} &amp; C_{24} &amp; C_{25} &amp; C_{26} \\
+         &amp;        &amp; C_{33} &amp; C_{34} &amp; C_{35} &amp; C_{36} \\
+         &amp;        &amp;        &amp; C_{44} &amp; C_{45} &amp; C_{46} \\
+         &amp;        &amp;        &amp;        &amp; C_{55} &amp; C_{56} \\
+ \text{symm}   &amp;        &amp;        &amp;        &amp;        &amp; C_{66} \\
+\end{bmatrix}
+\begin{Bmatrix}
+  \dot{\epsilon}_{1} \\
+  \dot{\epsilon}_{2} \\
+  \dot{\epsilon}_{3} \\
+  \dot{\gamma}_4 \\
+  \dot{\gamma}_5 \\
+  \dot{\gamma}_6
+\end{Bmatrix}\end{split}\]</div>
+<p>As expressed, the components of <span class="math">\(\dot{\epsilon}_{J}\)</span> and
+<span class="math">\(\dot{\sigma}_{I}\)</span> are first order tensors and <span class="math">\(C_{IJ}\)</span> is a
+second order tensor in <span class="math">\(\mathbb{R}^{6}\)</span>, respectively.</p>
+<div class="section" id="alternative-representations-of-tensors-in">
+<h4>Alternative Representations of Tensors in <span class="math">\(\mathbb{R}^{6}\)</span><a class="headerlink" href="#alternative-representations-of-tensors-in" title="Permalink to this headline">¶</a></h4>
+<p>The representation of symmetric tensors at the end of <a class="reference internal" href="#the-material-stiffness">The Material
+Stiffness</a> is known as the &#8220;Voight&#8221; representation. The shear strain
+components <span class="math">\(\dot{\epsilon}_I=2\dot{\epsilon}_{ij}, \ I=4,5,6, \
+ij=12,23,13\)</span> are known as the engineering shear strains (in contrast to
+<span class="math">\(\dot{\epsilon}_{ij}, \ ij=12,23,13\)</span> which are known as the tensor
+components). An advantage of the Voight representation is that the scalar
+product <span class="math">\(\sigma_{ij}\epsilon_{ij}=\sigma_{I}\epsilon_{I}\)</span> is preserved and
+the components of the stiffness tensor are unchanged in
+<span class="math">\(\mathbb{R}^{6}\)</span>. However, one must take care to account for the factor
+of 2 in the engineering shear strain components.</p>
+<p>Alternatively, one can express symmetric second order tensors with their
+&#8220;Mandel&#8221; components
+<span class="math">\(\{A_{1},A_{2},A_{3},A_{4},A_{5},A_{6}\}=\{A_{11},A_{22},A_{33},
+\sqrt{2}A_{12},\sqrt{2}A_{23},\sqrt{2}A_{13}\}\)</span>. Representing both the
+stress and strain with their Mandel representation also preserves the scalar
+product, without having to treat the components of stress and strain
+differently (at the expense of carrying around the factor of <span class="math">\(\sqrt{2}\)</span>
+in the off-diagonal components of both). The Mandel representation has the
+advantage that its basis in <span class="math">\(\mathbb{R}^{6}\)</span> is orthonormal, whereas the
+basis for the Voight representation is only orthogonal. If Mandel components
+are used, the components of the stiffness must be modified as</p>
+<div class="math">
+\[\begin{split}C_{IJ} =
+\begin{bmatrix}
+  C_{11} &amp; C_{12} &amp; C_{13} &amp; \sqrt{2}C_{14}   &amp; \sqrt{2}C_{15} &amp; \sqrt{2}C_{16} \\
+         &amp; C_{22} &amp; C_{23} &amp; \sqrt{2}C_{24}   &amp; \sqrt{2}C_{25} &amp; \sqrt{2}C_{26} \\
+         &amp;        &amp; C_{33} &amp; \sqrt{2}C_{34}   &amp; \sqrt{2}C_{35} &amp; \sqrt{2}C_{36} \\
+         &amp;        &amp;        &amp; 2C_{44}          &amp; 2C_{45}        &amp; 2C_{46} \\
+         &amp;        &amp;        &amp;                  &amp; 2C_{55}        &amp; 2C_{56} \\
+ \text{symm} &amp;        &amp;        &amp;                  &amp;                &amp; 2C_{66} \\
+\end{bmatrix}\end{split}\]</div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="general.html">1.1. Introduction: General</a></li>
+<li class="toctree-l2"><a class="reference internal" href="about.html">1.2. Introduction: Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">1.3. Installing Matmodlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input.html">1.4. Input Syntax Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.5. Conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">1.6. Environment Settings</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">1.7. Solution Method</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-role-of-the-material-model-in-continuum-mechanics">The Role of the Material Model in Continuum Mechanics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#conservation-laws">Conservation Laws</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-finite-element-method">The Finite Element Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#solution-procedure">Solution Procedure</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-strain-tensor">The Strain Tensor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#stress-control">Stress Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-material-stiffness">The Material Stiffness</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="output.html">1.8. Matmodlab File Formats</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">4. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/intro/solution.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

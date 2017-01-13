@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1.6. Environment Settings &mdash; Material Model Laboratory 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
+    <link rel="up" title="1. Introduction and Overview" href="index.html" />
+    <link rel="next" title="1.7. Solution Method" href="solution.html" />
+    <link rel="prev" title="1.5. Conventions" href="conventions.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="environment-settings">
+<span id="environment"></span><h1>1.6. Environment Settings<a class="headerlink" href="#environment-settings" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="conventions.html#intro-conventions"><span>Conventions</span></a></li>
+<li><a class="reference internal" href="../execution/cli.html#basic-cli"><span>Execution Procedures</span></a></li>
+<li><a class="reference internal" href="../material/python.html#python-models"><span>Python User Material Interface</span></a></li>
+<li><a class="reference internal" href="../material/fortran.html#fortran-models"><span>Fortran User Material Interface</span></a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Matmodlab sets up and performs execution of input scripts in a customized
+environment (not to be confused with Python virtural environments). The
+environment can be modifed by user environment files that are read at the
+beginning of each job.</p>
+</div>
+<div class="section" id="environment-file-locations">
+<h2>Environment File Locations<a class="headerlink" href="#environment-file-locations" title="Permalink to this headline">¶</a></h2>
+<p>Matmodlab searches for the optional user environment file, <code class="docutils literal"><span class="pre">mml_userenv.py</span></code>, in three locations, in the following order:</p>
+<ol class="arabic simple">
+<li>Your home directory.</li>
+<li>The location specified by the environment variable <code class="docutils literal"><span class="pre">MML_USERENV</span></code></li>
+<li>The current working directory.</li>
+</ol>
+<p>The value of a parameter is the the last definition encountered, meaning that the order of precedence for user settings is the current working directory, <code class="docutils literal"><span class="pre">MML_USERENV</span></code>, and the home directory.</p>
+<p>Environment files use Python syntax, meaning that entries will have the following form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">parameter</span> <span class="o">=</span> <span class="n">value</span>
+</pre></div>
+</div>
+<p>All usual Python conventions apply.</p>
+</div>
+<div class="section" id="recognized-environment-settings-and-defaults">
+<h2>Recognized Environment Settings and Defaults<a class="headerlink" href="#recognized-environment-settings-and-defaults" title="Permalink to this headline">¶</a></h2>
+<p>Below are the recognized environment settings and their defaults.  Any of these settings can be changed by specifying a different value in a user environment file.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When specifying environment settings in a user environment file, the
+setting must have the same type as the default. If the default is a list,
+the user setting is inserted in to the default list. If the default is a
+dictionary, it is updated with the user setting.</p>
+</div>
+<div class="section" id="io-settings">
+<h3>IO Settings<a class="headerlink" href="#io-settings" title="Permalink to this headline">¶</a></h3>
+<p>verbosity</p>
+<blockquote>
+<div>Matmodlab will print more, or less, information during job execution. Possible values are <code class="docutils literal"><span class="pre">0</span></code>, <code class="docutils literal"><span class="pre">1</span></code>, and <code class="docutils literal"><span class="pre">2</span></code>. Set the value to <code class="docutils literal"><span class="pre">0</span></code> to suppress printing of information. Set the value to <code class="docutils literal"><span class="pre">2</span></code>, or higher, to print increase the amount of information printed. The default value is <code class="docutils literal"><span class="pre">1</span></code>.</div></blockquote>
+<p>warn</p>
+<blockquote>
+<div>Define how Matmodlab is to interpret warnings.  Possible values are <code class="docutils literal"><span class="pre">WARN</span></code>, <code class="docutils literal"><span class="pre">IGNORE</span></code>, <code class="docutils literal"><span class="pre">ERROR</span></code>.  Set the value to <code class="docutils literal"><span class="pre">IGNORE</span></code> to suppress warnings and to <code class="docutils literal"><span class="pre">ERROR</span></code> to treat warnings as errors.  The default <code class="docutils literal"><span class="pre">WARN</span></code> prints warning messages.</div></blockquote>
+<p>Wall:</p>
+<blockquote>
+<div>Print <em>all</em> warning messages, including internal warnings.  Possible values are <code class="docutils literal"><span class="pre">True</span></code> and <code class="docutils literal"><span class="pre">False</span></code>.  The default <code class="docutils literal"><span class="pre">False</span></code> does not print some internal warnings.</div></blockquote>
+</div>
+<div class="section" id="debugging-and-sqa">
+<h3>Debugging and SQA<a class="headerlink" href="#debugging-and-sqa" title="Permalink to this headline">¶</a></h3>
+<p>raise_e</p>
+<blockquote>
+<div>Define how Matmodlab treats errors that are raised during job execution.
+Possible values are <code class="docutils literal"><span class="pre">True</span></code> and <code class="docutils literal"><span class="pre">False</span></code>. If <code class="docutils literal"><span class="pre">False</span></code>, Matmodlab prints
+errors to the console and log file and exits. If set to <code class="docutils literal"><span class="pre">True</span></code>, errors are
+raised instead. The default is <code class="docutils literal"><span class="pre">False</span></code>, except for the Matmodlab.Notebook
+environment where it is <code class="docutils literal"><span class="pre">True</span></code>.</div></blockquote>
+<p>sqa</p>
+<blockquote>
+<div>Run additional SQA checks.  The default is <code class="docutils literal"><span class="pre">False</span></code>.</div></blockquote>
+<p>debug</p>
+<blockquote>
+<div>Run additional debug code.  The default is <code class="docutils literal"><span class="pre">False</span></code>.</div></blockquote>
+<p>sqa_stiff</p>
+<blockquote>
+<div>Perform checks of stiffness sent back from constitutive models.  The default is <code class="docutils literal"><span class="pre">False</span></code>.</div></blockquote>
+</div>
+<div class="section" id="performance">
+<h3>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+<p>nprocs</p>
+<blockquote>
+<div>The number of simultaneous jobs to run.  The option is used only by the Matmodlab.Permutator.  The default is <code class="docutils literal"><span class="pre">1</span></code>.</div></blockquote>
+</div>
+<div class="section" id="material-switching">
+<h3>Material Switching<a class="headerlink" href="#material-switching" title="Permalink to this headline">¶</a></h3>
+<p>switch</p>
+<blockquote>
+<div>A list of (old, new) tuples specifying the model switching behavior.  The default is <code class="docutils literal"><span class="pre">[]</span></code>.</div></blockquote>
+</div>
+<div class="section" id="user-material-models">
+<h3>User Material Models<a class="headerlink" href="#user-material-models" title="Permalink to this headline">¶</a></h3>
+<p>materials</p>
+<blockquote>
+<div>A dictionary describing user material models.  The dictionary consists of <code class="docutils literal"><span class="pre">model:information</span></code> key:value pairs where <code class="docutils literal"><span class="pre">information</span></code> is a dictionary containing material model meta data needed by Matmodlab.  The default is <code class="docutils literal"><span class="pre">{}</span></code>.  User values update and do not overwrite this variable.</div></blockquote>
+<p>std_materials</p>
+<blockquote>
+<div>A list containing directories and files to search for standard material models.  The default is <code class="docutils literal"><span class="pre">[MAT_D]</span></code>.  User values are appended to and do not overwrite this variable.</div></blockquote>
+</div>
+<div class="section" id="simulation-directory">
+<h3>Simulation Directory<a class="headerlink" href="#simulation-directory" title="Permalink to this headline">¶</a></h3>
+<p>simulation_dir</p>
+<blockquote>
+<div>The directory to run the simulation.  The default is the current working directory.</div></blockquote>
+</div>
+<div class="section" id="a-note-on-defining-user-material-models">
+<h3>A Note on Defining User Material Models<a class="headerlink" href="#a-note-on-defining-user-material-models" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal"><span class="pre">std_materials</span></code> and <code class="docutils literal"><span class="pre">materials</span></code>  user settings are used to inform Matmodlab concerning user defined materials.  <code class="docutils literal"><span class="pre">std_materials</span></code> is a list of python interface files for standard models.  The <code class="docutils literal"><span class="pre">materials</span></code> dictionary is a dictionary of <code class="docutils literal"><span class="pre">model_name:</span> <span class="pre">attribute_dict</span></code> key:value pairs with the dictionary of model attributes containing the following information:</p>
+<ul class="simple">
+<li><em>source_files</em>: [list, required] A list of model source files</li>
+<li><em>model</em>: [symbolic constant, optional] the model type.  One of <code class="docutils literal"><span class="pre">USER</span></code>, <code class="docutils literal"><span class="pre">UMAT</span></code>, <code class="docutils literal"><span class="pre">UHYPER</span></code>, <code class="docutils literal"><span class="pre">UANISOHYPER</span></code>.  The default is <code class="docutils literal"><span class="pre">USER</span></code>.</li>
+<li><em>response</em>: [symbolic constant, optional] The model response, one of <code class="docutils literal"><span class="pre">MECHANICAL</span></code>, <code class="docutils literal"><span class="pre">HPERELASTIC</span></code>, <code class="docutils literal"><span class="pre">ANISOHYPER</span></code>.  The default is <code class="docutils literal"><span class="pre">MECHANICAL</span></code>.</li>
+<li><em>ordering</em>: [list of symbolic constants, optional] Symmetric tensor ordering.  The default is <code class="docutils literal"><span class="pre">[XX,</span> <span class="pre">YY,</span> <span class="pre">ZZ,</span> <span class="pre">XY,</span> <span class="pre">YZ,</span> <span class="pre">XZ]</span></code>.</li>
+<li><em>user_ics</em>: [boolean, optional] If <code class="docutils literal"><span class="pre">True</span></code>, the user model provides a SDVINI subroutine.</li>
+<li><em>param_names</em>: [list of string, optional] A list of model parameter names.  If given, parameters should be sent to the <code class="docutils literal"><span class="pre">MaterialPointSimulator.Material</span></code> constructor as a dictionary of <code class="docutils literal"><span class="pre">key:value</span></code> pairs, where <code class="docutils literal"><span class="pre">key</span></code> is the parameter name.  Otherwise, parameters should be sent to the constructor as an array in the order expected by the model.</li>
+</ul>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<p>The following is a portion of the user environment file found in <code class="docutils literal"><span class="pre">matmodlab/examples</span></code> and is used by <code class="docutils literal"><span class="pre">matmodlab/examples/users.py</span></code> to define the material model&#8217;s attributes:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">materials</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;neohooke_u&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;model&#39;</span><span class="p">:</span> <span class="n">USER</span><span class="p">,</span> <span class="s">&#39;response&#39;</span><span class="p">:</span> <span class="n">HYPERELASTIC</span><span class="p">,</span>
+                            <span class="s">&#39;libname&#39;</span><span class="p">:</span> <span class="s">&#39;neohooke_u&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;source_files&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">join</span><span class="p">(</span><span class="n">MAT_D</span><span class="p">,</span> <span class="s">&#39;src/uhyper_neohooke.f90&#39;</span><span class="p">)],</span>
+                            <span class="s">&#39;ordering&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">XX</span><span class="p">,</span> <span class="n">YY</span><span class="p">,</span> <span class="n">ZZ</span><span class="p">,</span> <span class="n">XY</span><span class="p">,</span> <span class="n">XZ</span><span class="p">,</span> <span class="n">YZ</span><span class="p">]}}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="general.html">1.1. Introduction: General</a></li>
+<li class="toctree-l2"><a class="reference internal" href="about.html">1.2. Introduction: Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">1.3. Installing Matmodlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input.html">1.4. Input Syntax Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.5. Conventions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">1.6. Environment Settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#environment-file-locations">Environment File Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#recognized-environment-settings-and-defaults">Recognized Environment Settings and Defaults</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#io-settings">IO Settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#debugging-and-sqa">Debugging and SQA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#material-switching">Material Switching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#user-material-models">User Material Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simulation-directory">Simulation Directory</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-note-on-defining-user-material-models">A Note on Defining User Material Models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="solution.html">1.7. Solution Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output.html">1.8. Matmodlab File Formats</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">4. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/intro/environment.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

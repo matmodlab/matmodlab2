@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>2.8. Annotated Examples &mdash; Material Model Laboratory 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
+    <link rel="up" title="2. Job Execution" href="index.html" />
+    <link rel="next" title="Example 1: Uniaxial Strain" href="../examples/ex1.html" />
+    <link rel="prev" title="2.7. Optimizer" href="optimize.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="annotated-examples">
+<span id="examples"></span><h1>2.8. Annotated Examples<a class="headerlink" href="#annotated-examples" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="../intro/conventions.html#intro-conventions"><span>Conventions</span></a></li>
+<li><a class="reference internal" href="mps.html#mps"><span>MaterialPointSimulator</span></a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>In this section, several example input scripts are described. A Matmodlab
+input script consists of defining an instance of the
+<code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code> class and defininig for it a <code class="docutils literal"><span class="pre">material</span></code> and
+<code class="docutils literal"><span class="pre">steps</span></code>. The following examples provide illustration.</p>
+</div>
+<div class="section" id="job-execution">
+<h2>Job Execution<a class="headerlink" href="#job-execution" title="Permalink to this headline">¶</a></h2>
+<p>Simulations are run by processing Matmodlab input scripts with the <code class="docutils literal"><span class="pre">mml</span></code>
+command line utility:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ mml run filename.py
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">filename.py</span></code> is the name of the input script.</p>
+</div>
+<div class="section" id="id1">
+<h2>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/ex1.html">Example 1: Uniaxial Strain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/ex2.html">Example 2: Uniaxial Stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/ex3.html">Example 3: Uniaxial Stress, Mixed Mode</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro/index.html">1. Introduction and Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">2. Job Execution</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">2.1. Job Execution: Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">2.2. Execution Procedures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mps.html">2.3. MaterialPointSimulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="post.html">2.4. Postprocessing Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook.html">2.5. Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="permutate.html">2.6. Permutator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimize.html">2.7. Optimizer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">2.8. Annotated Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#job-execution">Job Execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ex1.html">Example 1: Uniaxial Strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ex2.html">Example 2: Uniaxial Stress</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ex3.html">Example 3: Uniaxial Stress, Mixed Mode</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">4. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/execution/examples.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

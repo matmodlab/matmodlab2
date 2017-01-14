@@ -5,6 +5,24 @@ import warnings
 from argparse import ArgumentParser
 
 __all__ = ['environ']
+try:
+    unicode = unicode
+except NameError:
+    # 'unicode' is undefined, must be Python 3
+    basestring = (str,bytes)
+
+def prepend_sys_path(dirname):
+    if os.path.isdir(dirname):
+        sys.path.insert(0, dirname)
+
+class SimulationEnvironment:
+    def __init__(self):
+        self.SQA = False
+        self.verbosity = 1
+        self.notebook = False
+        self.parent_process = False
+        self.loglevel = logging.WARNING
+environ = SimulationEnvironment()
 
 def load_user_env():
     user_env = {}
@@ -26,29 +44,28 @@ def load_user_env():
             code = compile(fh.read(), user_env_file, 'exec')
             file_env = {}
             ns = {'my_filename': user_env_file,
-                  'os': os, 'sys': sys}
+                  'os': os, 'sys': sys,}
             exec(code, ns, file_env)
-            for item in file_env:
-                if item.startswith('_'):
+            for (key, val) in file_env.items():
+                if key.startswith('_'):
                     continue
-                if item == 'sys_path':
-                    # Modify the system path
-                    if os.path.isdir(file_env[item]):
-                        sys.path.insert(0, file_env[item])
-                    else:
-                        msg = 'sys_path variable {0!r} is not a directory'
-                        warnings.warn(msg.format(file_env[item]))
+                if key == 'prepend_to_sys_path':
+                    if isinstance(val, bool) and val:
+                        val = os.path.dirname(user_env_file)
+                    if isinstance(val, (str, basestring)):
+                        val = [val]
+                    for d in val:
+                        if os.path.isdir(d):
+                            sys.path.insert(0, d)
+                        else:
+                            msg = 'prepend_to_sys_path variable '
+                            msg += '{0!r} is not a directory'
+                            warnings.warn(msg.format(d))
                     continue
-                user_env[item] = file_env[item]
+                if key not in environ.__dict__:
+                    raise ValueError('Unknown user environment: {0}'.format(key))
+                user_env[key] = val
     return user_env
-
-class SimulationEnvironment:
-    SQA = False
-    verbosity = 1
-    notebook = False
-    parent_process = False
-    loglevel = logging.WARNING
-environ = SimulationEnvironment()
 
 # Look for options in the user's environment file
 for (key, val) in load_user_env().items():

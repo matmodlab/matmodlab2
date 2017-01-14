@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>1.7. Solution Method &mdash; Material Model Laboratory 3.0 documentation</title>
+    <title>1.6. Solution Method &#8212; Material Model Laboratory 3.0 documentation</title>
     
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -26,8 +26,8 @@
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
     <link rel="up" title="1. Introduction and Overview" href="index.html" />
-    <link rel="next" title="1.8. Matmodlab File Formats" href="output.html" />
-    <link rel="prev" title="1.6. Environment Settings" href="environment.html" />
+    <link rel="next" title="1.7. Matmodlab File Formats" href="output.html" />
+    <link rel="prev" title="1.5. Environment Settings" href="environment.html" />
    
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
@@ -41,19 +41,11 @@
           <div class="body" role="main">
             
   <div class="section" id="solution-method">
-<span id="intro-solution"></span><h1>1.7. Solution Method<a class="headerlink" href="#solution-method" title="Permalink to this headline">¶</a></h1>
-<div class="topic">
-<p class="topic-title first">See Also</p>
-<ul class="simple">
-<li><a class="reference internal" href="conventions.html#intro-conventions"><span>Conventions</span></a></li>
-<li><a class="reference internal" href="../execution/index.html#model-create-and-execute"><span>Job Execution</span></a></li>
-<li><a class="reference external" href="http://nbviewer.ipython.org/github/tjfulle/fem-with-python/tree/master/Lessons">Introduction to the Finite Element Method using Python</a></li>
-</ul>
-</div>
+<span id="intro-solution"></span><h1>1.6. Solution Method<a class="headerlink" href="#solution-method" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>Matmodlab exercises a material model directly by &#8220;driving&#8221; it through user
-specified paths. Matmodlab computes an increment in deformation for a given
+<p><em>Matmodlab2</em> exercises a material model directly by &#8220;driving&#8221; it through user
+specified paths. <em>Matmodlab2</em> computes an increment in deformation for a given
 step and requires that the material model update the stress in the material to
 the end of that step.</p>
 </div>
@@ -178,15 +170,15 @@ required for material variables.</p>
 <div class="section" id="solution-procedure">
 <span id="mmlsol"></span><h2>Solution Procedure<a class="headerlink" href="#solution-procedure" title="Permalink to this headline">¶</a></h2>
 <p>In addition to providing a platform for material model developers to formulate
-and test constitutive routines, Matmodlab aims to provide users of material
+and test constitutive routines, <em>Matmodlab2</em> aims to provide users of material
 models an independent platform to exercise, parameterize, and compare material
 responses against single element finite element simulations. To this end, the
-solution procedure in Matmodlab is similar to that of the finite element
-method, in that the host code (Matmodlab) provides to the constitutive
+solution procedure in <em>Matmodlab2</em> is similar to that of the finite element
+method, in that the host code (<em>Matmodlab2</em>) provides to the constitutive
 routine a measure of deformation at the end of a finite step and expects the
 updated stress in return. However, rather than solve the momentum equation at
 the beginning of each step and advancing kinematic quantities to the step&#8217;s
-end, Matmodlab retrieves updated kinematic quantities from user defined
+end, <em>Matmodlab2</em> retrieves updated kinematic quantities from user defined
 tables and/or functions.</p>
 <p>The path through which a material is exercised is defined by piecewise
 continuous &#8220;steps&#8221; in which tensor components of stress and/or deformation are
@@ -253,9 +245,9 @@ the names) are listed in <a class="reference internal" href="#table-1">Table 1</
 <p>Each step component, from time <span class="math">\(t=0\)</span> to <span class="math">\(t=t_f\)</span> is
 subdivided into a user-specified number of &#8220;frames&#8221; and the material model
 evaluated at each frame. When volumetric strain, deformation gradient,
-displacement, or velocity are specified for a step, Matmodlab internally
+displacement, or velocity are specified for a step, <em>Matmodlab2</em> internally
 determines the corresponding strain components. If a component of stress is
-specified, Matmodlab determines the strain increment that minimizes the
+specified, <em>Matmodlab2</em> determines the strain increment that minimizes the
 distance between the prescribed stress component and model response.</p>
 </div>
 <div class="section" id="stress-control">
@@ -487,13 +479,12 @@ are used, the components of the stiffness must be modified as</p>
 <h3>Navigation</h3>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="general.html">1.1. Introduction: General</a></li>
-<li class="toctree-l2"><a class="reference internal" href="about.html">1.2. Introduction: Background</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html">1.3. Installing Matmodlab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input.html">1.4. Input Syntax Guidelines</a></li>
-<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.5. Conventions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="environment.html">1.6. Environment Settings</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">1.7. Solution Method</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="about.html">1.1. Introduction: Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">1.2. Installing Matmodlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input.html">1.3. Input Syntax Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.4. Conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">1.5. Environment Settings</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">1.6. Solution Method</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#the-role-of-the-material-model-in-continuum-mechanics">The Role of the Material Model in Continuum Mechanics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#conservation-laws">Conservation Laws</a></li>
@@ -508,26 +499,20 @@ are used, the components of the stiffness must be modified as</p>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="output.html">1.8. Matmodlab File Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output.html">1.7. Matmodlab File Formats</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../test/index.html">4. Material Model Testing</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -538,7 +523,7 @@ are used, the components of the stiffness must be modified as</p>
       &copy;2014, Tim Fuller, Scot Swan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
       
       |

@@ -6,11 +6,7 @@ import sys
 import pytest
 import numpy as np
 
-try:
-    import matmodlab2
-except ImportError:
-    matmodlab = None
-
+import matmodlab2
 import matmodlab2.core.misc as misc
 
 def test_is_listlike():

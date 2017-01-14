@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>The Material Model Laboratory &mdash; Material Model Laboratory 3.0 documentation</title>
+    <title>The Material Model Laboratory &#8212; Material Model Laboratory 3.0 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -40,68 +40,37 @@
             
   <div class="section" id="the-material-model-laboratory">
 <h1>The Material Model Laboratory<a class="headerlink" href="#the-material-model-laboratory" title="Permalink to this headline">¶</a></h1>
-<p>The Material Model Laboratory (Matmodlab) is a single element material model
+<p>The Material Model Laboratory (<em>Matmodlab2</em>) is a single element material model
 driver aimed at developers of constitutive routines targeted for deployment in
 finite element codes.</p>
-<p>This guide is separated into four main parts:</p>
+<p>This documentation is separated into two main parts:</p>
 <ul class="simple">
-<li>Part 1: <a class="reference internal" href="intro/index.html#intro-and-overview"><span>Introduction and Overview</span></a></li>
-<li>Part 2: <a class="reference internal" href="execution/index.html#model-create-and-execute"><span>Job Execution</span></a></li>
-<li>Part 3: <a class="reference internal" href="material/index.html#mat-index"><span>Materials</span></a></li>
-<li>Part 4: <a class="reference internal" href="test/index.html#test-index"><span>Material Model Testing</span></a></li>
+<li>This collection of static web pages</li>
+<li>A growing collection of <a class="reference external" href="https://github.com/tjfulle/matmodlab2/blob/master/notebooks/GettingStarted.ipynb">Jupyter Notebooks</a></li>
 </ul>
-<div class="section" id="about-this-guide">
-<h2>About This Guide<a class="headerlink" href="#about-this-guide" title="Permalink to this headline">¶</a></h2>
-<p>This guide is both a User&#8217;s Guide and Application Programming Interface (API)
-guide to Matmodlab. The guide assumes a working knowledge of the computing
-languages Matmodlab is developed in, namely <a class="reference external" href="https://www.python.org">Python</a>
-and <a class="reference external" href="http://www.fortran.com/the-fortran-company-homepage/fortran-tutorials">Fortran</a>. No
-attempt to describe either is made. Online tutorials for each language are
-readily available. Likewise, the target audience is assumed to have a basic
-knowledge of continuum mechanics and familiarity with other finite element
-codes. These concepts are also not described in detail.</p>
-<div class="section" id="conventions-used-in-the-guide">
-<h3>Conventions Used in the Guide<a class="headerlink" href="#conventions-used-in-the-guide" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Python objects are typeset in <code class="docutils literal"><span class="pre">fixed</span> <span class="pre">point</span> <span class="pre">font</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">$</span></code> is used to denote a terminal prompt, e.g. <code class="docutils literal"><span class="pre">$</span> <span class="pre">cd</span></code> is interpreted as executing the <code class="docutils literal"><span class="pre">cd</span></code> (change directory) command at a command prompt.</li>
-</ul>
-</div>
-</div>
 <div class="section" id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
-<p>Matmodlab is an open source project licensed under the <a class="reference external" href="http://opensource.org/licenses/MIT">MIT</a> license.</p>
+<p><em>Matmodlab2</em> is an open source project licensed under the <a class="reference external" href="http://opensource.org/licenses/MIT">MIT</a> license.</p>
 </div>
-<div class="section" id="obtaining-matmodlab">
-<h2>Obtaining Matmodlab<a class="headerlink" href="#obtaining-matmodlab" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="latest-stable-version">
-<h3>Latest Stable Version<a class="headerlink" href="#latest-stable-version" title="Permalink to this headline">¶</a></h3>
-<p>The latest stable version of Matmodlab can be installed via pip:</p>
-<div class="highlight-python"><div class="highlight"><pre>pip install matmodlab
-</pre></div>
-</div>
-</div>
-<div class="section" id="source-code-repository">
-<h3>Source Code Repository<a class="headerlink" href="#source-code-repository" title="Permalink to this headline">¶</a></h3>
-<p>Matmodlab is maintained with git. The source code can be obtained from <a class="reference external" href="https://github.com/tjfulle/matmodlab">https://github.com/tjfulle/matmodlab</a></p>
-<p>See <a class="reference internal" href="intro/install.html#intro-install"><span>Installing Matmodlab</span></a> for more installation details.</p>
-</div>
+<div class="section" id="obtaining-and-installing-matmodlab2">
+<h2>Obtaining and Installing Matmodlab2<a class="headerlink" href="#obtaining-and-installing-matmodlab2" title="Permalink to this headline">¶</a></h2>
+<p><em>Matmodlab2</em> is maintained with git and can be obtained from <a class="reference external" href="https://github.com/tjfulle/matmodlab2">https://github.com/tjfulle/matmodlab2</a>.  To install <em>Matmodlab2</em>, obtain a copy (by cloning or downloading) of the source code and add the path to the <code class="docutils literal"><span class="pre">matmodlab2</span></code> root directory to your <code class="docutils literal"><span class="pre">PYTHONPATH</span></code>.</p>
 </div>
 <div class="section" id="acknowledgments">
 <h2>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this headline">¶</a></h2>
-<p>The inspiration for Matmodlab came from Dr. <a class="reference external" href="http://www.mech.utah.edu/~brannon/">Rebecca Brannon&#8217;s</a> <em>MED</em> material point driver and Tom Pucicks&#8217;s <em>MMD</em> driver, developed at Sandia National Labs.</p>
+<p>The inspiration for <em>Matmodlab2</em> came from Dr. <a class="reference external" href="http://www.mech.utah.edu/~brannon/">Rebecca Brannon&#8217;s</a> <em>MED</em> material point driver and Tom Pucicks&#8217;s <em>MMD</em> driver, developed at Sandia National Labs.</p>
 <p>The syntax and documentation have been greatly influenced by the authors&#8217; exposure and use of research codes at Sandia National Labs and other commercial finite element codes, notably <a class="reference external" href="http://www.3ds.com/products-services/simulia/products/abaqus/latest-release">Abaqus</a>.</p>
 </div>
 <div class="section" id="obtaining-additional-help">
 <h2>Obtaining Additional Help<a class="headerlink" href="#obtaining-additional-help" title="Permalink to this headline">¶</a></h2>
 <p>In addition to this guide, many examples can be found in
-<code class="docutils literal"><span class="pre">matmodlab/examples</span></code> and <code class="docutils literal"><span class="pre">matmodlab/tests</span></code></p>
+<code class="docutils literal"><span class="pre">matmodlab2/notebooks</span></code> and <code class="docutils literal"><span class="pre">matmodlab2/tests</span></code></p>
 </div>
 <div class="section" id="indices-and-tables">
 <h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
 <div class="toctree-wrapper compound">
 </div>
@@ -129,23 +98,18 @@ codes. These concepts are also not described in detail.</p>
 <h3>Navigation</h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro/index.html">1. Introduction and Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="execution/index.html">2. Job Execution</a></li>
-<li class="toctree-l1"><a class="reference internal" href="material/index.html">3. Materials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="test/index.html">4. Material Model Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">2. Examples</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -156,7 +120,7 @@ codes. These concepts are also not described in detail.</p>
       &copy;2014, Tim Fuller, Scot Swan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
       
       |

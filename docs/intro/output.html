@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>1.8. Matmodlab File Formats &mdash; Material Model Laboratory 3.0 documentation</title>
+    <title>1.7. Matmodlab File Formats &#8212; Material Model Laboratory 3.0 documentation</title>
     
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -26,8 +26,7 @@
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
     <link rel="up" title="1. Introduction and Overview" href="index.html" />
-    <link rel="next" title="2. Job Execution" href="../execution/index.html" />
-    <link rel="prev" title="1.7. Solution Method" href="solution.html" />
+    <link rel="prev" title="1.6. Solution Method" href="solution.html" />
    
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
@@ -41,42 +40,17 @@
           <div class="body" role="main">
             
   <div class="section" id="matmodlab-file-formats">
-<span id="mml-out-dbs"></span><h1>1.8. Matmodlab File Formats<a class="headerlink" href="#matmodlab-file-formats" title="Permalink to this headline">¶</a></h1>
-<div class="topic">
-<p class="topic-title first">See Also</p>
-<ul class="simple">
-<li><a class="reference internal" href="../execution/mps.html#mps"><span>MaterialPointSimulator</span></a></li>
-</ul>
-</div>
+<span id="mml-out-dbs"></span><h1>1.7. Matmodlab File Formats<a class="headerlink" href="#matmodlab-file-formats" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>Matmodlab.Simulator writes to and Matmodlab.Viewer reads from a variety of output file formats.  The format of output is determined by the <em>output</em> keyword to the <code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code>.  This section describes the different file formats.</p>
-</div>
-<div class="section" id="output-file-formats">
-<h2>Output File Formats<a class="headerlink" href="#output-file-formats" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="dbx">
-<h3>dbx<a class="headerlink" href="#dbx" title="Permalink to this headline">¶</a></h3>
-<p>The default output database format.  It is written by Matmodlab.Simulator and read by Matmodlab.Viewer.  Output is written to dbx format if <code class="docutils literal"><span class="pre">output=DBX</span></code>.</p>
-</div>
-<div class="section" id="exo">
-<h3>exo<a class="headerlink" href="#exo" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference external" href="http://sourceforge.net/projects/exodusii">ExodusII</a> output database format.  It is written by Matmodlab.Simulator and read by Matmodlab.Viewer.  Output is written to exo format if <code class="docutils literal"><span class="pre">output=EXO</span></code>.</p>
-</div>
-<div class="section" id="xls">
-<h3>xls<a class="headerlink" href="#xls" title="Permalink to this headline">¶</a></h3>
-<p>Microsoft Excel spreadsheet.  It is written by Matmodlab.Simulator if the <a class="reference external" href="http://pypi.python.org/pypi/xlwt">xlwt</a> module is installed and read by Matmodlab.Viewer if the <a class="reference external" href="http://pypi.python.org/pypi/xlrd">xlrd</a> module is installed. Output is written to xls format if <code class="docutils literal"><span class="pre">output=XLS</span></code>.</p>
-</div>
-<div class="section" id="xlsx">
-<h3>xlsx<a class="headerlink" href="#xlsx" title="Permalink to this headline">¶</a></h3>
-<p>Microsoft Excel spreadsheet.  It is written by Matmodlab.Simulator and read by Matmodlab.Viewer if the <a class="reference external" href="http://pypi.python.org/pypi/openpyxl">openpyxl</a> module is installed. Output is written to xlsx format if <code class="docutils literal"><span class="pre">output=XLSX</span></code>.</p>
-</div>
-</div>
-<div class="section" id="other-file-formats">
-<h2>Other File Formats<a class="headerlink" href="#other-file-formats" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="log">
-<h3>log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h3>
-<p>Log file.  It is written by Matmodlab.Simulator.</p>
-</div>
+<p><em>Matmodlab2</em> writes to one of two file formats.  The format of output is determined by the <em>db_fmt</em> keyword to the <code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code>.  The two formats are</p>
+<dl class="docutils">
+<dt>npz</dt>
+<dd>Compressed <code class="docutils literal"><span class="pre">numpy</span></code> array format.  This is the default format and is chosen by letting <code class="docutils literal"><span class="pre">db_fmt='npz'</span></code></dd>
+</dl>
+<p>exo</p>
+<blockquote>
+<div><a class="reference external" href="http://sourceforge.net/projects/exodusii">ExodusII</a> output database format.  It is written by Matmodlab.Simulator and read by Matmodlab.Viewer.  Output is written to exo format if <code class="docutils literal"><span class="pre">db_fmt=exo</span></code>.</div></blockquote>
 </div>
 </div>
 
@@ -101,47 +75,29 @@
 <h3>Navigation</h3>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="general.html">1.1. Introduction: General</a></li>
-<li class="toctree-l2"><a class="reference internal" href="about.html">1.2. Introduction: Background</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html">1.3. Installing Matmodlab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input.html">1.4. Input Syntax Guidelines</a></li>
-<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.5. Conventions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="environment.html">1.6. Environment Settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="solution.html">1.7. Solution Method</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">1.8. Matmodlab File Formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="about.html">1.1. Introduction: Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">1.2. Installing Matmodlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input.html">1.3. Input Syntax Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conventions.html">1.4. Conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">1.5. Environment Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solution.html">1.6. Solution Method</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">1.7. Matmodlab File Formats</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#output-file-formats">Output File Formats</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#dbx">dbx</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#exo">exo</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xls">xls</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xlsx">xlsx</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#other-file-formats">Other File Formats</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#log">log</a></li>
 </ul>
 </li>
 </ul>
 </li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../test/index.html">4. Material Model Testing</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -152,7 +108,7 @@
       &copy;2014, Tim Fuller, Scot Swan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
       
       |

@@ -6,7 +6,7 @@ Conventions
 Overview
 ========
 
-Conventions used through out Matmodlab are described.
+Conventions used through out *Matmodlab2* are described.
 
 
 Dimension
@@ -53,7 +53,3 @@ engineering strains, i.e.
 
    \epsilon_{ij} = \{\epsilon_{xx}, \epsilon_{yy}, \epsilon_{zz}, 2\epsilon_{xy}, 2\epsilon_{yz}, 2\epsilon_{xz}\}
            = \{\epsilon_{xx}, \epsilon_{yy}, \epsilon_{zz}, \gamma_{xy}, \gamma_{yz}, \gamma_{xz}\}
-
-.. note::
-
-   The tensor order is runtime configurable using *ordering* keyword to the ``MaterialModel`` constructor.  See :ref:`invoke_user_f` for details.

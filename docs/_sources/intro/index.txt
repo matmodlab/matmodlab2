@@ -7,7 +7,6 @@ Introduction and Overview
 .. toctree::
    :maxdepth: 1
 
-   general
    about
    install
    input

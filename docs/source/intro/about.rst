@@ -7,11 +7,11 @@ Why a Single Element Driver?
 
 Single element drivers allow the constituive model developer to concentrate on
 model development and not the finite element response. Advantages of
-Matmodlab (or, more generally, of any stand-alone constitutive model driver)
+*Matmodlab2* (or, more generally, of any stand-alone constitutive model driver)
 are
 
-  * Matmodlab is a very small, special purpose, code. Thus, maintaining
-    and adding new features to Matmodlab is very easy;
+  * *Matmodlab2* is a very small, special purpose, code. Thus, maintaining
+    and adding new features to *Matmodlab2* is very easy;
 
   * simulations are not affected by irrelevant artifacts such as artificial
     viscosity or uncertainty in the handling of boundary conditions;

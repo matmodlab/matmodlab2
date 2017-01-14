@@ -6,11 +6,7 @@ import pytest
 import numpy as np
 from testing_utils import *
 
-try:
-    import matmodlab2
-except ImportError:
-    matmodlab = None
-
+import matmodlab2
 import matmodlab2.core.linalg as la
 
 # NOTE: In many of the tests to follow, only a trivial tensor is sent to test

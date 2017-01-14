@@ -3,17 +3,11 @@
 Solution Method
 ###############
 
-.. topic:: See Also
-
-   * :ref:`intro_conventions`
-   * :ref:`model_create_and_execute`
-   * `Introduction to the Finite Element Method using Python <http://nbviewer.ipython.org/github/tjfulle/fem-with-python/tree/master/Lessons>`_
-
 Overview
 ========
 
-Matmodlab exercises a material model directly by "driving" it through user
-specified paths. Matmodlab computes an increment in deformation for a given
+*Matmodlab2* exercises a material model directly by "driving" it through user
+specified paths. *Matmodlab2* computes an increment in deformation for a given
 step and requires that the material model update the stress in the material to
 the end of that step.
 
@@ -181,15 +175,15 @@ Solution Procedure
 ==================
 
 In addition to providing a platform for material model developers to formulate
-and test constitutive routines, Matmodlab aims to provide users of material
+and test constitutive routines, *Matmodlab2* aims to provide users of material
 models an independent platform to exercise, parameterize, and compare material
 responses against single element finite element simulations. To this end, the
-solution procedure in Matmodlab is similar to that of the finite element
-method, in that the host code (Matmodlab) provides to the constitutive
+solution procedure in *Matmodlab2* is similar to that of the finite element
+method, in that the host code (*Matmodlab2*) provides to the constitutive
 routine a measure of deformation at the end of a finite step and expects the
 updated stress in return. However, rather than solve the momentum equation at
 the beginning of each step and advancing kinematic quantities to the step's
-end, Matmodlab retrieves updated kinematic quantities from user defined
+end, *Matmodlab2* retrieves updated kinematic quantities from user defined
 tables and/or functions.
 
 The path through which a material is exercised is defined by piecewise
@@ -257,9 +251,9 @@ where the Jacobian :math:`J` is the determinant of the deformation gradient.
 Each step component, from time :math:`t=0` to :math:`t=t_f` is
 subdivided into a user-specified number of "frames" and the material model
 evaluated at each frame. When volumetric strain, deformation gradient,
-displacement, or velocity are specified for a step, Matmodlab internally
+displacement, or velocity are specified for a step, *Matmodlab2* internally
 determines the corresponding strain components. If a component of stress is
-specified, Matmodlab determines the strain increment that minimizes the
+specified, *Matmodlab2* determines the strain increment that minimizes the
 distance between the prescribed stress component and model response.
 
 .. _Stress Control:

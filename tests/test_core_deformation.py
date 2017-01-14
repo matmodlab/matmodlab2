@@ -9,14 +9,9 @@ import pytest
 import numpy as np
 from testing_utils import isclose
 
-# Ensure that 'matmodlab' is imported from parent directory.
+# Ensure that 'matmodlab2' is imported from parent directory.
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
-
-try:
-    import matmodlab2
-except ImportError:
-    matmodlab = None
-
+import matmodlab2
 import matmodlab2.core.deformation as df
 
 def vec_isclose(name, comp, gold, rtol=1.0e-12, atol=1.0e-12):

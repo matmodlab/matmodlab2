@@ -2,10 +2,10 @@ import warnings
 import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
-from .tensor import VOIGT, array_rep, matrix_rep
+from .tensor import array_rep, matrix_rep
 import matmodlab2.core.linalg as la
 
-def update_deformation(farg, darg, dt, k):
+def update_deformation(farg, darg, dt, kappa):
     """Update the deformation gradient and strain
 
     Parameters
@@ -16,7 +16,7 @@ def update_deformation(farg, darg, dt, k):
         The symmetric part of the velocity gradient
     dt : float
         The time increment
-    k : int or real
+    kappa : int or real
         The Seth-Hill parameter
 
     Returns
@@ -52,24 +52,24 @@ def update_deformation(farg, darg, dt, k):
 
     Then, the updated strain is found by
 
-                 E = 1/k * (U**k - I)
+                 E = 1/kappa * (U**kappa - I)
 
-    where k is the Seth-Hill strain parameter.
+    where kappa is the Seth-Hill strain parameter.
     """
     f0 = farg.reshape((3, 3))
-    d = matrix_rep(darg / VOIGT, 0)
+    d = matrix_rep(darg, 0)
     ff = np.dot(la.expm(d * dt), f0)
     u = la.sqrtm(np.dot(ff.T, ff))
-    if k == 0:
+    if kappa == 0:
         eps = la.logm(u)
     else:
-        eps = 1.0 / k * (la.powm(u, k) - np.eye(3, 3))
+        eps = 1.0 / kappa * (la.powm(u, kappa) - np.eye(3, 3))
 
     if la.det(ff) <= 0.0:
         raise Exception("negative jacobian encountered")
 
     f = np.reshape(ff, (9,))
-    e = array_rep(eps, (6,)) * VOIGT
+    e = array_rep(eps, (6,))
 
     return f, e
 
@@ -93,11 +93,11 @@ def defgrad_from_strain(E, kappa, flatten=1):
     """
     R = np.eye(3)
     I = np.eye(3)
-    E = matrix_rep(E / VOIGT, 0)
+    E = matrix_rep(E, 0)
     if kappa == 0:
         U = la.expm(E)
     else:
-        U = la.powm(k * E + I, 1. / k)
+        U = la.powm(kappa * E + I, 1. / kappa)
     F = np.dot(R, U)
     if la.det(F) <= 0.0:
         raise Exception("negative jacobian encountered")
@@ -126,36 +126,31 @@ def strain_from_defgrad(farg, kappa):
     -----
     Update strain by
 
-                 E = 1/k * (U**k - I)
+                 E = 1/kappa * (U**kappa - I)
 
-    where k is the Seth-Hill strain parameter.
+    where kappa is the Seth-Hill strain parameter.
     """
-    f = farg.reshape((3, 3))
-    u = la.sqrtm(np.dot(f.T, f))
-    if kappa == 0:
-        eps = la.logm(u)
-    else:
-        eps = 1.0 / kappa * (la.powm(u, kappa) - np.eye(3, 3))
+    F = farg.reshape((3,3))
+    jac = la.det(F)
+    if jac <= 0:
+        raise ValueError('Negative or zero Jacobian')
+    # convert deformation gradient to strain E with associated rotation
+    R, U = la.polar_decomp(F)
+    eps = strain_from_stretch(U, kappa)
+    strain = array_rep(eps, (6,))
+    return strain, R
 
-    if la.det(f) <= 0.0:
-        raise Exception("negative jacobian encountered")
-
-    e = array_rep(eps, (6,)) * VOIGT
-
-    return e
-
-def strain_from_stretch(u, k):
+def strain_from_stretch(u, kappa):
     """Convert the 3x3 stretch tensor to a strain tensor using the
-    Seth-Hill parameter k and return a 6x1 array"""
+    Seth-Hill parameter kappa and return a 6x1 array"""
     mat, orig_shape = matrix_rep(u)
-    assert orig_shape == (6,)
-    if abs(k) > 1e-12:
-        mat = 1. / k * la.powm(mat, k) - np.eye(3)
+    if abs(kappa) > 1e-12:
+        mat = 1. / kappa * la.powm(mat, kappa) - np.eye(3)
     else:
         mat = la.logm(mat)
     return array_rep(mat, orig_shape)
 
-def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
+def rate_of_strain_to_rate_of_deformation(dedt, e, kappa, disp=0):
     """ Compute symmetric part of velocity gradient given depsdt
 
     Parameters
@@ -164,7 +159,7 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
         Strain rate
     e : ndarray
         Strain
-    k : int or float
+    kappa : int or float
         Seth-Hill parameter
     disp : bool, optional
         If True, return both d and dU
@@ -186,8 +181,8 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
     inverse or *, respectively,
 
     The stretch U is given by
-                 if k != 0:
-                     U = (k*E + I)**(1/k)
+                 if kappa != 0:
+                     U = (kappa*E + I)**(1/kappa)
                  else:
                      U = exp(E)
     and its rate (dUdt) is calculated using `rate_of_matrix_function`.
@@ -198,24 +193,56 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, k, disp=0):
 
     """
 
-    eps = matrix_rep(e / VOIGT, 0)
-    depsdt = matrix_rep(dedt / VOIGT, 0)
+    eps = matrix_rep(e, 0)
+    depsdt = matrix_rep(dedt, 0)
 
     # Calculate the right stretch (U) and its rate
-    if abs(k) <= 1e-12:
+    if abs(kappa) <= 1e-12:
         u = la.expm(eps)
         dudt = la.rate_of_matrix_function(eps, depsdt, np.exp, np.exp)
     else:
-        u = la.powm(k*eps+np.eye(3), 1./k)
-        f = lambda x: (k * x + 1.0) ** (1.0 / k)
-        fprime = lambda x: (k * x + 1.0) ** (1.0 / k - 1.0)
+        u = la.powm(kappa*eps+np.eye(3), 1./kappa)
+        f = lambda x: (kappa * x + 1.0) ** (1.0 / kappa)
+        fprime = lambda x: (kappa * x + 1.0) ** (1.0 / kappa - 1.0)
         dudt = la.rate_of_matrix_function(eps, depsdt, f, fprime)
 
     # Calculate the velocity gradient (L) and its symmetric part
     l = np.dot(dudt, la.inv(u))
     d = (l + l.T) / 2.0
 
-    d = array_rep(d, (6,)) * VOIGT
+    d = array_rep(d, (6,))
     if not disp:
         return d
     return d, dudt
+
+def scalar_volume_strain_to_tensor(ev, kappa):
+    """Convert the scalar volume strain ev to a 2nd order symmetric tensor.
+
+    Parameters
+    ----------
+    ev : float
+        The volume strain
+    kappa : float
+        The Seth-Hill parameter
+
+    Returns
+    -------
+    components : ndarray (6,)
+        The components of the strain tensor
+
+    Notes
+    -----
+    The returned tensor is represented as a first order 6d tensor.
+
+    """
+    if kappa * ev + 1. < 0.:
+        raise ValueError('1 + kappa * ev must be positive')
+
+    if abs(kappa) < np.finfo(np.float).eps:
+        # Log strain
+        eij = ev / 3.
+    else:
+        eij = ((kappa * ev + 1.) ** (1. / 3.) - 1.)
+        eij = eij / kappa
+    components = np.array([eij, eij, eij, 0., 0., 0.])
+    return components

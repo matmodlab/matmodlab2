@@ -86,6 +86,8 @@ def test_stress_control(realization):
         basis = max(1.0, np.trapz(np.abs(gold), dx=dt))
         err_eps = np.trapz(np.abs(gold-eps), dx=dt) / basis
         err_sig = np.trapz(np.abs(gold-sig), dx=dt) / basis
+        print('STRAIN ERROR: ', err_eps)
+        print('STRESS ERROR: ', err_sig)
         if max(err_eps, err_sig) > failtol:
             has_passed = False
 

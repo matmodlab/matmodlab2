@@ -70,15 +70,7 @@ def double_dot(A, B):
     return np.sum(A * B)
 
 def polar_decomp(F):
-    F = F.reshape(3,3)
-    I = np.eye(3)
-    R = F.copy()
-    for j in range(20):
-        R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
-        if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-6):
-            U = np.dot(R.T, F)
-            return R, U
-    raise RuntimeError('Fast polar decompositon failed to converge')
+    return la.polar_decomp(F)
 
 def det(A):
     """Determinant of tensor A"""

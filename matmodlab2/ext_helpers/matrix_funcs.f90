@@ -199,14 +199,16 @@ function inv(a)
   return
 end function inv
 
-subroutine polar_decomp(F, R, U)
+subroutine polar_decomp(F, R, U, ierr)
   implicit none
   real(kind=8), intent(in) :: F(3,3)
   real(kind=8), intent(out) :: R(3,3), U(3,3)
+  integer, intent(out) :: ierr
   real(kind=8) :: I(3,3)
   integer :: j
   I = eye(3)
   R = F
+  ierr = 0
   do j = 1, 20
      R = .5 * matmul(R, 3. * I - matmul(transpose(R), R))
      if (maxval(abs(matmul(transpose(R), R) - I)) < 1.e-6_8) then
@@ -214,6 +216,6 @@ subroutine polar_decomp(F, R, U)
         return
      end if
   end do
-  stop 'Fast polar decompositon failed to converge'
+  ierr = 1
 end subroutine polar_decomp
 end module linalg

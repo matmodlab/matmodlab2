@@ -11,9 +11,24 @@ def d_from_prescribed_stress(material, t, dt, temp, dtemp, f0, f,
 
     Parameters
     ----------
+    material : Material
+    t, dt : float
+    temp, dtemp : float
+    f0, f : ndarray
+    stran, d, sig : ndarray
+    statev : ndarray
+    v : ndarray
+    sigspec : ndarray
 
     Returns
     -------
+    d : ndarray
+        The symmetric part of the velocity gradient
+
+    Notes
+    -----
+    The strain `stran` and rate of deformation `d` are assumed to be their
+    engineering representations (i.e., off-diagonals multiplied by 2)
 
     Approach
     --------

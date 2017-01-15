@@ -1,7 +1,7 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module _matfuncs_sq3 ! in 
+python module _matfuncs_sq3 ! in
     interface  ! in :_matfuncs_sq3
         module linalg ! in :_matfuncs_sq3:matrix_funcs.f90
             function expm(a) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
@@ -37,13 +37,14 @@ python module _matfuncs_sq3 ! in
                 real(kind=8) dimension(3,3),intent(in) :: a
                 real(kind=8) dimension(3,3) :: inv
             end function inv
-            subroutine polar_decomp(f,r,u) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
+            subroutine polar_decomp(f,r,u,i) ! in :_matfuncs_sq3:matrix_funcs.f90:linalg
                 real(kind=8) dimension(3,3),intent(in) :: f
                 real(kind=8) dimension(3,3),intent(out) :: r
                 real(kind=8) dimension(3,3),intent(out) :: u
+                integer intent(out) :: i
             end subroutine polar_decomp
         end module linalg
-    end interface 
+    end interface
 end python module _matfuncs_sq3
 
 ! This file was auto-generated with f2py (version:2).

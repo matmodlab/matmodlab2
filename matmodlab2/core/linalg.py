@@ -139,3 +139,30 @@ def rate_of_matrix_function(A, Adot, f, fprime):
             Ydot += gamma * np.dot(proji, np.dot(Adot, projj))
 
     return Ydot
+
+def polar_decomp(F):
+    F = F.reshape(3,3)
+    try:
+        R, U, ierr = la.polar_decomp(F)
+        if not ierr:
+            return R, U
+    except AttributeError:
+        I = np.eye(3)
+        R = F.copy()
+        for j in range(20):
+            R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
+            if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-6):
+                U = np.dot(R.T, F)
+                return R, U
+    try:
+        R, V = scipy.linalg.qr(F)
+        U = np.dot(R.T, np.dot(V, R))
+        return R, U
+    except:
+        raise RuntimeError('Fast polar decompositon failed')
+
+def solve(A, b):
+    return scipy.linalg.solve(A, b)
+
+def lstsq(A, b):
+    return np.linalg.lstsq(A, b)

@@ -1,6 +1,7 @@
 from __future__ import print_function
 import time
 import numpy as np
+from copy import deepcopy as copy
 from collections import OrderedDict
 
 from .misc import is_stringlike, is_listlike
@@ -8,11 +9,10 @@ from .environ import environ
 from .logio import logger, add_filehandler, splash
 from .database import DatabaseFile, COMPONENT_SEP, groupby_names
 from .tensor import array_rep
-from .stress_control import d_from_prescribed_stress
-from .deformation import update_deformation, strain_from_stretch, \
-    defgrad_from_strain, rate_of_strain_to_rate_of_deformation
+from .stress_control import d_from_prescribed_stress, numerical_jacobian
 from .tensor import VOIGT
 import matmodlab2.core.linalg as la
+import matmodlab2.core.deformation as dfm
 continued = {'continued': 1}
 
 __all__ = ['MaterialPointSimulator']
@@ -95,7 +95,7 @@ class MaterialPointSimulator(object):
     def _initialize_steps(self, temp):
         """Create the initial step"""
         begin, end = 0., 0.
-        components = np.zeros(6, dtype=np.float64)
+        components = np.zeros(6)
         descriptors = ['E'] * 6
         return [Step(0, 0, 1, descriptors, components, temp, 0)]
 
@@ -221,7 +221,7 @@ class MaterialPointSimulator(object):
         """
         if not is_listlike(components):
             components = [components]
-        components = np.array(components, dtype=np.float64)
+        components = np.array(components)
 
         if is_stringlike(descriptors):
             if len(descriptors) == 1:
@@ -231,6 +231,10 @@ class MaterialPointSimulator(object):
         if not is_listlike(descriptors):
             raise TypeError('descriptors must be list_like or string_like')
         descriptors = self._validate_descriptors(descriptors)
+
+        # Stress control must have kappa = 0
+        if any(['S' in x for x in descriptors]) and abs(kappa) > 1e-12:
+            raise ValueError('Stress control requires kappa = 0')
 
         if not is_listlike(scale):
             # Scalar scale factor
@@ -248,20 +252,11 @@ class MaterialPointSimulator(object):
 
         if 'F' in descriptors:
             # Convert deformation gradient to strain
-            F = np.reshape(components, (3, 3))
-            jac = la.det(F)
-            if jac <= 0:
-                raise ValueError('Negative or zero initial Jacobian')
-
-            # convert deformation gradient to strain E with associated
-            # rotation given by axis of rotation x and angle of rotation theta
-            R, V = np.linalg.qr(F)
-            if np.max(np.abs(R - np.eye(3))) > np.finfo(np.float).eps:
+            components, rotation = dfm.strain_from_defgrad(components, kappa)
+            if np.max(np.abs(rotation - np.eye(3))) > 1e-8:
                 raise ValueError('QR decomposition of deformation gradient '
                                  'gave unexpected rotations (rotations are '
                                  'not yet supported)')
-            U = np.dot(R.T, np.dot(V, R))
-            components = strain_from_stretch(array_rep(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'U' in descriptors:
@@ -269,33 +264,24 @@ class MaterialPointSimulator(object):
             U = np.zeros((3, 3))
             DI3 = np.diag_indices(3)
             U[DI3] = components + 1.
-            components = strain_from_stretch(array_rep(U,(6,)), kappa)
+            components = dfm.strain_from_stretch(array_rep(U,(6,)), kappa)
             descriptors = ['E'] * 6
 
         elif 'E' in descriptors and len(descriptors) == 1:
             # only one strain value given -> volumetric strain
-            ev = components[0]
-            if kappa * ev + 1. < 0.:
-                raise ValueError('1 + kappa * ev must be positive')
-
-            if abs(kappa) < np.finfo(np.float).eps:
-                eij = ev / 3.
-            else:
-                eij = ((kappa * ev + 1.) ** (1. / 3.) - 1.)
-                eij = eij / kappa
-            components = np.array([eij, eij, eij, 0., 0., 0.], dtype=np.float64)
+            components = dfm.scalar_volume_strain_to_tensor(components[0], kappa)
             descriptors = ['E'] * 6
 
         elif 'S' in descriptors and len(descriptors) == 1:
             # only one stress value given -> pressure
             Sij = -components[0]
-            components = np.array([Sij, Sij, Sij, 0., 0., 0.], dtype=np.float64)
+            components = np.array([Sij, Sij, Sij, 0., 0., 0.])
             descriptors = ['S'] * 6
 
         elif 'DS' in descriptors and len(descriptors) == 1:
             # only one stress value given -> pressure
             ds = -components[0]
-            components = np.array([ds, ds, ds, 0., 0., 0.], dtype=np.float64)
+            components = np.array([ds, ds, ds, 0., 0., 0.])
             descriptors = ['DS', 'DS', 'DS', 'E', 'E', 'E']
 
         if np.any(np.in1d(['E', 'S', 'DE', 'DS'], descriptors)):
@@ -406,9 +392,9 @@ class MaterialPointSimulator(object):
         numx = self.material.num_sdv
         statev = None if numx is None else np.zeros(numx)
         statev = self.material.sdvini(statev)
-        strain = np.where(step.descriptors=='E', step.components, 0.) * VOIGT
+        strain = np.where(step.descriptors=='E', step.components, 0.)
         stress = np.where(step.descriptors=='S', step.components, 0.)
-        defgrad = defgrad_from_strain(strain, step.kappa)
+        defgrad = dfm.defgrad_from_strain(strain, step.kappa)
         glo_var_vals = [step.increment, 1, 0]
         elem_var_vals = self.astack(strain, np.zeros(6),
                                     stress, stress-np.zeros(6),
@@ -416,6 +402,15 @@ class MaterialPointSimulator(object):
         self.data[0, 0  ] = step.end
         self.data[0, 1:4] = glo_var_vals
         self.data[0, 4:] = elem_var_vals
+
+        # Call the material with a zero state to get the initial Jacobian
+        J0 = None
+        if any(['S' in step.descriptors for step in self.steps]):
+            J0 = numerical_jacobian(self.material, 1, 1, step.temp, 0,
+                                    defgrad, defgrad, np.zeros(6), np.zeros(6),
+                                    np.zeros(6), copy(statev), range(6))
+
+        # This step is not actually ran - it's just the initial state
         step.ran = True
 
         # Run each step, skipping the first
@@ -433,7 +428,7 @@ class MaterialPointSimulator(object):
             logger.info(string.format(istep), extra=continued)
             self.run_istep(istep, step.begin, step.end, step.frames,
                            step.descriptors, step.components,
-                           step.temp, step.kappa, self.data[irow:, :])
+                           step.temp, step.kappa, J0, self.data[irow:, :])
             step.ran = True
         dt = time.time() - start_steps
         logger.info(' done ({0:.2f} sec.)'.format(dt))
@@ -622,7 +617,7 @@ class MaterialPointSimulator(object):
         return np.hstack(tuple([x for x in a if x is not None]))
 
     def run_istep(self, istep, begin, end, frames, descriptors, components,
-                  temp, kappa, data):
+                  temp, kappa, J0, data):
         """Run this step, using the previous step as the initial state
 
         Parameters
@@ -647,9 +642,9 @@ class MaterialPointSimulator(object):
         dtemp = (temp[1] - temp[0]) / float(frames)
 
         # Strain and stress states
-        previous_strain = data[0,  4:10] * VOIGT
+        previous_strain = data[0,  4:10]
         previous_stress = data[0, 16:22]
-        current_strain = np.where(descriptors=='E', components, 0.) * VOIGT
+        current_strain = np.where(descriptors=='E', components, 0.)
         current_stress = np.where(descriptors=='S', components, 0.)
         strain = np.vstack((previous_strain, current_strain, previous_strain))
         stress = np.vstack((previous_stress, current_stress, previous_stress))
@@ -673,9 +668,9 @@ class MaterialPointSimulator(object):
         for (i, cij) in enumerate(components):
             descriptor = descriptors[i]
             if descriptor == 'DE':         # -- strain rate
-                strain[1, i] = strain[0, i] + cij * VOIGT[i] * increment
+                strain[1, i] = strain[0, i] + cij * increment
             elif descriptor == 'E':        # -- strain
-                strain[1, i] = cij * VOIGT[i]
+                strain[1, i] = cij
             elif descriptor == 'DS':       # -- stress rate
                 stress[1, i] = stress[0, i] + cij * increment
                 v[nv] = i
@@ -701,9 +696,13 @@ class MaterialPointSimulator(object):
             # strain or strain rate prescribed and the strain rate is constant
             # over the entire step
             if abs(kappa) > 1.e-14:
-                d = rate_of_strain_to_rate_of_deformation(dedt, strain[2], kappa)
+                d = dfm.rate_of_strain_to_rate_of_deformation(dedt,
+                                                              strain[2],
+                                                              kappa)
             elif environ.SQA:
-                d = rate_of_strain_to_rate_of_deformation(dedt, strain[2], kappa)
+                d = dfm.rate_of_strain_to_rate_of_deformation(dedt,
+                                                              strain[2],
+                                                              kappa)
                 if not np.allclose(d, dedt):
                     logger.warn('SQA: d != dedt')
             else:
@@ -712,12 +711,13 @@ class MaterialPointSimulator(object):
         else:
             # Initial guess for d[v]
             dedt[v] = 0.
-            #Jsub = J0[[[x] for x in v], v]
-            #work = (stress[1,v] - stress[0,v]) / increment
-            #try:
-            #    dedt[v] = solve(Jsub,  work)
-            #except:
-            #    dedt[v] -= lstsq(Jsub, work)[0]
+            Jsub = J0[[[x] for x in v], v]
+            work = (stress[1,v] - stress[0,v]) / increment
+            try:
+                dedt[v] = la.solve(Jsub,  work)
+            except:
+                dedt[v] -= la.lstsq(Jsub, work)[0]
+            dedt[v] = dedt[v] / VOIGT[v]
 
         # Process each frame of the step
         for iframe in range(frames):
@@ -730,19 +730,20 @@ class MaterialPointSimulator(object):
                 # One or more stresses prescribed
                 d = d_from_prescribed_stress(
                     self.material, time[2], dtime, temp[2], dtemp,
-                    F[0], F[1], strain[2], dedt, stress[2],
+                    F[0], F[1], strain[2]*VOIGT, dedt*VOIGT, stress[2],
                     statev[0], v, pstress[v])
+                d = d / VOIGT
 
             # compute the current deformation gradient and strain from
             # previous values and the deformation rate
-            F[1], e = update_deformation(F[0], d, dtime, kappa)
+            F[1], e = dfm.update_deformation(F[0], d, dtime, kappa)
             strain[2,v] = e[v]
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))
 
             state = material.eval(time[2], dtime, temp[2], dtemp,
                                   F[0], F[1],
-                                  np.array(strain[2]), d,
+                                  np.array(strain[2])*VOIGT, d*VOIGT,
                                   np.array(stress[2]), statev[1])
             s, x, ddsdde = state
 
@@ -754,7 +755,7 @@ class MaterialPointSimulator(object):
             statev[0] = statev[1]
 
             glo_var_vals = [dtime, istep+1, iframe+1]
-            elem_var_vals = self.astack(strain[2]/VOIGT, dedt/VOIGT,
+            elem_var_vals = self.astack(strain[2], dedt,
                                         stress[2], dstress, F[1], temp[2], x)
             data[iframe+1, 0] = time[2]
             data[iframe+1, 1:4] = glo_var_vals

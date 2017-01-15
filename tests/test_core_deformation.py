@@ -23,8 +23,6 @@ def vec_isclose(name, comp, gold, rtol=1.0e-12, atol=1.0e-12):
     print("PASS" if PASS else "FAIL")
     return PASS
 
-tovoigt = np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
-
 deformation_measures_db = [
      {"name": "Uniaxial Extension",
       "eps": np.array([0.042857142857142857143,0,0,0,0,0]),
@@ -111,8 +109,8 @@ def test_deformation_measures_from_strain_uni_strain(a, t):
     d_g = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     # Test
-    d = df.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
-    assert vec_isclose("D", d, d_g*tovoigt)
+    d = df.rate_of_strain_to_rate_of_deformation(depsdt, eps, 0)
+    assert vec_isclose("D", d, d_g)
 
     # Teardown
     pass
@@ -148,8 +146,8 @@ def test_deformation_measures_from_strain_dissertation_test():
                     0.0, 0.0])
 
     # Test
-    d = df.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
-    assert vec_isclose("D", d, d_g*tovoigt)
+    d = df.rate_of_strain_to_rate_of_deformation(depsdt, eps, 0)
+    assert vec_isclose("D", d, d_g)
 
     # Teardown
     pass
@@ -165,8 +163,8 @@ def test_deformation_measures_from_strain_dissertation_static():
     d_g=np.array([-4.3525785227788080461,5.6602708304711157384,0,11.902909607738023219,0,0])
 
     # Test
-    d = df.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt, eps*tovoigt, 0)
-    assert vec_isclose("D", d, d_g*tovoigt)
+    d = df.rate_of_strain_to_rate_of_deformation(depsdt, eps, 0)
+    assert vec_isclose("D", d, d_g)
 
     # Teardown
     pass
@@ -189,9 +187,24 @@ def test_deformation_measures_from_strain_db(db, idx):
     print("kappa=", kappa)
 
     # Test
-    d = df.rate_of_strain_to_rate_of_deformation(depsdt*tovoigt,
-                                                  eps*tovoigt, kappa)
-    assert vec_isclose("D", d, d_g*tovoigt)
+    d = df.rate_of_strain_to_rate_of_deformation(depsdt, eps, kappa)
+    assert vec_isclose("D", d, d_g)
 
     # Teardown
     pass
+
+def test_scalar_volume_strain_to_tensor():
+    ev = 1.
+    kappa = 0
+    e = df.scalar_volume_strain_to_tensor(ev, kappa)
+    assert isclose(np.sum(e[:3]), ev)
+    kappa = 1
+    e = df.scalar_volume_strain_to_tensor(ev, kappa)
+    eij = ((kappa * ev + 1.) ** (1. / 3.) - 1.) / kappa
+    assert isclose(e[0], eij)
+    kappa = -2
+    try:
+        e = df.scalar_volume_strain_to_tensor(ev, kappa)
+        raise Exception('Expected ValueError')
+    except ValueError as e:
+        assert e.args[0] == '1 + kappa * ev must be positive'

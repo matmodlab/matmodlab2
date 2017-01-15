@@ -3,6 +3,7 @@
 *.log
 *.eval
 *.so
+*.so.dSYM
 *.o
 *module.c
 foo.*

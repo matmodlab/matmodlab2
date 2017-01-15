@@ -4,13 +4,15 @@ import numpy as np
 from copy import deepcopy as copy
 from collections import OrderedDict
 
-from .misc import is_stringlike, is_listlike
+from .tensor import VOIGT
 from .environ import environ
+from .tensor import array_rep
+from .material import Material
+from .misc import is_stringlike, is_listlike
 from .logio import logger, add_filehandler, splash
 from .database import DatabaseFile, COMPONENT_SEP, groupby_names
-from .tensor import array_rep
 from .stress_control import d_from_prescribed_stress, numerical_jacobian
-from .tensor import VOIGT
+
 import matmodlab2.core.linalg as la
 import matmodlab2.core.deformation as dfm
 continued = {'continued': 1}
@@ -99,9 +101,27 @@ class MaterialPointSimulator(object):
         descriptors = ['E'] * 6
         return [Step(0, 0, 1, descriptors, components, temp, 0)]
 
-    def _validate_descriptors(self, descriptors):
+    def _format_descriptors_and_components(self, descriptors, components):
         """Validate the user given descriptors"""
+
+        # Make sure components is an array. Whatever the length of the
+        # components is the length of the final descriptors
+        if not is_listlike(components):
+            components = [components]
+        components = np.array(components)
+
+        if is_stringlike(descriptors):
+            if len(descriptors) == 1:
+                # Lazy typing...
+                descriptors = descriptors * len(components)
+        elif not is_listlike(descriptors):
+            raise TypeError('descriptors must be list_like or string_like')
         descriptors = list(descriptors)
+
+        if len(descriptors) != len(components):
+            raise ValueError('components and descriptors must have same number'
+                             'of entries')
+
         for (i, descriptor) in enumerate(descriptors):
             if descriptor.upper() not in self.valid_descriptors:
                 raise ValueError('Invalid descriptor {0!r}'.format(descriptor))
@@ -125,7 +145,7 @@ class MaterialPointSimulator(object):
                 raise ValueError('At most 6 components of stress/strain '
                                  'can be prescribed')
 
-        return descriptors
+        return descriptors, components
 
     def add_step(self, descriptors, components, increment=1., frames=1,
                  scale=1., kappa=0., temperature=0., time_whole=None):
@@ -219,18 +239,8 @@ class MaterialPointSimulator(object):
         actually run until the `MaterialPointSimulator.run()` method is called.
 
         """
-        if not is_listlike(components):
-            components = [components]
-        components = np.array(components)
-
-        if is_stringlike(descriptors):
-            if len(descriptors) == 1:
-                # broadcast descriptor to each component
-                descriptors = descriptors * len(components)
-            descriptors = list(descriptors)
-        if not is_listlike(descriptors):
-            raise TypeError('descriptors must be list_like or string_like')
-        descriptors = self._validate_descriptors(descriptors)
+        descriptors, components = self._format_descriptors_and_components(
+            descriptors, components)
 
         # Stress control must have kappa = 0
         if any(['S' in x for x in descriptors]) and abs(kappa) > 1e-12:
@@ -240,14 +250,10 @@ class MaterialPointSimulator(object):
             # Scalar scale factor
             scale = np.ones(len(components)) * scale
         scale = np.asarray(scale)
-
-        # Sanity checks
-        if len(descriptors) != len(components):
-            raise ValueError('components and descriptors must have same length')
         if len(scale) != len(components):
             raise ValueError('components and scale must have same length')
 
-        # Apply scaling factor
+        # Apply scaling factors
         components = components * scale
 
         if 'F' in descriptors:
@@ -352,15 +358,20 @@ class MaterialPointSimulator(object):
         See the documentation for the `Material` base class for more information
 
         """
-        required_attrs = ('name', 'num_sdv', 'sdv_names', 'sdvini', 'eval')
-        for attr in required_attrs:
+        if not hasattr(material, 'eval'):
+            raise Exception('Material models must define the `eval` method')
+        optional_attrs = ('name', 'num_sdv', 'sdv_names', 'sdvini')
+        not_defined = []
+        for attr in optional_attrs:
             try:
                 getattr(material, attr)
             except AttributeError:
-                attrs = ', '.join(required_attrs)
-                raise Exception('Material models must define all of the '
-                                'following attributes: {0}'.format(attrs))
-        logger.info('Assigning material {0!r}'.format(material.name))
+                not_defined.append(attr)
+        name = getattr(material, 'name', None)
+        logger.info('Assigning material {0!r}'.format(name))
+        if not_defined:
+            attrs = ', '.join(not_defined)
+            logger.warning('Optional material members not defined: ' + attrs)
         self._material = material
 
     def run(self):
@@ -389,9 +400,10 @@ class MaterialPointSimulator(object):
 
         # Put the initial state in the output database
         step = self.steps[0]
-        numx = self.material.num_sdv
+        numx = getattr(self.material, 'num_sdv', None)
         statev = None if numx is None else np.zeros(numx)
-        statev = self.material.sdvini(statev)
+        if hasattr(self.material, 'sdvini'):
+            statev = self.material.sdvini(statev)
         strain = np.where(step.descriptors=='E', step.components, 0.)
         stress = np.where(step.descriptors=='S', step.components, 0.)
         defgrad = dfm.defgrad_from_strain(strain, step.kappa)
@@ -601,11 +613,12 @@ class MaterialPointSimulator(object):
         elem_var_names.extend(expand_var_name('DS', xc2))
         elem_var_names.extend(expand_var_name('F', xc3))
         elem_var_names.append('Temp')
-        if self.material.num_sdv is not None:
-            n = self.material.num_sdv
-            if self.material.sdv_names is not None:
-                assert len(self.material.sdv_names) == n
-                elem_var_names.extend(self.material.sdv_names)
+        num_sdv = getattr(self.material, 'num_sdv', Material.num_sdv)
+        sdv_names = getattr(self.material, 'sdv_names', Material.sdv_names)
+        if num_sdv:
+            if sdv_names:
+                assert len(sdv_names) == num_sdv
+                elem_var_names.extend(sdv_names)
             else:
                 elem_var_names.extend(expand_var_name('SDV', range(1, n+1)))
         self._elem_var_names = elem_var_names

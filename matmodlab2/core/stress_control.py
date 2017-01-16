@@ -146,16 +146,16 @@ def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
         return None
 
     # update the material state to get the first guess at the new stress
-    sig, statev, stif = material.eval(t, dt, temp, dtemp,
-                                      f0, f, stran, d, sig, statev)
+    sig, statev, stif = material.eval1(0, t, dt, temp, dtemp,
+                                       f0, f, stran, d, sig, statev)
     sigerr = sig[v] - sigspec
 
     # --- Perform Newton iteration
     for i in range(maxit2):
         sig = sigsave.copy()
         statev = copy(statev_save)
-        stif = material.eval(t, dt, temp, dtemp,
-                             f0, f, stran, d, sig, statev)[2]
+        stif = material.eval1(0, t, dt, temp, dtemp,
+                              f0, f, stran, d, sig, statev)[2]
         if stif is None:
             # material models without an analytic jacobian send the Jacobian
             # back as None so that it is found numerically here. Likewise, we
@@ -199,8 +199,8 @@ def newton(material, t, dt, temp, dtemp, f0, farg, stran, darg,
         sig = sigsave.copy()
         statev = copy(statev_save)
         fp, ep = update_deformation(f, d, dt, 0)
-        sig, statev, stif = material.eval(t, dt, temp, dtemp,
-                                          f0, fp, ep, d, sig, statev)
+        sig, statev, stif = material.eval1(0, t, dt, temp, dtemp,
+                                           f0, fp, ep, d, sig, statev)
 
         sigerr = sig[v] - sigspec
         dnom = max(np.amax(np.abs(sigspec)), 1.)
@@ -271,8 +271,8 @@ def _func(x, material, t, dt, temp, dtemp, f0, farg, stran, darg,
     fp, ep = update_deformation(f, d, dt, 0)
 
     # store the best guesses
-    sig, statev, stif = material.eval(t, dt, temp, dtemp,
-                                      f0, fp, ep, d, sig, statev)
+    sig, statev, stif = material.eval1(0, t, dt, temp, dtemp,
+                                       f0, fp, ep, d, sig, statev)
 
     # check the error
     error = 0.
@@ -353,8 +353,8 @@ def numerical_jacobian(material, time, dtime, temp, dtemp, F0, F, stran, d,
         Fp, Ep = update_deformation(F, Dp, dtime, 0)
         sigp = stress.copy()
         xp = copy(statev)
-        sigp = material.eval(time, dtime, temp, dtemp,
-                             F0, Fp, Ep, Dp, sigp, xp)[0]
+        sigp = material.eval1(0, time, dtime, temp, dtemp,
+                              F0, Fp, Ep, Dp, sigp, xp)[0]
 
         # perturb backward
         Dm = d.copy()
@@ -362,8 +362,8 @@ def numerical_jacobian(material, time, dtime, temp, dtemp, F0, F, stran, d,
         Fm, Em = update_deformation(F, Dm, dtime, 0)
         sigm = stress.copy()
         xm = copy(statev)
-        sigm = material.eval(time, dtime, temp, dtemp,
-                             F0, Fm, Em, Dm, sigm, xm)[0]
+        sigm = material.eval1(0, time, dtime, temp, dtemp,
+                              F0, Fm, Em, Dm, sigm, xm)[0]
 
         # compute component of jacobian
         Jsub[i, :] = (sigp[v] - sigm[v]) / deps

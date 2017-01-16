@@ -400,10 +400,7 @@ class MaterialPointSimulator(object):
 
         # Put the initial state in the output database
         step = self.steps[0]
-        numx = getattr(self.material, 'num_sdv', None)
-        statev = None if numx is None else np.zeros(numx)
-        if hasattr(self.material, 'sdvini'):
-            statev = self.material.sdvini(statev)
+        statev = self.material.initialize_statev()
         strain = np.where(step.descriptors=='E', step.components, 0.)
         stress = np.where(step.descriptors=='S', step.components, 0.)
         defgrad = dfm.defgrad_from_strain(strain, step.kappa)
@@ -613,6 +610,8 @@ class MaterialPointSimulator(object):
         elem_var_names.extend(expand_var_name('DS', xc2))
         elem_var_names.extend(expand_var_name('F', xc3))
         elem_var_names.append('Temp')
+
+        # Material state variables
         num_sdv = getattr(self.material, 'num_sdv', Material.num_sdv)
         sdv_names = getattr(self.material, 'sdv_names', Material.sdv_names)
         if num_sdv:
@@ -621,6 +620,12 @@ class MaterialPointSimulator(object):
                 elem_var_names.extend(sdv_names)
             else:
                 elem_var_names.extend(expand_var_name('SDV', range(1, n+1)))
+
+        # Names for material addons
+        if hasattr(self.material, 'addon_models'):
+            for addon_model in self.material.addon_models:
+                elem_var_names.extend(addon_model.sdv_names)
+
         self._elem_var_names = elem_var_names
         return elem_var_names
 
@@ -651,7 +656,7 @@ class MaterialPointSimulator(object):
         time = np.array([begin, end, begin])
 
         # Temperature
-        temp = np.array((data[1, 37], temp, data[1, 37]))
+        temp = np.array((data[0, 37], temp, data[0, 37]))
         dtemp = (temp[1] - temp[0]) / float(frames)
 
         # Strain and stress states
@@ -754,10 +759,10 @@ class MaterialPointSimulator(object):
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))
 
-            state = material.eval(time[2], dtime, temp[2], dtemp,
-                                  F[0], F[1],
-                                  np.array(strain[2])*VOIGT, d*VOIGT,
-                                  np.array(stress[2]), statev[1])
+            state = material.eval1(kappa, time[2], dtime, temp[2], dtemp,
+                                   F[0], F[1],
+                                   np.array(strain[2])*VOIGT, d*VOIGT,
+                                   np.array(stress[2]), statev[1])
             s, x, ddsdde = state
 
             dstress = s - stress[2]

@@ -7,6 +7,8 @@ import matmodlab2.core.linalg as la
 VOIGT = np.array([1., 1., 1., 2., 2., 2.])
 I6 = np.array([1., 1., 1., 0., 0., 0.])
 epsilon = np.finfo(float).eps
+SYMMETRIC_COMPONENTS = ['XX', 'YY', 'ZZ', 'XY', 'YZ', 'XZ']
+TENSOR_COMPONENTS = ['XX', 'XY', 'XZ', 'YX', 'YY', 'YZ', 'ZX', 'ZY', 'ZZ']
 
 def isotropic_part(A):
     """Return isotropic part of A"""

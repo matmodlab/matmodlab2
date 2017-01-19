@@ -179,19 +179,6 @@ def test_tresca_multi_step_verification():
     #assert np.allclose(simdata[::N], table_data)
 
     return
-    import pandas as pd
-    import matplotlib.pyplot as plt
-
-    # Convert the analytical and simulated tables to Pandas DataFrames
-    df_analytical = pd.DataFrame(data=table_data, columns=table_head)
-    df_simulated = pd.DataFrame(data=output, columns=table_head)
-
-    # Plot the stresses, analytical dashed, simulated solid
-    fig, ax = plt.subplots()
-    df_analytical.plot(x="time", y=["sig1", "sig2", "sig3"], ax=ax, lw=4)
-    #df_simulated.plot(x="time", y=["sig1", "sig2", "sig3"], ax=ax, lw=2)
-    mps.df.plot(x='Time', y=['S.XX', 'S.YY', 'S.ZZ'], style='.-', ax=ax)
-    plt.show()
 
 if __name__ == '__main__':
     test_tresca_multi_step_verification()

@@ -38,15 +38,53 @@ def test_deviatoric_part():
     assert np.allclose(dev_a_dev, a_dev)
     assert np.allclose(dev_A_dev, A_dev)
 
-def test_mechanics_invariants_dev():
-    a_dev = np.array([1., -.5, -.5, 0., 0., 0.])
-    A_dev = np.array([[1., 0., 0.], [0., -.5, 0.], [0., 0., -.5]])
+def test_invariants_mechanics_dev():
+    a_dev = np.array([1., 0., -1., 2., 4., 3.])
+    A_dev = np.array([[1.0, 2.0, 3.0],
+                      [2.0, 0.0, 4.0],
+                      [3.0, 4.0,-1.0]])
     a_i1 = 0.
-    a_mag_a = np.sqrt((1 + 2. * .5 ** 2))
-    a_rootj2 = a_mag_a / np.sqrt(2.)
-    i1, rootj2 = tens.invariants(a_dev, mechanics=True)
-    assert np.allclose(a_i1, i1)
-    assert np.allclose(a_rootj2, rootj2)
+    a_rootj2 = np.sqrt(30)
+    print(tens.magnitude(a_dev), np.sqrt(60.))
+    print(tens.magnitude(A_dev), np.sqrt(60.))
+    # Do it with 6x1
+    i1, rootj2, j3 = tens.invariants(a_dev, 'mechanics')
+    assert np.isclose(a_i1, i1)
+    assert np.isclose(a_rootj2, rootj2)
+    assert np.isclose(36.0, j3)
+    # Now do it with 3x3
+    i1, rootj2, j3 = tens.invariants(A_dev, 'mechanics')
+    assert np.isclose(a_i1, i1)
+    assert np.isclose(a_rootj2, rootj2)
+    assert np.isclose(36.0, j3)
+
+def test_invariants_mechanics_iso():
+    a_iso = np.array([4.5, 4.5, 4.5, 0., 0., 0.])
+    A_iso = np.eye(3) * 4.5
+    a_i1 = 3 * 4.5
+    # Do it with 6x1
+    i1, rootj2, j3 = tens.invariants(a_iso, 'mechanics')
+    assert np.isclose(a_i1, i1)
+    assert np.isclose(0., rootj2)
+    assert np.isclose(0., j3)
+    # Now do it with 3x3
+    i1, rootj2, j3 = tens.invariants(A_iso, 'mechanics')
+    assert np.isclose(a_i1, i1)
+    assert np.isclose(0., rootj2)
+    assert np.isclose(0., j3)
+
+def test_invariants_lode():
+    def f(x):
+        fac = -1.0 + 2.0 * x
+        return np.array([[1.0, 0.0, 0.0],
+                         [0.0, fac, 0.0],
+                         [0.0, 0.0,-1.0]])
+    z, r, theta, lode = tens.invariants(f(.5), 'lode')
+    assert np.isclose(       0.0, theta)
+    z, r, theta, lode = tens.invariants(f(1.), 'lode')
+    assert np.isclose(-np.pi/6.0, theta)
+    z, r, theta, lode = tens.invariants(f(0.), 'lode')
+    assert np.isclose( np.pi/6.0, theta)
 
 def test_magnitude():
     a_ident = np.array([1., 1., 1., 0., 0., 0.])

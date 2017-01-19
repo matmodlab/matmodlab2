@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import time
 import numpy as np
 from copy import deepcopy as copy
@@ -446,10 +447,7 @@ class MaterialPointSimulator(object):
         self.ran = True
 
         if self.write_db:
-            if self.db_fmt == 'npz':
-                self.dumpz()
-            else:
-                self.dump()
+            self.dump()
 
         dt = time.time() - start_sim
         logger.info('Simulation complete ({0:.2f} sec.)'.format(dt))
@@ -518,6 +516,8 @@ class MaterialPointSimulator(object):
             raise RuntimeError('Simulation must first be run')
         df = kwargs.get('df', None) or environ.notebook
         if df:
+            if is_listlike(keys):
+                keys = list(keys)
             return self.df[keys]
         ix = [self.columns[key] for key in keys]
         return self.data[:, ix]
@@ -532,7 +532,22 @@ class MaterialPointSimulator(object):
 
         logger.info('Opening the output database... ', extra=continued)
         if filename is None:
-            filename = self.jobid
+            filename = self.jobid + '.' + self.db_fmt
+
+        root, ext = os.path.splitext(filename)
+        if not ext:
+            ext = '.'+self.db_fmt
+            filename = filename + ext
+        assert ext in ('.npz', '.exo')
+
+        if ext == '.exo':
+            self._write_exodb(filename)
+
+        elif ext == '.npz':
+            self._write_npzdb(filename)
+
+    def _write_exodb(self, filename):
+        """Write the results to a exodus database"""
         self.db = DatabaseFile(filename, 'w')
         logger.info('done')
         logger.info('Output database: {0!r}'.format(self.db.filename))
@@ -563,6 +578,9 @@ class MaterialPointSimulator(object):
             filename = self.jobid
         if not filename.endswith('.npz'):
             filename += '.npz'
+        self._write_npzdb(filename)
+
+    def _write_npzdb(self, filename):
         logger.info('Writing data to {0!r}... '.format(filename),
                     extra=continued)
         columns = list(self.columns.keys())

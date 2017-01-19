@@ -1,3 +1,13 @@
+"""This model is courtesy of Scot Swan.
+
+The model and plots from its verification tests support the publication:
+
+<CITATION>
+
+All attribution goes to Scot Swan for this model. Any mistakes should be
+assumed to be errors on my part (Tim Fuller).
+
+"""
 import numpy as np
 from ..core.logio import logger
 from ..core.material import Material

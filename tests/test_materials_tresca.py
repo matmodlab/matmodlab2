@@ -1,23 +1,16 @@
+"""Test of the Tresca material model.  This model is courtesy of Scot Swan.
+
+The model and plots from these verification tests support the publication:
+
+<CITATION>
+
+All attribution goes to Scot Swan for these tests. Any mistakes should be
+assumed to be errors on my part (Tim Fuller).
+
+"""
 import pytest
 import numpy as np
 from matmodlab2 import *
-
-# Setup
-ys = 1.0
-mat_zeros = np.zeros((3, 3))
-mat_iso = 4.5 * np.eye(3)
-mat_dev = np.array([[1.0, 2.0, 3.0],
-                    [2.0, 0.0, 4.0],
-                    [3.0, 4.0,-1.0]])
-mat_txe = np.array([[2, 0, 0],
-                    [0,-1, 0],
-                    [0, 0,-1]])
-mat_shr = np.array([[1, 0, 0],
-                    [0, 0, 0],
-                    [0, 0,-1]])
-mat_txeish_unit = np.array([[(3.0 + np.sqrt(3.0))/6.0, 0, 0],
-                            [0, (np.sqrt(3.0)-3.0)/6.0, 0],
-                            [0, 0, -1.0 / np.sqrt(3.0)]])
 
 def assym(A):
     return np.array([A[0,0], A[1,1], A[2,2], A[0,1], A[1,2], A[0,2]])

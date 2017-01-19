@@ -2,6 +2,7 @@
 *.exo
 *.log
 *.eval
+*.npz
 *.so
 *.so.dSYM
 *.o

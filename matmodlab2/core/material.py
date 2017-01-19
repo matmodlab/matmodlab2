@@ -46,25 +46,7 @@ class Material(object):
     name = None
     num_sdv = None
     sdv_names = None
-
-    def initialize_statev(self):
-        """Initialize the state dependent variables - including addon models"""
-        numx = self.num_sdv
-        statev = None if self.num_sdv is None else np.zeros(self.num_sdv)
-        statev = self.sdvini(statev)
-
-        addon_sdv = []
-        for addon_model in self.addon_models:
-            xv = np.zeros(addon_model.num_sdv)
-            addon_sdv.extend(addon_model.sdvini(xv))
-
-        if addon_sdv:
-            if statev is not None:
-                statev = np.append(statev, addon_sdv)
-            else:
-                statev = np.array(addon_sdv)
-
-        return statev
+    initial_temp = 0.
 
     def sdvini(self, statev):
         """Initialize the state dependent variables
@@ -88,38 +70,6 @@ class Material(object):
 
         """
         return statev
-
-    def eval1(self, kappa, time, dtime, temp, dtemp,
-              F0, F, strain, d, stress, statev, **kwds):
-        """Wrapper method to eval. This is called by Matmodlab so that addon
-        models can first be evaluated. See documentation for eval.
-
-        """
-        if getattr(self, '_initial_temp', None) is None:
-            self._initial_temp = temp
-
-        i = 0 if self.num_sdv is None else self.num_sdv
-        for model in self.addon_models:
-            # Evaluate each addon model.  Each model must change the input
-            # arrays in place.
-
-            # Determine starting point in statev array
-            j = i + model.num_sdv
-            xv = statev[i:j]
-            model.eval(kappa, time, dtime, self._initial_temp, temp, dtemp,
-                       F0, F, strain, d, stress, xv, **kwds)
-            statev[i:j] = xv
-            i += j
-
-        if self.num_sdv is not None:
-            xv = statev[:self.num_sdv]
-        else:
-            xv = None
-        sig, xv, ddsdde = self.eval(time, dtime, temp, dtemp,
-                                    F0, F, strain, d, stress, xv, **kwds)
-        if self.num_sdv is not None:
-            statev[:self.num_sdv] = xv
-        return sig, statev, ddsdde
 
     def eval(self, time, dtime, temp, dtemp,
              F0, F, strain, d, stress, statev, **kwds):
@@ -190,8 +140,8 @@ class ExpansionModel(object):
         statev = np.append(np.zeros(6), np.array([1.,0.,0.,0.,1.,0.,0.,0.,1.]))
         return statev
 
-    def eval(self, kappa, time, dtime, itemp, temp, dtemp,
-             F0, F, strain, d, stress, statev, **kwds):
+    def eval(self, kappa, time, dtime, temp, dtemp,
+             F0, F, strain, d, stress, statev, initial_temp=0., **kwds):
         """Evaluate the thermal expansion model
 
         F0, F, strain, d are updated in place
@@ -199,7 +149,7 @@ class ExpansionModel(object):
         assert len(statev) == 15
 
         # Determine mechanical strain
-        thermal_strain = (temp + dtemp - itemp) * self.data
+        thermal_strain = (temp + dtemp - initial_temp) * self.data
         strain -= thermal_strain
 
         # Updated deformation gradient

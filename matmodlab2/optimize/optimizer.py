@@ -18,6 +18,7 @@ LASTEVALD = None
 BIGNUM = 1.E+20
 MAXITER = 50
 TOL = 1.E-06
+MAX_ERR = None
 
 class Optimizer(object):
     def __init__(self, job, func, xinit, method='simplex',
@@ -263,7 +264,7 @@ def run_job(xcall, *args):
         Error in job
 
     """
-    global IOPT, LASTEVALD
+    global IOPT, LASTEVALD, MAX_ERR
     logger = logging.getLogger('optimize')
     func, funcargs, rootd, halt_on_err, job, xnames, desc, tabular, xfac = args
 
@@ -294,17 +295,26 @@ def run_job(xcall, *args):
         err = func(x, xnames, evald, job, *funcargs)
         logger.info("done (error={0:.4e})".format(err))
         stat = 0
+        if MAX_ERR is None:
+            MAX_ERR = err
+        MAX_ERR = max(MAX_ERR, err)
     except BaseException:
         string = traceback.format_exc()
-        logger.error("\nRun {0} failed with the following "
-                     "exception:\n{1}".format(IOPT, string))
+        if not environ.notebook:
+            logger.error("\nRun {0} failed with the following "
+                         "exception:\n{1}".format(IOPT, string))
+        else:
+            logger.info("failed")
 
         if halt_on_err:
             logger.error("\n\nHalting optimization on error at user request.\n")
             raise  # re-raise previous error
 
         stat = 1
-        err = np.nan
+        if MAX_ERR is None:
+            err = np.nan
+        else:
+            err = MAX_ERR
 
     tabular.write_eval_info(IOPT, stat, evald, parameters, ((desc[0], err),))
 

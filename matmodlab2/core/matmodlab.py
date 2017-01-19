@@ -400,7 +400,7 @@ class MaterialPointSimulator(object):
 
         # Put the initial state in the output database
         step = self.steps[0]
-        statev = self.material.initialize_statev()
+        statev = self.initialize_statev()
         strain = np.where(step.descriptors=='E', step.components, 0.)
         stress = np.where(step.descriptors=='S', step.components, 0.)
         defgrad = dfm.defgrad_from_strain(strain, step.kappa)
@@ -415,7 +415,7 @@ class MaterialPointSimulator(object):
         # Call the material with a zero state to get the initial Jacobian
         J0 = None
         if any(['S' in step.descriptors for step in self.steps]):
-            J0 = numerical_jacobian(self.material, 1, 1, step.temp, 0,
+            J0 = numerical_jacobian(self.eval, 1, 1, step.temp, 0,
                                     defgrad, defgrad, np.zeros(6), np.zeros(6),
                                     np.zeros(6), copy(statev), range(6))
 
@@ -629,6 +629,29 @@ class MaterialPointSimulator(object):
         self._elem_var_names = elem_var_names
         return elem_var_names
 
+    def initialize_statev(self):
+        """Initialize the state dependent variables - including addon models"""
+        numx = getattr(self.material, 'num_sdv', Material.num_sdv)
+        statev = None if numx is None else np.zeros(numx)
+        try:
+            statev = self.material.sdvini(statev)
+        except AttributeError:
+            pass
+
+        addon_sdv = []
+        if hasattr(self.material, 'addon_models'):
+            for addon_model in self.material.addon_models:
+                xv = np.zeros(addon_model.num_sdv)
+                addon_sdv.extend(addon_model.sdvini(xv))
+
+        if addon_sdv:
+            if statev is not None:
+                statev = np.append(statev, addon_sdv)
+            else:
+                statev = np.array(addon_sdv)
+
+        return statev
+
     def astack(self, E, DE, S, DS, F, T, XV):
         """Concatenates input arrays into a single flattened array"""
         a = [E, DE, S, DS, F, T, XV]
@@ -645,7 +668,6 @@ class MaterialPointSimulator(object):
 
         """
         assert istep != 0
-        material = self.material
         increment = end - begin
 
         #---------------------------------------------------------------------- #
@@ -747,7 +769,7 @@ class MaterialPointSimulator(object):
             if nv:
                 # One or more stresses prescribed
                 d = d_from_prescribed_stress(
-                    self.material, time[2], dtime, temp[2], dtemp,
+                    self.eval, time[2], dtime, temp[2], dtemp,
                     F[0], F[1], strain[2]*VOIGT, dedt*VOIGT, stress[2],
                     statev[0], v, pstress[v])
                 d = d / VOIGT
@@ -759,10 +781,9 @@ class MaterialPointSimulator(object):
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))
 
-            state = material.eval1(kappa, time[2], dtime, temp[2], dtemp,
-                                   F[0], F[1],
-                                   np.array(strain[2])*VOIGT, d*VOIGT,
-                                   np.array(stress[2]), statev[1])
+            state = self.eval(kappa, time[2], dtime, temp[2], dtemp,
+                              F[0], F[1], strain[2]*VOIGT, d*VOIGT,
+                              np.array(stress[2]), statev[1])
             s, x, ddsdde = state
 
             dstress = s - stress[2]
@@ -778,6 +799,41 @@ class MaterialPointSimulator(object):
             data[iframe+1, 0] = time[2]
             data[iframe+1, 1:4] = glo_var_vals
             data[iframe+1, 4:] = elem_var_vals
+
+    def eval(self, kappa, time, dtime, temp, dtemp,
+             F0, F, strain, d, stress, statev, **kwds):
+        """Wrapper method to material.eval. This is called by Matmodlab so that
+        addon models can first be evaluated. See documentation for eval.
+
+        """
+        num_sdv = getattr(self.material, 'num_sdv', Material.num_sdv)
+        i = 0 if num_sdv is None else num_sdv
+        if hasattr(self.material, 'addon_models'):
+            for model in self.material.addon_models:
+                # Evaluate each addon model.  Each model must change the input
+                # arrays in place.
+
+                # Determine starting point in statev array
+                j = i + model.num_sdv
+                xv = statev[i:j]
+                model.eval(kappa, time, dtime, temp, dtemp,
+                           F0, F, strain, d, stress, xv,
+                           initial_temp=self.initial_temp, **kwds)
+                statev[i:j] = xv
+                i += j
+
+        if num_sdv is not None:
+            xv = statev[:num_sdv]
+        else:
+            xv = None
+        sig, xv, ddsdde = self.material.eval(time, dtime, temp, dtemp, F0, F,
+                                             strain, d, stress, xv, **kwds)
+
+        if num_sdv is not None:
+            statev[:num_sdv] = xv
+
+        return sig, statev, ddsdde
+
 
 class Step(object):
     def __init__(self, begin, end, frames,

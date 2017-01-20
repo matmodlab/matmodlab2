@@ -86,7 +86,7 @@ class TrescaMaterial(Material):
             return term1
 
         # Trim the lode parameter to alleviate problems at verticies
-        lode = max(-0.9999, min(0.9999, lode))
+        lode = max(-0.9999999, min(0.9999999, lode))
 
         S2 = deviatoric_part(dot(S, S))
         coef2 = r/np.sqrt(2.)*np.sin(theta)/(3.0*np.sqrt(1.0 - lode**2))

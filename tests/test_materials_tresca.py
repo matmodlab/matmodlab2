@@ -172,11 +172,25 @@ def test_tresca_multi_step_verification():
             output.append([t,] + e.tolist() + s.tolist())
 
     output = np.asarray(output)
-    assert np.allclose(simdata, output)
+    table_data = np.asarray(table_data)
 
-    # @mswan: these don't pass :(
-    #assert np.allclose(output[::N], table_data)
-    #assert np.allclose(simdata[::N], table_data)
+    # Compare each column with the others. Do not use np.allclose() because
+    # small errors (~machine precision) are introduced when dealing with large
+    # stresses (~1.0e6) and are propagated to when the stress approaches zero.
+    # np.allclose() has no memory of the 'average magnitude' of the stress over
+    # the test, and subsequently flags what we know to be small deviations as
+    # errors.
+    for idx in range(len(table_data[0])):
+        col_gold = table_data[:, idx]
+        col_comp = output[::N, idx]
+        col_sim = simdata[::N, idx]
+
+        diff_comp = np.linalg.norm(col_gold - col_comp)
+        diff_sim = np.linalg.norm(col_gold - col_sim)
+
+        diff_mag = max(1.0, np.linalg.norm(col_gold))
+        assert np.isclose(0.0, diff_comp / diff_mag)
+        assert np.isclose(0.0, diff_sim / diff_mag)
 
     return
 

@@ -204,3 +204,18 @@ def random_rotation_matrix():
     A = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
     R = I + 2*np.sin(theta/2.)**2*(aa-I)+np.sin(theta)*A
     return R
+
+def newton(xn, func, fprime, tol=1.e-7):
+    for iter in range(25):
+        fder = fprime(xn)
+        if fder == 0:
+            message = 'derivative was zero'
+            warnings.warn(message, RuntimeWarning)
+            return xn
+        fval = func(xn)
+        x = xn - fval / fder
+        if abs(x - xn) < tol:
+            return x
+        xn = x
+    msg = "Failed to converge after %d iterations, value is %s" % (25, x)
+    raise RuntimeError(msg)

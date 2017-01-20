@@ -1,22 +1,19 @@
 import numpy as np
 from matmodlab2.core.logio import logger, StopFortran
 from matmodlab2.core.tensor import VOIGT
-from matmodlab2.core.material import Material
+from .umat import UMat
 
-lib = None
-
-class UMat(Material):
+class UHyper(UMat):
     '''Constitutive model class for the umat model'''
-    name = 'umat'
-
+    name = 'uhyper'
     def __init__(self, parameters, depvar=1):
         '''initialize the material state'''
         global lib
         try:
-            import _umat
-            lib = _umat
+            import _uhyper
+            lib = _uhyper
         except ImportError:
-            raise RuntimeError('umat module must first be built')
+            raise RuntimeError('uhyper module must first be built')
 
         self.ordering = [0, 1, 2, 3, 5, 4]
         self.params = np.array(parameters)
@@ -50,6 +47,7 @@ class UMat(Material):
              stran, d, stress, statev, **kwargs):
 
         # abaqus defaults
+        w = np.array([1, 1, 1, 2, 2, 2], dtype=np.float64)
         cmname = '{0:8s}'.format('umat')
         dfgrd0 = np.reshape(F0, (3, 3), order='F')
         dfgrd1 = np.reshape(F, (3, 3), order='F')
@@ -72,8 +70,8 @@ class UMat(Material):
         # abaqus ordering
         stress = stress[self.ordering]
         # abaqus passes engineering strain
-        dstran = dstran[self.ordering]
-        stran = stran[self.ordering]
+        dstran = dstran[self.ordering] #* w
+        stran = stran[self.ordering] #* w
 
         lib.umat(stress, statev, ddsdde,
             sse, spd, scd, rpl, ddsddt, drplde, drpldt, stran, dstran,
@@ -86,4 +84,5 @@ class UMat(Material):
         ddsdde = ddsdde[self.ordering, [[i] for i in self.ordering]]
         if abs(pnewdt) > 1e-12:
             logger.warning('Matmodlab does not support cutbacks')
+
         return stress, statev, ddsdde

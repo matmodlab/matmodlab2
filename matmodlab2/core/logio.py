@@ -68,4 +68,10 @@ def splash(logger):
         logger.info(SPLASH)
         logger.splashed = True
 
+class FortranError(Exception):
+    pass
+
+def StopFortran(message):
+    raise FortranError(message)
+
 logger = get_logger('matmodlab')

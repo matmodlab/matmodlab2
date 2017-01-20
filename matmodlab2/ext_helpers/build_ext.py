@@ -33,6 +33,12 @@ aba_utils = os.path.join(aba_support_dir, 'aba_utils.f90')
 assert os.path.isfile(aba_utils)
 umat_pyf = os.path.join(aba_support_dir, 'umat.pyf')
 assert os.path.isfile(umat_pyf)
+uhyper_pyf = os.path.join(aba_support_dir, 'uhyper.pyf')
+assert os.path.isfile(uhyper_pyf)
+tensalg_f90 = os.path.join(aba_support_dir, 'tensalg.f90')
+assert os.path.isfile(tensalg_f90)
+uhyper_wrap_f90 = os.path.join(aba_support_dir, 'uhyper_wrap.f90')
+assert os.path.isfile(uhyper_wrap_f90)
 
 class ExtensionNotBuilt(Exception):
     pass
@@ -72,13 +78,14 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
         Write output to stdout if True, otherwise suppress stdout
     user_ics : bool
         List of source files includes source defining subroutine SDVINI.
-        Applicable only for Abaqus umats.
+        Applicable only for Abaqus umat and uhyper.
     fc : str
         Fortran compiler
 
     Notes
     -----
-    To build abaqus umats, the name must be 'umat'
+    To build abaqus umat, the name must be 'umat'
+    To build abaqus uhyper, the name must be 'uhyper'
 
     """
     the_loglevel = environ.loglevel
@@ -96,9 +103,11 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     if name != '_matfuncs_sq3':
         sources.append(mml_io)
 
+    # We'll add the object file back in
     if lapack_lite in sources:
         sources.remove(lapack_lite)
 
+    # Everyone get lapack!
     if lapack_lite_obj not in sources:
         sources.append(lapack_lite_obj)
 
@@ -108,11 +117,16 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     include_dirs = include_dirs or []
 
     umat = name.lower() == 'umat'
-    if umat:
+    uhyper = name.lower() == 'uhyper'
+    if umat or uhyper:
         # Build the umat module - add some Abaqus utility files
         clean_f2py_tracks(aba_support_dir)
-        name = '_umat'
-        sources.extend([aba_utils, umat_pyf])
+        name = '_umat' if umat else '_uhyper'
+        sources.append(aba_utils)
+        if umat:
+            sources.append(umat_pyf)
+        elif uhyper:
+            sources.extend([uhyper_pyf, tensalg_f90, uhyper_wrap_f90])
         if not user_ics:
             sources.append(aba_sdvini)
         include_dirs = include_dirs + [aba_support_dir]

@@ -1,0 +1,84 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+python module mml__user__routines
+    interface mml_user_interface
+        subroutine log_message(message)
+            intent(callback) log_message
+            character*(*) :: message
+        end subroutine log_message
+        subroutine log_warning(message)
+            intent(callback) log_warning
+            character*(*) :: message
+        end subroutine log_warning
+        subroutine log_error(message)
+            intent(callback) log_error
+            character*(*) :: message
+        end subroutine log_error
+    end interface mml_user_interface
+end python module mml__user__routines
+
+python module _uhyper ! in
+    interface  ! in :
+        subroutine umat(stress,statev,ddsdde,sse,spd,scd,rpl,ddsddt,drplde,drpldt,stran,dstran,time,dtime,temp,dtemp,predef,dpred,cmname,ndi,nshr,ntens,nstatv,props,nprops,coords,drot,pnewdt,celent,dfgrd0,dfgrd1,noel,npt,layer,kspt,kstep,kinc)
+            use mml__user__routines
+            intent(callback) log_message
+            external log_message
+            intent(callback) log_warning
+            external log_warning
+            intent(callback) log_error
+            external log_error
+            real(kind=8) dimension(ntens),intent(inout),depend(ntens) :: stress
+            real(kind=8) dimension(nstatv),intent(inout),depend(nstatv) :: statev
+            real(kind=8) dimension(ntens,ntens),intent(inout),depend(ntens,ntens) :: ddsdde
+            real(kind=8) intent(in) :: sse
+            real(kind=8) intent(in) :: spd
+            real(kind=8) intent(in) :: scd
+            real(kind=8) intent(in) :: rpl
+            real(kind=8) dimension(ntens),intent(inout) :: ddsddt
+            real(kind=8) dimension(ntens),intent(inout),depend(ntens) :: drplde
+            real(kind=8) intent(in) :: drpldt
+            real(kind=8) dimension(ntens),intent(in),depend(ntens) :: stran
+            real(kind=8) dimension(ntens),intent(in),depend(ntens) :: dstran
+            real(kind=8) dimension(2),intent(in) :: time
+            real(kind=8) intent(in) :: dtime
+            real(kind=8) intent(in) :: temp
+            real(kind=8) intent(in) :: dtemp
+            real(kind=8) dimension(1),intent(in) :: predef
+            real(kind=8) dimension(1),intent(in) :: dpred
+            character*8 intent(in) :: cmname
+            integer intent(in) :: ndi
+            integer intent(in) :: nshr
+            integer, optional,intent(in),check(len(ddsddt)>=ntens),depend(ddsddt) :: ntens=len(ddsddt)
+            integer intent(in) :: nstatv
+            real(kind=8) dimension(nprops),intent(in) :: props
+            integer, optional,intent(in),check(len(props)>=nprops),depend(props) :: nprops=len(props)
+            real(kind=8) dimension(3),intent(in) :: coords
+            real(kind=8) dimension(3,3),intent(in) :: drot
+            real(kind=8) intent(in) :: pnewdt
+            real(kind=8) intent(in) :: celent
+            real(kind=8) dimension(3,3),intent(in) :: dfgrd0
+            real(kind=8) dimension(3,3),intent(in) :: dfgrd1
+            integer intent(in) :: noel
+            integer intent(in) :: npt
+            integer intent(in) :: layer
+            integer intent(in) :: kspt
+            integer intent(in) :: kstep
+            integer intent(in) :: kinc
+        end subroutine umat
+        subroutine sdvini(statev,coords,nstatv,ncrds,noel,npt,layer,kspt)
+            use mml__user__routines
+            intent(callback) log_message
+            external log_message
+            intent(callback) log_warning
+            external log_warning
+            intent(callback) log_error
+            external log_error
+            integer intent(in) :: nstatv, ncrds, noel, npt, layer, kspt
+            real(kind=8) dimension(nstatv), intent(inout) :: statev
+            real(kind=8) dimension(ncrds), intent(in) :: coords
+        end subroutine sdvini
+    end interface
+end python module _uhyper
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

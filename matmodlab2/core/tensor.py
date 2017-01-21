@@ -52,41 +52,41 @@ II5 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5]).reshape((6,6))
 
-VOIGT = np.array([1., 1., 1., 2., 2., 2.])
-
 # Second-order identities
 I6 = np.array([1., 1., 1., 0., 0., 0.])
 I9 = np.array([1., 0., 0., 0., 1., 0., 0., 0., 1.])
 I3x3 = np.eye(3)
 
-epsilon = np.finfo(float).eps
 SYMMETRIC_COMPONENTS = ['XX', 'YY', 'ZZ', 'XY', 'YZ', 'XZ']
 TENSOR_COMPONENTS = ['XX', 'XY', 'XZ', 'YX', 'YY', 'YZ', 'ZX', 'ZY', 'ZZ']
-# coding: utf-8
+VOIGT = np.array([1., 1., 1., 2., 2., 2.])
 
-class TensorShapeError(Exception):
-    pass
+epsilon = np.finfo(float).eps
 
 def has_valid_shape(A):
     return is_valid_shape(A.shape)
-  
+
 def is_valid_shape(shape):
+    """Return whether the shape is valid for these set of functions"""
     return shape in ((6,),(9,),(3,3))
 
 def identity(n):
+    """Return an identity tensor according to n"""
+    if n not in (3, 6, 9):
+        raise ValueError('Unknown identity size {0}'.format(n))
+    if n == 3:
+        return np.eye(3)
     if n == 6:
         return np.array([1.,1.,1.,0.,0.,0.])
     if n == 9:
         return np.array([1.,0.,0.,0.,1.,0.,0.,0.,1.])
-    if n == 3:
-        return np.eye(3)
-    raise TensorShapeError
-    
+
 def identity_like(A):
+    """Return an identity matrix like A"""
     A = np.asarray(A)
     assert has_valid_shape(A)
     return identity(A.shape[0])
-    
+
 def trace(A, metric=None):
     """Return trace of A"""
     A = np.asarray(A)
@@ -101,7 +101,7 @@ def trace(A, metric=None):
 def isotropic_part(A, metric=None):
     """Return isotropic part of A"""
     A = np.asarray(A)
-    assert is_valid_shape(A)
+    assert has_valid_shape(A)
     if metric is None:
         metric = identity_like(A)
         X = np.array(metric)
@@ -393,7 +393,7 @@ def matrix_rep(A, disp=1):
 
 def array_rep(mat, shape):
     """Reverse of matrix_rep"""
-    A = np.asarray(A)
+    mat = np.asarray(mat)
     if mat.shape == (6,):
         return mat
     if shape == (6,):

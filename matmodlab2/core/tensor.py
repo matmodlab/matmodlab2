@@ -62,20 +62,38 @@ I3x3 = np.eye(3)
 epsilon = np.finfo(float).eps
 SYMMETRIC_COMPONENTS = ['XX', 'YY', 'ZZ', 'XY', 'YZ', 'XZ']
 TENSOR_COMPONENTS = ['XX', 'XY', 'XZ', 'YX', 'YY', 'YZ', 'ZX', 'ZY', 'ZZ']
+# coding: utf-8
 
-def is_valid_shape(A):
-    return A.shape in ((6,), (9,), (3,3))
+class TensorShapeError(Exception):
+    pass
 
+def has_valid_shape(A):
+    return is_valid_shape(A.shape)
+  
+def is_valid_shape(shape):
+    return shape in ((6,),(9,),(3,3))
+
+def identity(n):
+    if n == 6:
+        return np.array([1.,1.,1.,0.,0.,0.])
+    if n == 9:
+        return np.array([1.,0.,0.,0.,1.,0.,0.,0.,1.])
+    if n == 3:
+        return np.eye(3)
+    raise TensorShapeError
+    
+def identity_like(A):
+    A = np.asarray(A)
+    assert has_valid_shape(A)
+    return identity(A.shape[0])
+    
 def trace(A, metric=None):
     """Return trace of A"""
     A = np.asarray(A)
-    assert is_valid_shape(A)
-    if A.shape == (6,) and metric is None:
-        metric, X = I6, I6
-    elif A.shape == (9,) and metric is None:
-        metric, X = I9, I9
-    elif A.shape == (3,3) and metric is None:
-        metric, X = I3x3, I3x3
+    assert has_valid_shape(A)
+    if metric is None:
+        metric = identity_like(A)
+        X = np.array(metric)
     else:
         X = inv(metric)
     return double_dot(A, metric)
@@ -84,15 +102,12 @@ def isotropic_part(A, metric=None):
     """Return isotropic part of A"""
     A = np.asarray(A)
     assert is_valid_shape(A)
-    if A.shape == (6,) and metric is None:
-        metric, X = I6, I6
-    if A.shape == (9,) and metric is None:
-        metric, X = I9, I9
-    elif A.shape == (3,3) and metric is None:
-        metric, X = I3x3, I3x3
+    if metric is None:
+        metric = identity_like(A)
+        X = np.array(metric)
     else:
         X = inv(metric)
-    return trace(A, metric) / 3. * X
+    return trace(A, metric=metric) / 3. * X
 
 def deviatoric_part(A, metric=None):
     """Return deviatoric part of A"""
@@ -125,6 +140,8 @@ def invariants(A, type=None, n=None):
     type='lode&mechanics'
 
     """
+    A = np.asarray(A)
+    assert has_valid_shape(A)
     anyin = lambda a, b: any([x in b for x in a])
     valid_types = ('default', 'mechanics', 'lode', 'directed')
 
@@ -190,8 +207,8 @@ def magnitude(A):
 def dot(A, B):
     """Dot product of A and B"""
     A, B = np.asarray(A), np.asarray(B)
-    assert is_valid_shape(A)
-    assert is_valid_shape(B)
+    assert has_valid_shape(A)
+    assert has_valid_shape(B)
     if A.shape == (6,) and B.shape == (6,):
         return A * B * VOIGT
     if A.shape == (6,) and B.shape == (3,3):
@@ -210,8 +227,8 @@ def dot(A, B):
 def double_dot(A, B):
     """Return A:B"""
     A, B = np.asarray(A), np.asarray(B)
-    assert is_valid_shape(A)
-    assert is_valid_shape(B)
+    assert has_valid_shape(A)
+    assert has_valid_shape(B)
     A, B = A.reshape(-1), B.reshape(-1)
     if B.shape == (6,) and A.shape == (9,):
         A, B = B, A
@@ -229,7 +246,7 @@ def double_dot(A, B):
 def det(A):
     """ Computes the determininant of A"""
     A = np.asarray(A)
-    assert is_valid_shape(A)
+    assert has_valid_shape(A)
     if A.shape == (6,):
         X = (A[0]*A[1]*A[2] - A[0]*A[4]**2 - A[1]*A[5]**2 - A[2]*A[3]**2 +
              2*A[3]*A[4]*A[5])
@@ -244,7 +261,7 @@ def det(A):
 def inv(A):
     """Computes the inverse of A"""
     A = np.asarray(A)
-    assert is_valid_shape(A)
+    assert has_valid_shape(A)
     orig_shape = A.shape
     if A.shape == (3,3):
         if is_symmetric(A):
@@ -356,6 +373,8 @@ def sqrtm(A):
 
 def matrix_rep(A, disp=1):
     """Convert array to matrix"""
+    A = np.asarray(A)
+    assert has_valid_shape(A)
     orig_shape = A.shape
     if orig_shape == (6,):
         ix1 = ([0,1,2,0,1,0,1,2,2],[0,1,2,1,2,2,0,0,1])
@@ -374,6 +393,7 @@ def matrix_rep(A, disp=1):
 
 def array_rep(mat, shape):
     """Reverse of matrix_rep"""
+    A = np.asarray(A)
     if mat.shape == (6,):
         return mat
     if shape == (6,):
@@ -388,7 +408,7 @@ def array_rep(mat, shape):
 def isdiag(A):
     """Determines if a matrix is diagonal."""
     A = np.asarray(A)
-    assert is_valid_shape(A)
+    assert has_valid_shape(A)
     if A.shape == (6.):
         return np.all(np.abs(A[3:])<=epsilon)
     elif A.shape == (9,):
@@ -460,8 +480,8 @@ def is_symmetric(A):
 def dyad(A, B):
     """Computes the outer product of A and B"""
     A, B = np.asarray(A), np.asarray(B)
-    assert is_valid_shape(A)
-    assert is_valid_shape(B)
+    assert has_valid_shape(A)
+    assert has_valid_shape(B)
     if A.shape == (3,3) and is_symmetric(A):
         A = array_rep(A, (6,))
     if B.shape == (3,3) and is_symmetric(B):
@@ -519,8 +539,8 @@ def dyad(A, B):
 def symshuffle(A, B):
     """ Computes the product Xijkl = .5 (Aik Bjl + Ail Bjk)"""
     A, B = np.asarray(A), np.asarray(B)
-    assert is_valid_shape(A)
-    assert is_valid_shape(B)
+    assert has_valid_shape(A)
+    assert has_valid_shape(B)
     if A.shape == (3,3) and is_symmetric(A):
         A = array_rep(A, (6,))
     if B.shape == (3,3) and is_symmetric(B):

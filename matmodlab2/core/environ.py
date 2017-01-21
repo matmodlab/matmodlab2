@@ -22,6 +22,7 @@ class SimulationEnvironment:
         self.notebook = False
         self.parent_process = False
         self.loglevel = logging.WARNING
+        self.use_python_linalg = False
 environ = SimulationEnvironment()
 
 def load_user_env():

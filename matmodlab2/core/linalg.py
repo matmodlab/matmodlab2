@@ -2,15 +2,47 @@ import warnings
 import numpy as np
 import scipy.linalg
 from .logio import logger
+from .environ import environ
 try:
     import matmodlab2.core._matfuncs_sq3
     la = matmodlab2.core._matfuncs_sq3.linalg
-    logger.info('Using fortran linalg')
+    fortran_linalg = True
+    logger.debug('Using fortran linalg')
 except ImportError:
+    fortran_linalg = False
     la = scipy.linalg
-    logger.info('Using scipy.linalg')
+    logger.debug('Using scipy.linalg')
+
+def set_linalg_library(lib):
+    global la
+
+    if lib == 'default':
+        if fortran_linalg:
+            la = matmodlab2.core._matfuncs_sq3.linalg
+        else:
+            la = scipy.linalg
+        return
+
+    if lib == 'scipy':
+        la = scipy.linalg
+        return
+
+    if lib == 'fortran':
+        if fortran_linalg:
+            la = matmodlab2.core._matfuncs_sq3.linalg
+        else:
+            la = scipy.linalg
+            logger.warning('Fortran linalg not imported')
+
+        return
 
 epsilon = np.finfo(float).eps
+
+def apply_fun_to_diag(mat, fun):
+    ix = ([0,1,2],[0,1,2])
+    mat2 = np.zeros((3,3))
+    mat2[ix] = fun(mat[ix])
+    return mat2
 
 def det(mat):
     """Determinant of A"""
@@ -34,8 +66,7 @@ def inv(mat):
         ix = ([0,1,2],[0,1,2])
         if any(abs(mat[ix])<=epsilon):
             raise np.linalg.LinAlgError('singular matrix')
-        mat2 = np.zeros((3,3))
-        mat2[ix] = 1. / mat[ix]
+        return apply_fun_to_diag(mat, lambda x: 1. / x)
     else:
         mat2 = la.inv(mat)
     return mat2
@@ -44,9 +75,7 @@ def expm(mat):
     """Compute the matrix exponential of a 3x3 matrix"""
     assert mat.shape == (3,3)
     if is_diagonal(mat):
-        ix = ([0,1,2],[0,1,2])
-        mat2 = np.zeros((3,3))
-        mat2[ix] = np.exp(mat[ix])
+        return apply_fun_to_diag(mat, np.exp)
     else:
         mat2 = la.expm(mat)
     return mat2
@@ -55,9 +84,7 @@ def logm(mat):
     """Compute the matrix logarithm of a 3x3 matrix"""
     assert mat.shape == (3,3)
     if is_diagonal(mat):
-        ix = ([0,1,2],[0,1,2])
-        mat2 = np.zeros((3,3))
-        mat2[ix] = np.log(mat[ix])
+        return apply_fun_to_diag(mat, np.log)
     else:
         mat2 = la.logm(mat)
     return mat2
@@ -66,9 +93,7 @@ def powm(mat, t):
     """Compute the matrix power of a 3x3 matrix"""
     assert mat.shape == (3,3)
     if is_diagonal(mat):
-        ix = ([0,1,2],[0,1,2])
-        mat2 = np.zeros((3,3))
-        mat2[ix] = mat[ix] ** t
+        return apply_fun_to_diag(mat, lambda x: x ** t)
     else:
         mat2 = scipy.linalg.fractional_matrix_power(mat, t)
     return mat2
@@ -77,9 +102,7 @@ def sqrtm(mat):
     """Compute the square root of a 3x3 matrix"""
     assert mat.shape == (3,3)
     if is_diagonal(mat):
-        ix = ([0,1,2],[0,1,2])
-        mat2 = np.zeros((3,3))
-        mat2[ix] = np.sqrt(mat[ix])
+        return apply_fun_to_diag(mat, np.sqrt)
     else:
         mat2 = la.sqrtm(mat)
     return mat2

@@ -7,7 +7,7 @@ import sys
 import pathlib
 import pytest
 import numpy as np
-from testing_utils import isclose
+from testing_utils import isclose, random_symmetric_positive_definite_matrix
 
 # Ensure that 'matmodlab2' is imported from parent directory.
 sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent))
@@ -124,7 +124,7 @@ def test_trace():
     assert isclose(tens.trace(a_dev), 0.)
     assert isclose(tens.trace(A_dev), 0.)
 
-def test_det():
+def test_det_1():
     """Determinant of A"""
     x, y, z = 1., 2., 3.
     a = np.array([x, y, z, 0, 0, 0])
@@ -132,7 +132,15 @@ def test_det():
     assert isclose(tens.det(a), x*y*z)
     assert isclose(tens.det(A), x*y*z)
 
-def test_inv():
+def test_det_2():
+    """Determinant of A"""
+    A = random_symmetric_positive_definite_matrix()
+    a = tens.array_rep(A, (6,))
+    detA = np.linalg.det(A)
+    assert isclose(tens.det(A), detA)
+    assert isclose(tens.det(a), detA)
+
+def test_inv_1():
     """Inverse of A"""
     x, y, z = 1., 2., 3.
     fun = lambda _: 1./ _
@@ -143,6 +151,18 @@ def test_inv():
     A_fun = np.array([[fun(x), 0, 0], [0, fun(y), 0], [0, 0, fun(z)]])
     assert np.allclose(tens_fun(a), a_fun)
     assert np.allclose(tens_fun(A), A_fun)
+
+def test_inv_2():
+    A = random_symmetric_positive_definite_matrix()
+    Ai = np.linalg.inv(A)
+    assert np.allclose(tens.inv(A), Ai)
+
+def test_inv_3():
+    A = random_symmetric_positive_definite_matrix()
+    Ai = np.linalg.inv(A)
+    a = tens.array_rep(A, (6,))
+    ai = tens.array_rep(Ai, (6,))
+    assert np.allclose(tens.inv(a), ai)
 
 
 if __name__ == '__main__':

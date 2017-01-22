@@ -1,3 +1,4 @@
+from __future__ import print_function
 from numpy import *
 from numpy.linalg import inv
 try:
@@ -159,7 +160,7 @@ class PolynomialHyperFit:
             x = self.x
         y = ['C{0}{1}={2:.8f}'.format(i,j,x[k])
              for k, (i, j) in enumerate(self.ij[:self.n])]
-        print ', '.join(y)
+        print(', '.join(y))
 
     def todict(self, x=None):
         if x is None:

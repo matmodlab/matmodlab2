@@ -8,7 +8,7 @@ from testing_utils import *
 @pytest.mark.material
 @pytest.mark.polynomial_hyperelastic
 def test_polynomial_hyperelastic():
-    parameters = {'D1': 1.e12, 'C10': 1e6, 'C01': .1e6}
+    parameters = {'D1': 1.e-15, 'C10': 1e6, 'C01': .1e6}
 
     # stretch to 300%
     lam = np.linspace(.5, 3, 50)
@@ -30,6 +30,7 @@ def test_polynomial_hyperelastic():
 
     lam_ = np.exp(mps.get('E.XX'))
     ss = mps.get('S.XX') - mps.get('S.ZZ')
+    print(ss)
 
     # check the actual solutions
     assert abs(np.amax(ss) - np.amax(s)) / np.amax(s) < 1e-6

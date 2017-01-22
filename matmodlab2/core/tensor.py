@@ -420,7 +420,7 @@ def isdiag(A):
 def symsq(F):
     """ Computes dot(F.T, F)"""
     X = np.zeros(6)
-    F = asarray(F).reshape(-1)
+    F = np.asarray(F).reshape(-1)
     assert F.shape == (9,)
     X[0] = F[0]**2 + F[3]**2 + F[6]**2
     X[1] = F[1]**2 + F[4]**2 + F[7]**2

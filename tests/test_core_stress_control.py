@@ -54,8 +54,6 @@ def test_stress_control(realization):
     for (i, row) in enumerate(data[1:]):
         increment = row[0] - data[i,0]
         mps_eps.add_step('E', row[1:7], increment=increment)
-    mps_eps.run()
-    assert mps_eps.ran
 
     #
     # Run the stress-controlled version
@@ -66,8 +64,6 @@ def test_stress_control(realization):
     for (i, row) in enumerate(data[1:]):
         increment = row[0] - data[i,0]
         mps_sig.add_step('S', row[7:], increment=increment)
-    mps_sig.run()
-    assert mps_sig.ran
 
     #
     # Analysis

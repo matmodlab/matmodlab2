@@ -109,6 +109,7 @@ def sqrtm(mat):
 
 def is_diagonal(A):
     """Determines if a matrix is diagonal."""
+    A = np.asarray(A)
     return np.all(np.abs(A[([0,0,1,1,2,2],[1,2,0,2,0,1])])<=epsilon)
 
 def rate_of_matrix_function(A, Adot, f, fprime):
@@ -165,18 +166,13 @@ def rate_of_matrix_function(A, Adot, f, fprime):
 
 def polar_decomp(F):
     F = F.reshape(3,3)
-    try:
-        R, U, ierr = la.polar_decomp(F)
-        if not ierr:
+    I = np.eye(3)
+    R = F.copy()
+    for j in range(20):
+        R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
+        if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-6):
+            U = np.dot(R.T, F)
             return R, U
-    except AttributeError:
-        I = np.eye(3)
-        R = F.copy()
-        for j in range(20):
-            R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
-            if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-6):
-                U = np.dot(R.T, F)
-                return R, U
     try:
         R, V = scipy.linalg.qr(F)
         U = np.dot(R.T, np.dot(V, R))

@@ -28,7 +28,6 @@ def func(x, xnames, evald, job, *args):
     mps.material = ElasticMaterial(**parameters)
     mps.add_step('ESS', [.1, 0., 0.])
     mps.add_step('ESS', [0., 0., 0.])
-    mps.run()
     sxx = np.array(mps.df['S.XX'])
     exx = np.array(mps.df['E.XX'])
     youngs = []

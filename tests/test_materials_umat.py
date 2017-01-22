@@ -63,11 +63,10 @@ def test_umat_neohooke():
     D1 = 1. / (6. * (1. - 2. * Nu) / E)
 
     X = .1
-    mps = MaterialPointSimulator('Umat', write_db=False)
+    mps = MaterialPointSimulator('Umat')
     mps.material = UMat([E, Nu])
     mps.add_step('ESS', (1,0,0), frames=10, scale=X)
     mps.add_step('ESS', (0,0,0), frames=10)
-    mps.run()
 
     V0 = ('E.XX', 'E.YY', 'E.ZZ',
           'S.XX', 'S.YY', 'S.ZZ',

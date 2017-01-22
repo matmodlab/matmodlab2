@@ -5,7 +5,7 @@ from .plastic import PlasticMaterial
 from .plastic2 import NonhardeningPlasticMaterial
 from .plastic3 import HardeningPlasticMaterial
 from .vonmises import VonMisesMaterial
-from .polyhyper import PolyHyperMaterial
+from .polyhyper import PolynomialHyperelasticMaterial
 from .mooney_rivlin import MooneyRivlinMaterial
 from .tresca import TrescaMaterial
 
@@ -14,5 +14,6 @@ __all__ = ['ElasticMaterial', 'ElasticMaterialTotal',
            'PlasticMaterial', 'NonhardeningPlasticMaterial',
            'HardeningPlasticMaterial',
            'VonMisesMaterial',
-           'MooneyRivlinMaterial', 'PolyHyperMaterial',
+           'MooneyRivlinMaterial',
+           'PolynomialHyperelasticMaterial',
            'TrescaMaterial']

@@ -42,7 +42,6 @@ def test_uniaxial_strain():
     mps.assign_material(material)
     for c in pathtable:
         mps.add_step('E', c, scale=-0.5)
-    mps.run()
     H = K + 4. / 3. * G
     Q = K - 2. / 3. * G
     a = mps.get2('E.XX', 'S.XX', 'S.YY', 'S.ZZ')

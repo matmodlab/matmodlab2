@@ -5,7 +5,7 @@ from ..core.material import Material
 from ..core.tensor import (symsq, det, invariants, inv, push,
                            dyad, symshuffle, II1, II5, I6)
 
-class PolyHyperMaterial(Material):
+class PolynomialHyperelasticMaterial(Material):
     name = "polyhyper"
 
     def __init__(self, **params):

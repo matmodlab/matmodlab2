@@ -49,28 +49,17 @@ class MaterialPointSimulator(object):
     >>> mps.assign_material(material)
     >>> mps.add_step('EEEEEE', [1., 0., 0., 0., 0., 0.])
     >>> mps.add_step('SSSEEE', [0., 0., 0., 0., 0., 0.])
-    >>> mps.run()
 
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
-    def __init__(self, jobid, initial_temp=0., write_db=None,
-                 db_fmt='npz'):
+    def __init__(self, jobid, initial_temp=0., db_fmt='npz',
+                 logfile=False):
 
         logger.info('Initializing the simulation')
         self.jobid = jobid
 
         # File I/O
-        if environ.notebook:
-            if write_db:
-                logger.warning('Database will not automatically be created in '
-                               'the notebook environment.  Use the '
-                               'MaterialPointSimulator.dump method to create '
-                               'a database file, if desired.')
-            self.write_db = False
-        else:
-            self.write_db = True if write_db is None else write_db
-        if self.write_db:
-            # No log file if not db
+        if logfile:
             add_filehandler(logger, self.jobid+'.log')
         splash(logger)
         if db_fmt not in ('npz', 'exo'):
@@ -86,7 +75,6 @@ class MaterialPointSimulator(object):
         logger.info('done')
 
         # Set defaults
-        self.ran = False
         self._df = None
         self._columns = None
         self._material = None
@@ -236,10 +224,13 @@ class MaterialPointSimulator(object):
         >>> obj.add_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
         >>> obj.add_step('ESS', [1., 0., 0.], scale=.1)
 
-        Steps are accumulated by the `MaterialPointSimulator` object and not
-        actually run until the `MaterialPointSimulator.run()` method is called.
+        Steps are run when they are added.
 
         """
+
+        if self.material is None:
+            raise RuntimeError('Material must be assigned before adding steps')
+
         descriptors, components = self._format_descriptors_and_components(
             descriptors, components)
 
@@ -317,7 +308,23 @@ class MaterialPointSimulator(object):
         end = begin + increment
         step = Step(begin, end, frames, descriptors, components,
                     temperature, kappa)
+
+        # Add space for this step
+        irow, icol = self.data.shape
+        self.data = np.row_stack((self.data, np.zeros((frames, icol))))
+
+        # Now run the thing - adding enough rows to the data array for this step
+        istep = len(self.steps)
+        logger.info('\rRunning step {0}... '.format(istep), extra=continued)
+        previous_step = self.steps[-1]
+        assert step.begin == previous_step.end
+        self.run_istep(istep, step.begin, step.end, step.frames,
+                       step.descriptors, step.components,
+                       step.temp, step.kappa, self.J0, self.data[irow-1:, :])
+
+        logger.info('done')
         self.steps.append(step)
+        step.ran = True
 
         return step
 
@@ -374,28 +381,18 @@ class MaterialPointSimulator(object):
             attrs = ', '.join(not_defined)
             logger.warning('Optional material members not defined: ' + attrs)
         self._material = material
+        self.initialize_data()
 
-    def run(self):
-        """Run the simulation
-
-        Notes
-        -----
-        This method initializes and sets up the output database and runs each
-        step of the simulation.
-
-        """
-        start_sim = time.time()
-        logger.info('Running the simulation')
+    def initialize_data(self):
+        """When the material is assigned, initialize the database"""
 
         if self.material is None:
             raise RuntimeError('Material not assigned')
 
-        if self.ran:
-            raise RuntimeError('Already run')
-
         # Setup the array of simulation data
         columns = list(self.columns.keys())
         num_vars = len(columns)
+        #num_incs = 1
         num_incs = sum(step.frames for step in self.steps)
         self.data = np.zeros((num_incs, num_vars))
 
@@ -414,51 +411,23 @@ class MaterialPointSimulator(object):
         self.data[0, 4:] = elem_var_vals
 
         # Call the material with a zero state to get the initial Jacobian
-        J0 = None
-        if any(['S' in step.descriptors for step in self.steps]):
-            J0 = numerical_jacobian(self.eval, 1, 1, step.temp, 0,
-                                    defgrad, defgrad, np.zeros(6), np.zeros(6),
-                                    np.zeros(6), copy(statev), range(6))
+        self.J0 = numerical_jacobian(self.eval, 1, 1, step.temp, 0,
+                                     defgrad, defgrad,
+                                     np.zeros(6), np.zeros(6),
+                                     np.zeros(6), copy(statev), range(6))
 
         # This step is not actually ran - it's just the initial state
         step.ran = True
 
-        # Run each step, skipping the first
-        num_steps = len(self.steps)
-        m = len(str(num_steps))
-        string = '\rRunning simulation steps [{{0:{0}d}}/{1}]'.format(
-            m, num_steps-1)
-        start_steps = time.time()
-        for i in range(len(self.steps)-1):
-            istep = i + 1
-            irow = sum(step.frames for step in self.steps[:istep])-1
-            previous_step = self.steps[i]
-            step = self.steps[istep]
-            assert step.begin == previous_step.end
-            logger.info(string.format(istep), extra=continued)
-            self.run_istep(istep, step.begin, step.end, step.frames,
-                           step.descriptors, step.components,
-                           step.temp, step.kappa, J0, self.data[irow:, :])
-            step.ran = True
-        dt = time.time() - start_steps
-        logger.info(' done ({0:.2f} sec.)'.format(dt))
-        logger.info('All steps complete')
-
-        self.ran = True
-
-        if self.write_db:
-            self.dump()
-
-        dt = time.time() - start_sim
-        logger.info('Simulation complete ({0:.2f} sec.)'.format(dt))
+    def run(self):
+        """Run the simulation"""
+        pass
 
     @property
     def df(self):
         """Return the DataFrame containing simulation data"""
         from pandas import DataFrame
-        if not self.ran:
-            raise RuntimeError('Must be run before accessing database')
-        elif self._df is None:
+        if self._df is None or self._df.shape[0] < self.data.shape[0]:
             columns = list(self.columns.keys())
             self._df = DataFrame(self.data, columns=columns)
         return self._df
@@ -494,9 +463,9 @@ class MaterialPointSimulator(object):
 
     def get_from_a(self, key):
         """Get the value of key from the data array"""
+        if key in self.columns:
+            return self.data[:, self.columns[key]]
         columns = list(self.columns.keys())
-        if key in columns:
-            return self.data[:, columns[key]]
         keys = self.expand_name_to_keys(key, columns)
         if keys is None:
             return None
@@ -504,16 +473,12 @@ class MaterialPointSimulator(object):
         return self.data[:, ix]
 
     def get(self, key, df=None):
-        if not self.ran:
-            raise RuntimeError('Simulation must first be run')
         df = df or environ.notebook
         if df:
             return self.get_from_df(key)
         return self.get_from_a(key)
 
     def get2(self, *keys, **kwargs):
-        if not self.ran:
-            raise RuntimeError('Simulation must first be run')
         df = kwargs.get('df', None) or environ.notebook
         if df:
             if is_listlike(keys):
@@ -527,8 +492,6 @@ class MaterialPointSimulator(object):
 
     def dump(self, filename=None):
         """Write results to output database"""
-        if not self.ran:
-            raise RuntimeError('Simulation must first be run')
 
         logger.info('Opening the output database... ', extra=continued)
         if filename is None:
@@ -572,8 +535,6 @@ class MaterialPointSimulator(object):
 
     def dumpz(self, filename=None):
         """Write results to output database"""
-        if not self.ran:
-            raise RuntimeError('Simulation must first be run')
         if filename is None:
             filename = self.jobid
         if not filename.endswith('.npz'):

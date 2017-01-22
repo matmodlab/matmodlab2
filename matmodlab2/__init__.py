@@ -11,6 +11,7 @@ __all__ = ['MaterialPointSimulator',
            'ElasticMaterialTotal',
            'PlasticMaterial', 'VonMisesMaterial',
            'NonhardeningPlasticMaterial', 'HardeningPlasticMaterial',
-           'PolyHyperMaterial', 'MooneyRivlinMaterial',
+           'PolynomialHyperelasticMaterial',
+           'MooneyRivlinMaterial',
            'TrescaMaterial', 'UMat', 'UHyper',
            'read_db', 'read_exodb', 'read_npzdb', 'environ', 'logger']

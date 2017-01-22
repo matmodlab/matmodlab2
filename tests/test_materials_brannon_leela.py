@@ -74,9 +74,6 @@ def test_brannon_lellavanichkul_2():
         incr = analytic_response[idx,0] - analytic_response[idx-1,0]
         mps.add_step('E', leg[1:4], increment=incr, frames=1)
 
-    # run the model
-    mps.run()
-
     # check output with analytic
     variables = ['Time',
                  'E.XX', 'E.YY', 'E.ZZ', 'S.XX', 'S.YY', 'S.ZZ']

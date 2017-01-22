@@ -8,9 +8,8 @@ def test_mps_assign_material():
     """Test correctness of assigning a material"""
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
-    mps.add_step('E', 1)
     try:
-        mps.run()
+        mps.add_step('E', 1)
     except RuntimeError:
         pass
     else:
@@ -22,69 +21,45 @@ def test_mps_db_exo():
     """Test the db"""
     # Run without writing db
     jobid = 'Job-nodb_exo'
-    mps1 = MaterialPointSimulator(jobid, write_db=False, db_fmt='exo')
+    mps1 = MaterialPointSimulator(jobid, db_fmt='exo')
     mps1.material = ElasticMaterial(E=10, Nu=.1)
     mps1.add_step('E', 1)
-    mps1.run()
     assert not os.path.isfile(jobid+'.exo')
     assert not os.path.isfile(jobid+'.log')
     mps1.dump()
     assert os.path.isfile(jobid+'.exo')
 
-    # Run and write db at each step/frame
-    jobid = 'Job-yesdb_exo'
-    mps2 = MaterialPointSimulator(jobid, db_fmt='exo')
-    mps2.material = ElasticMaterial(E=10, Nu=.1)
-    mps2.add_step('E', 1)
-    mps2.run()
-    assert os.path.isfile(jobid+'.exo')
-    assert os.path.isfile(jobid+'.log')
-
     # Test writing to a different filename and reading it
     filename = 'a_different_filename_exo'
-    mps2.dump(filename)
+    mps1.dump(filename)
     assert os.path.isfile(filename+'.exo')
     df = read_exodb(filename+'.exo')
 
     exx_1 = mps1.df['E.XX'].iloc[:]
-    exx_2 = mps2.df['E.XX'].iloc[:]
-    exx_3 = df['E.XX'].iloc[:]
+    exx_2 = df['E.XX'].iloc[:]
     assert np.allclose(exx_1, exx_2)
-    assert np.allclose(exx_1, exx_3)
 
 def test_mps_db_npz():
     """Test the db"""
     # Run without writing db
     jobid = 'Job-nodb_npz'
-    mps1 = MaterialPointSimulator(jobid, write_db=False, db_fmt='npz')
+    mps1 = MaterialPointSimulator(jobid, db_fmt='npz')
     mps1.material = ElasticMaterial(E=10, Nu=.1)
     mps1.add_step('E', 1)
-    mps1.run()
     assert not os.path.isfile(jobid+'.npz')
     assert not os.path.isfile(jobid+'.log')
     mps1.dumpz()
     assert os.path.isfile(jobid+'.npz')
 
-    # Run and write db at each step/frame
-    jobid = 'Job-yesdb_npz'
-    mps2 = MaterialPointSimulator(jobid, db_fmt='npz')
-    mps2.material = ElasticMaterial(E=10, Nu=.1)
-    mps2.add_step('E', 1)
-    mps2.run()
-    assert os.path.isfile(jobid+'.npz')
-    assert os.path.isfile(jobid+'.log')
-
     # Test writing to a different filename and reading it
     filename = 'a_different_filename_npz'
-    mps2.dumpz(filename)
+    mps1.dumpz(filename)
     assert os.path.isfile(filename+'.npz')
     df = read_npzdb(filename+'.npz')
 
     exx_1 = mps1.df['E.XX'].iloc[:]
-    exx_2 = mps2.df['E.XX'].iloc[:]
-    exx_3 = df['E.XX'].iloc[:]
+    exx_2 = df['E.XX'].iloc[:]
     assert np.allclose(exx_1, exx_2)
-    assert np.allclose(exx_1, exx_3)
 
 def test_mps_add_step_volume_strain():
     # Volume strain

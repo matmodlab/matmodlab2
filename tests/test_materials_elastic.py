@@ -29,7 +29,6 @@ def test_elastic_consistency():
     mps_el.assign_material(material)
     mps_el.add_step('E'*6, [1,0,0,0,0,0], scale=.1, frames=1)
     mps_el.add_step('S'*6, [0,0,0,0,0,0], frames=5)
-    mps_el.run()
     df_el = mps_el.df
 
     jobid = 'Job-Pl'
@@ -38,7 +37,6 @@ def test_elastic_consistency():
     mps_pl.assign_material(material)
     mps_pl.add_step('E'*6, [1,0,0,0,0,0], scale=.1, frames=1)
     mps_pl.add_step('S'*6, [0,0,0,0,0,0], frames=5)
-    mps_pl.run()
     df_pl = mps_pl.df
 
     for key in ('S.XX', 'S.YY', 'S.ZZ', 'E.XX', 'E.YY', 'E.ZZ'):
@@ -56,7 +54,6 @@ def test_uniaxial_strain():
     mps.assign_material(material)
     for c in pathtable:
         mps.add_step('E', c, scale=-0.5)
-    mps.run()
     H = K + 4. / 3. * G
     Q = K - 2. / 3. * G
     a = mps.get2('E.XX', 'S.XX', 'S.YY', 'S.ZZ')
@@ -78,7 +75,6 @@ def test_uniaxial_stress():
     mps.assign_material(material)
     for c in pathtable:
         mps.add_step('SSS', c, frames=50, scale=-1.e6)
-    mps.run()
     a = mps.get2('E.XX', 'S.XX', 'S.YY', 'S.ZZ')
     assert np.allclose(a[:,2], 0)
     assert np.allclose(a[:,3], 0)
@@ -97,7 +93,6 @@ def test_uniaxial_strain_with_stress_control():
     mps.assign_material(material)
     for c in pathtable:
         mps.add_step('SSS', c, frames=250)
-    mps.run()
     a = mps.get2('E.XX', 'E.YY', 'E.ZZ', 'S.XX')
     assert np.allclose(a[:,1], 0)
     assert np.allclose(a[:,2], 0)
@@ -123,7 +118,6 @@ def test_random_linear_elastic(realization):
     for (i, row) in enumerate(analytic[1:], start=1):
         incr = analytic[i, 0] - analytic[i-1, 0]
         mps.add_step('E', row[1:7], increment=incr, frames=10)
-    mps.run()
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
 
@@ -199,9 +193,6 @@ def test_supreme():
 
     for row in tablepath:
         mps.add_step('E', row, increment=1.0, frames=N)
-
-    # set up and run the model
-    mps.run()
 
     # check output with analytic (all shared variables)
     assert same_as_baseline(mps.jobid, mps.df)

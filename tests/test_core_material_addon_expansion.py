@@ -16,7 +16,6 @@ def test_expansion(itemp, dtemp, alpha):
     mps.material = ElasticMaterial(E=E, Nu=Nu, expansion_model=alpha)
     mps.add_step('ESS', (.01,0,0), temperature=temp[0], frames=20)
     mps.add_step(('DE','DE','DE'), (0,0,0), temperature=temp[1], frames=20)
-    mps.run()
 
     out = mps.get2('Temp', 'E.XX', 'S.XX', 'S.YY', 'S.ZZ', 'EM.XX')
 

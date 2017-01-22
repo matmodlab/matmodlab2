@@ -150,7 +150,6 @@ def test_tresca_multi_step_verification():
     mps.material = tresca
     for row in table_data[1:]:
         mps.add_step('EEE', row[1:4], frames=N, time_whole=row[0])
-    mps.run()
     simdata = mps.get2('Time', 'E.XX', 'E.YY', 'E.ZZ', 'S.XX', 'S.YY', 'S.ZZ')
 
     output = [table_data[0]]

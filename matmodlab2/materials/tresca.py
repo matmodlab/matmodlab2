@@ -16,17 +16,16 @@ from ..core.tensor import isotropic_part, deviatoric_part, invariants, dot, \
 epsilon = np.finfo(float).eps
 
 class TrescaMaterial(Material):
-    """Implements linear pressure dependent Tresca plasticity
+    """Implements pressure independent Tresca plasticity
 
     Parameters
     ----------
     **kwds : dict
         Material parameters.  Recognized parameters are the bulk
-        modules `K`, shear modules `G`, yield strength in shear `A1`,
-        and pressure dependence term `A4`.
+        modules `K`, shear modules `G`, yield strength in shear `A1`.
 
     """
-    name = 'pyplastic'
+    name = 'tresca'
     def __init__(self, **parameters):
 
         # Linear elastic bulk modulus
@@ -60,7 +59,7 @@ class TrescaMaterial(Material):
             errors += 1
             logger.error('Poisson\'s ratio < -1.')
         if nu < 0.0:
-            logger.warn('negative Poisson\'s ratio')
+            logger.warning('negative Poisson\'s ratio')
         if A1 <= 0.0:
             errors += 1
             logger.error('A1 must be positive nonzero')
@@ -118,6 +117,18 @@ class TrescaMaterial(Material):
         sigp = stress - matn * double_dot(stress - sigf, matn)
         return sigp
 
+    def ddsdde(self):
+        """Returns elastic stiffness for elastic steps"""
+        K3 = 3. * self.params['K']
+        G2 = 2. * self.params['G']
+        Lam = (K3 - G2) / 3.
+        # elastic stiffness
+        ddsdde = np.zeros((6,6))
+        ddsdde[np.ix_(range(3), range(3))] = Lam
+        ddsdde[range(3),range(3)] += G2
+        ddsdde[range(3,6),range(3,6)] = self.params['G']
+        return ddsdde
+
     def eval(self, time, dtime, temp, dtemp,
              F0, F, strain, d, stress, statev, **kwds):
         """ Update the stress state from the strain increment 'd'. """
@@ -132,8 +143,10 @@ class TrescaMaterial(Material):
 
         stress = P + S
         f0 = self.yield_function(stress)
-        if f0 > 0.:
-            # Plastic, perform the return
-            stress = self.simple_return(stress)
+        if f0 <= 0.:
+            # Elastic
+            return stress, statev, self.ddsdde()
 
+        # Plastic, perform the return
+        stress = self.simple_return(stress)
         return stress, statev, None

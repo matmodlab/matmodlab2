@@ -9,7 +9,6 @@ def test_mps_assign_material():
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
     mps.add_step('E', 1)
-    # This should result in an error since the material has not been assigned!
     try:
         mps.run()
     except RuntimeError:
@@ -24,8 +23,8 @@ def test_mps_db_exo():
     # Run without writing db
     jobid = 'Job-nodb_exo'
     mps1 = MaterialPointSimulator(jobid, write_db=False, db_fmt='exo')
-    mps1.add_step('E', 1)
     mps1.material = ElasticMaterial(E=10, Nu=.1)
+    mps1.add_step('E', 1)
     mps1.run()
     assert not os.path.isfile(jobid+'.exo')
     assert not os.path.isfile(jobid+'.log')
@@ -35,8 +34,8 @@ def test_mps_db_exo():
     # Run and write db at each step/frame
     jobid = 'Job-yesdb_exo'
     mps2 = MaterialPointSimulator(jobid, db_fmt='exo')
-    mps2.add_step('E', 1)
     mps2.material = ElasticMaterial(E=10, Nu=.1)
+    mps2.add_step('E', 1)
     mps2.run()
     assert os.path.isfile(jobid+'.exo')
     assert os.path.isfile(jobid+'.log')
@@ -58,8 +57,8 @@ def test_mps_db_npz():
     # Run without writing db
     jobid = 'Job-nodb_npz'
     mps1 = MaterialPointSimulator(jobid, write_db=False, db_fmt='npz')
-    mps1.add_step('E', 1)
     mps1.material = ElasticMaterial(E=10, Nu=.1)
+    mps1.add_step('E', 1)
     mps1.run()
     assert not os.path.isfile(jobid+'.npz')
     assert not os.path.isfile(jobid+'.log')
@@ -69,8 +68,8 @@ def test_mps_db_npz():
     # Run and write db at each step/frame
     jobid = 'Job-yesdb_npz'
     mps2 = MaterialPointSimulator(jobid, db_fmt='npz')
-    mps2.add_step('E', 1)
     mps2.material = ElasticMaterial(E=10, Nu=.1)
+    mps2.add_step('E', 1)
     mps2.run()
     assert os.path.isfile(jobid+'.npz')
     assert os.path.isfile(jobid+'.log')
@@ -91,6 +90,7 @@ def test_mps_add_step_volume_strain():
     # Volume strain
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('E', 1)
     assert isclose(np.sum(s.components), 1)
 
@@ -98,6 +98,7 @@ def test_mps_add_step_uni_strain():
     # Uniaxial strain
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('EEE', [1, 0, 0], scale=.1)
     assert isclose(s.components[0], .1)
 
@@ -105,6 +106,7 @@ def test_mps_add_step_pres():
     # Pressure
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('SSS', [1, 1, 1], scale=1.)
     assert isclose(np.sum(s.components[:3]), 3)
     s = mps.add_step('SSS', [1, 1, 1], scale=2.)
@@ -114,6 +116,7 @@ def test_mps_add_step_ivalid_F_1():
     # Invalid deformation gradient
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('SSS', [1, 1, 1], scale=1.)
     try:
         s = mps.add_step('F', [1, 1, 1], scale=2.)
@@ -124,6 +127,7 @@ def test_mps_add_step_valid_F_1():
     # Valid deformation gradients
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('F', [1.05, 0, 0, 0, 1, 0, 0, 0, 1], kappa=1)
     assert isclose(s.components[0], .05)
     s = mps.add_step('F', [1.05, 0, 0, 0, 1, 0, 0, 0, 1], kappa=0)
@@ -133,6 +137,7 @@ def test_mps_add_step_invalid_F_2():
     # Invalid deformation gradient
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     try:
         s = mps.add_step('F', [0, 0, 0, 0, 1, 0, 0, 0, 1], kappa=0)
     except ValueError as e:
@@ -142,6 +147,7 @@ def test_mps_add_step_invalid_F_3():
     # Invalid deformation gradients (no rotations allowed)
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     try:
         s = mps.add_step('F', [1.05, .05, 0, .05, 1, 0, 0, 0, 1], kappa=0)
     except ValueError as e:
@@ -151,6 +157,7 @@ def test_mps_add_step_invalid_displacement_1():
     # Displacement
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     try:
         s = mps.add_step('U', [1.05])
     except ValueError as e:
@@ -160,6 +167,7 @@ def test_mps_add_step_valid_displacement_1():
     # Displacement
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('U', [.05, 0., 0.])
     assert isclose(s.components[0], np.log(1.05))
     assert isclose(np.sum(s.components[3:]), 0)
@@ -168,6 +176,7 @@ def test_mps_add_step_valid_displacement_2():
     # Displacement
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('U', [0., .05, 0.])
     assert isclose(s.components[1], np.log(1.05))
     assert isclose(np.sum(s.components[3:]), 0)
@@ -176,6 +185,7 @@ def test_mps_add_step_valid_displacement_3():
     # Displacement
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     s = mps.add_step('U', [0., .05, 0.])
     s = mps.add_step('U', [0., 0., .05])
     assert isclose(s.components[2], np.log(1.05))
@@ -185,6 +195,7 @@ def test_mps_add_step_invalid_stress():
     # Displacement
     jobid = 'Job-1'
     mps = MaterialPointSimulator(jobid)
+    mps.material = ElasticMaterial(E=10, Nu=.1)
     try:
         s = mps.add_step('S', [1.], kappa=1)
     except ValueError as e:

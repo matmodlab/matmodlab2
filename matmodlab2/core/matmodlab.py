@@ -31,10 +31,11 @@ class MaterialPointSimulator(object):
        string `jobid`
     2. Assign a material model to the simulator
     3. Add simulation (deformation) steps to the simulator
-    4. Run the simulator
+       The steps are run as they are added.
 
-    Output is written to an ExodusII database file. ExodusII database files can
-    be viewed using the open source `tsviewer` or `ParaView`.
+    Output is written to either a compressed numpy file or an ExodusII database
+    file. ExodusII database files can be viewed using the open source
+    `tsviewer` or `ParaView`.
 
     Examples
     --------
@@ -186,19 +187,19 @@ class MaterialPointSimulator(object):
         --------
         To create a step of uniaxial strain with magnitude .1:
 
-        >>> obj.add_step('EEEEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
+        >>> obj.run_step('EEEEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
 
         To create a step of uniaxial stress with magnitude 1e6:
 
-        >>> obj.add_step('SSSEEE', [1., 0., 0., 0., 0., 0.], scale=1e6)
+        >>> obj.run_step('SSSEEE', [1., 0., 0., 0., 0., 0.], scale=1e6)
 
         Stress and strain (and their increments) can be mixed.  To create a step of uniaxial stress by holding the lateral stress components at 0. and deforming along the axial direction:
 
-        >>> obj.add_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
+        >>> obj.run_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
 
         To create a step of uniaxial strain, controlled by deformation gradient:
 
-        >>> obj.add_step('FFFFFFFFF', [1.05, 0., 0., 1., 0., 0.], scale=1e6)
+        >>> obj.run_step('FFFFFFFFF', [1.05, 0., 0., 1., 0., 0.], scale=1e6)
 
         Note, all 9 components of the deformation gradient must be prescribed.
 
@@ -208,11 +209,11 @@ class MaterialPointSimulator(object):
 
         Volumetric strain.
 
-        >>> obj.add_step('E', .1)
+        >>> obj.run_step('E', .1)
 
         Pressure:
 
-        >>> obj.add_step('S', 1, scale=1e6)
+        >>> obj.run_step('S', 1, scale=1e6)
 
         Notes
         -----
@@ -223,11 +224,11 @@ class MaterialPointSimulator(object):
         For stress, strain (and their increments), or mixed steps, all
         components of deformation need not be prescribed (but
         `len(descriptors)` must be equal to `len(components)`). Any missing
-        components are assumed to be strain. Accordingly, the following two
+        components are assumed to be 0 strain. Accordingly, the following two
         steps would be treated identically:
 
-        >>> obj.add_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
-        >>> obj.add_step('ESS', [1., 0., 0.], scale=.1)
+        >>> obj.run_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
+        >>> obj.run_step('ESS', [1., 0., 0.], scale=.1)
 
         Steps are run when they are added.
 
@@ -240,7 +241,7 @@ class MaterialPointSimulator(object):
             descriptors, components)
 
         # Stress control must have kappa = 0
-        if any(['S' in x for x in descriptors]) and abs(kappa) > 1e-12:
+        if any([x in descriptors for x in ('S', 'DS')]) and abs(kappa) > 1e-12:
             raise ValueError('Stress control requires kappa = 0')
 
         if not is_listlike(scale):

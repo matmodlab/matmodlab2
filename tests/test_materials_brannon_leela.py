@@ -72,7 +72,7 @@ def test_brannon_lellavanichkul_2():
         if idx == 0:
             continue
         incr = analytic_response[idx,0] - analytic_response[idx-1,0]
-        mps.add_step('E', leg[1:4], increment=incr, frames=1)
+        mps.run_step('E', leg[1:4], increment=incr, frames=1)
 
     # check output with analytic
     variables = ['Time',

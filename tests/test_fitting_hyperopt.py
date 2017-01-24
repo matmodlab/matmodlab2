@@ -20,7 +20,7 @@ def test_hyperfit():
 
     # Drive the *incompressible* material through a path of uniaxial stress by
     # prescribing the deformation gradient.
-    mps.add_step('ESS', (1., 0, 0), frames=50)
+    mps.run_step('ESS', (1., 0, 0), frames=50)
 
     # Now fit the model
     dtype = 'Uniaxial Data'
@@ -32,7 +32,7 @@ def test_hyperfit():
     parameters['C10'] = opt.popt[0]
     parameters['C01'] = opt.popt[1]
     mps.material = PolynomialHyperelasticMaterial(**parameters)
-    mps.add_step('ESS', (1., 0, 0), frames=50)
+    mps.run_step('ESS', (1., 0, 0), frames=50)
     s2 = mps.get('S.XX')
     t = mps.get('Time')
     assert rms_error(t, s1, t, s2, 0) < .01

@@ -47,8 +47,8 @@ class MaterialPointSimulator(object):
     >>> mps = MaterialPointSimulator(jobid)
     >>> material = ElasticMaterial(E=10, Nu=.1)
     >>> mps.assign_material(material)
-    >>> mps.add_step('EEEEEE', [1., 0., 0., 0., 0., 0.])
-    >>> mps.add_step('SSSEEE', [0., 0., 0., 0., 0., 0.])
+    >>> mps.run_step('EEEEEE', [1., 0., 0., 0., 0., 0.])
+    >>> mps.run_step('SSSEEE', [0., 0., 0., 0., 0., 0.])
 
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
@@ -137,6 +137,11 @@ class MaterialPointSimulator(object):
         return descriptors, components
 
     def add_step(self, descriptors, components, increment=1., frames=1,
+                 scale=1., kappa=0., temperature=0., time_whole=None):
+        return self.run_step(descriptors, components, increment, frames,
+                             scale, kappa, temperature, time_whole)
+
+    def run_step(self, descriptors, components, increment=1., frames=1,
                  scale=1., kappa=0., temperature=0., time_whole=None):
         """Create a deformation step for the simulation
 

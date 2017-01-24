@@ -33,7 +33,7 @@ def test_spherical_drucker_prager():
     t = head.index('Time')
     for (k, row) in enumerate(data[1:], start=1):
         dt = data[k][t] - data[k-1][t]
-        mps.add_step('E', row[i:j], increment=dt, frames=1)
+        mps.run_step('E', row[i:j], increment=dt, frames=1)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 @pytest.mark.material
@@ -53,7 +53,7 @@ def test_random_linear_drucker_prager(realization):
     strain = gen_strain_table(K, G, A1, A4)
     analytic = gen_analytic_solution(K, G, A1, A4, strain)
     for row in strain[1:]:
-        mps.add_step('E', row, increment=1.0, frames=25)
+        mps.run_step('E', row, increment=1.0, frames=25)
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
 

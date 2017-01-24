@@ -26,8 +26,8 @@ def func(x, xnames, evald, job, *args):
     parameters = {'E': x[0], 'Nu': .1}
     mps = MaterialPointSimulator(job)
     mps.material = ElasticMaterial(**parameters)
-    mps.add_step('ESS', [.1, 0., 0.])
-    mps.add_step('ESS', [0., 0., 0.])
+    mps.run_step('ESS', [.1, 0., 0.])
+    mps.run_step('ESS', [0., 0., 0.])
     sxx = np.array(mps.df['S.XX'])
     exx = np.array(mps.df['E.XX'])
     youngs = []

@@ -24,7 +24,7 @@ def test_random_j2_1(realization):
     analytic = gen_rand_analytical_resp_1(LAM, G, Y_SHEAR)
     for (i, row) in enumerate(analytic[1:], start=1):
         incr = analytic[i, 0] - analytic[i-1, 0]
-        mps.add_step('E', row[1:7], increment=incr, frames=100)
+        mps.run_step('E', row[1:7], increment=incr, frames=100)
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
 
@@ -59,7 +59,7 @@ def test_random_j2_2(realization):
 
     # Write the analytic solution for visualization comparison
     for row in pathtable:
-        mps.add_step('E', row, increment=1., frames=100)
+        mps.run_step('E', row, increment=1., frames=100)
 
     # check output with analytic
     simulation = mps.get2(*myvars)
@@ -77,7 +77,7 @@ def test_j2_1():
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
-        mps.add_step('E', row, increment=1.0, frames=25)
+        mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 @pytest.mark.material
@@ -95,7 +95,7 @@ def test_j2_iso_hard():
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
-        mps.add_step('E', row, increment=1.0, frames=25)
+        mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 @pytest.mark.material
@@ -114,7 +114,7 @@ def test_j2_kin_hard():
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
-        mps.add_step('E', row, increment=1.0, frames=25)
+        mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 @pytest.mark.material
@@ -132,7 +132,7 @@ def test_j2_mix_hard():
     mps.assign_material(material)
     path = gen_uniax_strain_path(Y, YF, G, LAM)
     for row in path:
-        mps.add_step('E', row, increment=1.0, frames=25)
+        mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
 def gen_rand_params():

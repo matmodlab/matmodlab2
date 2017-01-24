@@ -65,8 +65,8 @@ def test_uhyper_neohooke():
     X = .1
     mps = MaterialPointSimulator('UHyper')
     mps.material = UHyper([C1, 1./D1])
-    mps.add_step('ESS', (1,0,0), frames=10, scale=X)
-    mps.add_step('ESS', (0,0,0), frames=10)
+    mps.run_step('ESS', (1,0,0), frames=10, scale=X)
+    mps.run_step('ESS', (0,0,0), frames=10)
 
     V0 = ('E.XX', 'E.YY', 'E.ZZ',
           'S.XX', 'S.YY', 'S.ZZ',

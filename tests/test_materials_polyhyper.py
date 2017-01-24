@@ -20,9 +20,9 @@ def test_polynomial_hyperelastic():
     # Drive the *incompressible* material through a path of uniaxial stress by
     # prescribing the deformation gradient.
     Fij = lambda x: (x, 0, 0, 0, 1/np.sqrt(x), 0, 0, 0, 1/np.sqrt(x))
-    mps.add_step('F', Fij(lam[0]), frames=10)
-    mps.add_step('F', Fij(1), frames=1)
-    mps.add_step('F', Fij(lam[-1]), frames=20)
+    mps.run_step('F', Fij(lam[0]), frames=10)
+    mps.run_step('F', Fij(1), frames=1)
+    mps.run_step('F', Fij(lam[-1]), frames=20)
 
     # analytic solution for true and engineering stress
     C10, C01 = parameters['C10'], parameters['C01']

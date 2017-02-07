@@ -31,4 +31,6 @@ def test_mcgen():
 
     s2 = 'Prony series not within tolerance'
     assert np.allclose(mc.mc_fit[:, 1], p[:, 1], rtol=1.e-2, atol=1.e-2), s2
-test_mcgen()
+
+if __name__ == '__main__':
+    test_mcgen()

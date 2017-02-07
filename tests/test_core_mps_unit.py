@@ -1,6 +1,7 @@
 import os
 import glob
 import numpy as np
+import pytest
 from matmodlab2 import *
 from testing_utils import *
 
@@ -17,6 +18,7 @@ def test_mps_assign_material():
     mps.material = ElasticMaterial(E=10, Nu=.1)
     assert mps.material.name.lower() == 'pyelastic'
 
+@pytest.mark.pandas
 def test_mps_db_exo():
     """Test the db"""
     # Run without writing db
@@ -39,6 +41,7 @@ def test_mps_db_exo():
     exx_2 = df['E.XX'].iloc[:]
     assert np.allclose(exx_1, exx_2)
 
+@pytest.mark.pandas
 def test_mps_db_npz():
     """Test the db"""
     # Run without writing db

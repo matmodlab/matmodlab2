@@ -7,6 +7,7 @@ import numpy as np
 from matmodlab2 import *
 from testing_utils import *
 
+@pytest.mark.pandas
 @pytest.mark.random
 @pytest.mark.material
 @pytest.mark.j2plasticity
@@ -80,6 +81,7 @@ def test_j2_1():
         mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
+@pytest.mark.pandas
 @pytest.mark.material
 @pytest.mark.j2plasticity
 @pytest.mark.isotropic_hardening
@@ -98,6 +100,7 @@ def test_j2_iso_hard():
         mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
+@pytest.mark.pandas
 @pytest.mark.material
 @pytest.mark.j2plasticity
 @pytest.mark.kinematic_hardening
@@ -117,6 +120,7 @@ def test_j2_kin_hard():
         mps.run_step('E', row, increment=1.0, frames=25)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
+@pytest.mark.pandas
 @pytest.mark.material
 @pytest.mark.j2plasticity
 @pytest.mark.mixed_hardening

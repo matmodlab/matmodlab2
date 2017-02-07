@@ -15,6 +15,7 @@ E = 9. * K * G / (3. * K + G)
 Nu  = (3.0 * K - 2.0 * G) / (2.0 * (3.0 * K + G))
 parameters = {'K': K, 'G': G, 'E': E, 'Nu': Nu}
 
+@pytest.mark.pandas
 @pytest.mark.elastic
 @pytest.mark.material
 def test_elastic_consistency():
@@ -123,6 +124,7 @@ def test_random_linear_elastic(realization):
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
 
+@pytest.mark.pandas
 @pytest.mark.elastic
 @pytest.mark.material
 @pytest.mark.analytic

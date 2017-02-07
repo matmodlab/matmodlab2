@@ -9,6 +9,7 @@ from matmodlab2 import *
 from testing_utils import *
 from matmodlab2.core.tensor import I6
 
+@pytest.mark.pandas
 @pytest.mark.material
 @pytest.mark.drucker_prager
 @pytest.mark.spherical

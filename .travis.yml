@@ -1,6 +1,8 @@
 language: python
 python:
+  - "3.4"
   - "3.5"
+  - "3.6"
 # command to install dependencies
 #install: "pip install -r requirements.txt"
 # command to run tests
@@ -11,7 +13,6 @@ install:
 script:
    # Run all the tests but those marked 'fortran' or 'pandas'
  - py.test -m 'not fortran and not pandas'
-after_success:
    # If all basic tests pass, run the 'pandas' tests.
  - pip install -r requirements.txt
  - py.test -m 'pandas'

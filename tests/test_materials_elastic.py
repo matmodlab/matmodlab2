@@ -7,6 +7,8 @@ import numpy as np
 from matmodlab2 import *
 from testing_utils import *
 
+this_d = os.path.dirname(os.path.realpath(__file__))
+
 K = 9.980040E+09
 G = 3.750938E+09
 E = 9. * K * G / (3. * K + G)
@@ -180,7 +182,7 @@ def test_supreme():
     mps = MaterialPointSimulator(jobid)
 
     N = 25
-    solfile = os.path.join(os.getcwd(), 'data', mps.jobid + '.base_dat')
+    solfile = os.path.join(this_d, 'data', mps.jobid + '.base_dat')
     path, LAM, G, tablepath = generate_solution(solfile, N)
 
     # set up the material

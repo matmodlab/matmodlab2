@@ -7,4 +7,6 @@ python:
 install:
  - pip install -r requirements.txt
  - python setup.py install
-script: py.test
+script:
+   # Run all the tests but those marked 'fortran'
+ - py.test -m 'not fortran'

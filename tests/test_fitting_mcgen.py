@@ -1,3 +1,4 @@
+import os
 import pytest
 from testing_utils import *
 
@@ -6,6 +7,8 @@ try:
     from matmodlab2.fitting.mcgen import *
 except ImportError:
     pandas = None
+
+this_d = os.path.dirname(os.path.realpath(__file__))
 
 @pytest.mark.mcgen
 @pytest.mark.skipif(pandas is None, reason='pandas not imported')
@@ -21,7 +24,7 @@ def test_mcgen():
                   [10, 124],
                   [100, 101],
                   [0, 222]], dtype=np.float64)
-    f = './data/mcgen.csv'
+    f = os.path.join(this_d, 'data/mcgen.csv')
     mc = MasterCurve.Import(f, ref_temp=75., apply_log=True,
                             fitter=PRONY, optimizer=FMIN, optwlf=False)
     mc.fit()

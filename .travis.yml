@@ -9,5 +9,9 @@ install:
  - python setup.py install
 # - pip install -r requirements.txt
 script:
-   # Run all the tests but those marked 'fortran'
+   # Run all the tests but those marked 'fortran' or 'pandas'
  - py.test -m 'not fortran and not pandas'
+after_success:
+   # If all basic tests pass, run the 'pandas' tests.
+ - pip install -r requirements.txt
+ - py.test -m 'pandas'

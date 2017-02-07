@@ -66,6 +66,7 @@ def test_random_j2_2(realization):
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
 
+@pytest.mark.pandas
 @pytest.mark.material
 @pytest.mark.j2plasticity
 def test_j2_1():

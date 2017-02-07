@@ -46,6 +46,7 @@ def run_method(method):
     optimizer.run()
     return optimizer.xopt
 
+@pytest.mark.pandas
 @pytest.mark.cobyla
 @pytest.mark.optimize
 def test_optimize_cobyla():
@@ -53,6 +54,7 @@ def test_optimize_cobyla():
     err = (xopt[0] - E)
     assert err < 1e-4
 
+@pytest.mark.pandas
 @pytest.mark.powell
 @pytest.mark.optimize
 def test_powell():
@@ -60,6 +62,7 @@ def test_powell():
     err = (xopt[0] - E)
     assert err < 1e-4
 
+@pytest.mark.pandas
 @pytest.mark.simplex
 @pytest.mark.optimize
 def test_simplex():

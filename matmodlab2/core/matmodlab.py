@@ -54,7 +54,7 @@ class MaterialPointSimulator(object):
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
     def __init__(self, jobid, initial_temp=0., db_fmt='npz',
-                 logfile=False):
+                 logfile=False, write_db=True):
 
         logger.info('Initializing the simulation')
         self.jobid = jobid
@@ -82,6 +82,11 @@ class MaterialPointSimulator(object):
         self._elem_var_names = None
         self.db = None
         self.data = None
+
+        # Following attributes are only applicable if using add_step/run
+        self._steps = []
+        self.write_db = write_db
+
         logger.info('Done initializing the simulation')
 
     def _initialize_steps(self, temp):
@@ -139,8 +144,22 @@ class MaterialPointSimulator(object):
 
     def add_step(self, descriptors, components, increment=1., frames=1,
                  scale=1., kappa=0., temperature=0., time_whole=None):
-        return self.run_step(descriptors, components, increment, frames,
-                             scale, kappa, temperature, time_whole)
+        self._steps.append((descriptors, components, increment, frames,
+                            scale, kappa, temperature, time_whole))
+
+    def run(self):
+        """Run the simulation"""
+        if not self._steps:
+            logger.warning('No steps to run')
+            return
+        for step in self._steps:
+            (descriptors, components, increment, frames,
+             scale, kappa, temperature, time_whole) = step
+            self.run_step(descriptors, components, increment=increment,
+                          frames=frames, scale=scale, kappa=kappa,
+                          temperature=temperature, time_whole=time_whole)
+        if self.write_db:
+            self.dump()
 
     def run_step(self, descriptors, components, increment=1., frames=1,
                  scale=1., kappa=0., temperature=0., time_whole=None):
@@ -424,10 +443,6 @@ class MaterialPointSimulator(object):
 
         # This step is not actually ran - it's just the initial state
         step.ran = True
-
-    def run(self):
-        """Run the simulation"""
-        pass
 
     @property
     def df(self):

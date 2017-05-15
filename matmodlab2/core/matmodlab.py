@@ -58,6 +58,7 @@ class MaterialPointSimulator(object):
 
         logger.info('Initializing the simulation')
         self.jobid = jobid
+        self.ran = False
 
         # File I/O
         if logfile:
@@ -103,7 +104,9 @@ class MaterialPointSimulator(object):
         # components is the length of the final descriptors
         if not is_listlike(components):
             components = [components]
-        components = np.array(components)
+
+        # Specify 'float64' for type consistency (important for some functions).
+        components = np.array(components, dtype=np.float64)
 
         if is_stringlike(descriptors):
             if len(descriptors) == 1:
@@ -349,7 +352,7 @@ class MaterialPointSimulator(object):
 
         logger.info('done')
         self.steps.append(step)
-        step.ran = True
+        self.ran = True
 
         return step
 

@@ -170,7 +170,7 @@ def polar_decomp(F):
     R = F.copy()
     for j in range(20):
         R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
-        if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-6):
+        if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-8):
             U = np.dot(R.T, F)
             return R, U
     try:

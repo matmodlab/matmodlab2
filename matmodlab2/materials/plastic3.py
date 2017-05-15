@@ -1,8 +1,8 @@
-from numpy import zeros, ix_, sqrt
+from numpy import dot, zeros, ix_, sqrt
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.tensor import VOIGT, symmetric_dyad, deviatoric_part, \
+from ..core.tensor import VOIGT, dyad, deviatoric_part, \
     double_dot, magnitude
 
 TOLER = 1e-8
@@ -151,7 +151,7 @@ class HardeningPlasticMaterial(Material):
 
         # Elastic stiffness
         H = -2. * dfdy * hy / ROOT2
-        D = C - 1 / (double_dot(N, A) + H) * symmetric_dyad(Q, A)
+        D = C - 1 / (double_dot(N, A) + H) * dyad(Q, A)
 
         # Equivalent plastic strain
         X[0] += deqp

@@ -3,7 +3,7 @@ import numpy as np
 from ..core.logio import logger
 from ..core.material import Material
 from ..core.tensor import VOIGT, deviatoric_part, double_dot, \
-    symmetric_dyad, magnitude
+    dyad, magnitude
 
 ROOT2 = np.sqrt(2.)
 ROOT3 = np.sqrt(3.)
@@ -129,7 +129,7 @@ class NonhardeningPlasticMaterial(Material):
         deqp = ROOT2 / ROOT3 * Gamma
 
         # Elastic stiffness
-        D = C - 1 / double_dot(N, A) * symmetric_dyad(Q, A)
+        D = C - 1 / double_dot(N, A) * dyad(Q, A)
 
         # Equivalent plastic strain
         X[0] += deqp

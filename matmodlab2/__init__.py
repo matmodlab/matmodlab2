@@ -8,6 +8,7 @@ from .core.logio import logger
 
 __all__ = ['MaterialPointSimulator',
            'Material', 'ElasticMaterial', 'AnisotropicElasticMaterial',
+           'DebuggerMaterial',
            'ElasticMaterialTotal',
            'PlasticMaterial', 'VonMisesMaterial',
            'NonhardeningPlasticMaterial', 'HardeningPlasticMaterial',

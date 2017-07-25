@@ -1,3 +1,4 @@
+from .debugger import DebuggerMaterial
 from .elastic import ElasticMaterial
 from .elastic2 import AnisotropicElasticMaterial
 from .elastic3 import ElasticMaterialTotal
@@ -9,11 +10,14 @@ from .polyhyper import PolynomialHyperelasticMaterial
 from .mooney_rivlin import MooneyRivlinMaterial
 from .tresca import TrescaMaterial
 
-__all__ = ['ElasticMaterial', 'ElasticMaterialTotal',
+__all__ = ['DebuggerMaterial',
+           'ElasticMaterial',
            'AnisotropicElasticMaterial',
-           'PlasticMaterial', 'NonhardeningPlasticMaterial',
+           'ElasticMaterialTotal',
+           'PlasticMaterial',
+           'NonhardeningPlasticMaterial',
            'HardeningPlasticMaterial',
            'VonMisesMaterial',
-           'MooneyRivlinMaterial',
            'PolynomialHyperelasticMaterial',
+           'MooneyRivlinMaterial',
            'TrescaMaterial']

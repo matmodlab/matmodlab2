@@ -411,6 +411,19 @@ class MaterialPointSimulator(object):
         self._material = material
         self.initialize_data()
 
+    def undo_step(self):
+        """Undo the last step, resetting the state variables """
+
+        total_frames = sum(_.frames for _ in self.steps)
+
+        if len(self.steps) <= 1:
+            raise Exception("Cannot undo initialization step")
+
+        num_kept_frames = sum(_.frames for _ in self.steps[:-1])
+
+        self.steps = self.steps[:-1]
+        self.data = self.data[:-1]
+
     def initialize_data(self):
         """When the material is assigned, initialize the database"""
 
@@ -788,6 +801,13 @@ class MaterialPointSimulator(object):
                               F[0], F[1], strain[2]*VOIGT, d*VOIGT,
                               np.array(stress[2]), statev[1])
             s, x, ddsdde = state
+            self.ddsdde = ddsdde
+
+            # Evaluate the numerical jacobian. This commented code is retained
+            # For debugging use.
+            #nddsdde = numerical_jacobian(self.eval, time[2], dtime, temp[2], dtemp,
+            #                         F[0], F[1], strain[2]*VOIGT, d*VOIGT,
+            #                         np.array(stress[2]), statev[1], range(6))
 
             dstress = s - stress[2]
             F[0] = F[1]

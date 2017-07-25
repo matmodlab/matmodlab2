@@ -400,7 +400,7 @@ def array_rep(mat, shape):
         mat = .5 * (mat + mat.T)
         return mat[([0,1,2,0,1,0],[0,1,2,1,2,2])]
     if shape == (9,):
-        return np.flatten(mat)
+        return np.ndarray.flatten(mat)
     if shape == (3,3):
         return np.array(mat)
     raise ValueError('Unknown shape')

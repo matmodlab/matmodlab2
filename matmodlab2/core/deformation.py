@@ -142,10 +142,10 @@ def strain_from_defgrad(farg, kappa):
 
 def strain_from_stretch(u, kappa):
     """Convert the 3x3 stretch tensor to a strain tensor using the
-    Seth-Hill parameter kappa and return a 6x1 array"""
+    Seth-Hill parameter kappa and return a 9x1 array"""
     mat, orig_shape = matrix_rep(u)
     if abs(kappa) > 1e-12:
-        mat = 1. / kappa * la.powm(mat, kappa) - np.eye(3)
+        mat = 1. / kappa * (la.powm(mat, kappa) - np.eye(3))
     else:
         mat = la.logm(mat)
     return array_rep(mat, orig_shape)

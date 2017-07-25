@@ -9,8 +9,10 @@ install:
  - pip install numpy scipy
  - python setup.py install
 script:
-   # Run all the tests but those marked 'fortran' or 'pandas'
- - py.test -m 'not fortran and not pandas'
+   # Run the unit tests
+ - py.test -m 'unit'
+   # Run all the tests but those marked 'fortran', 'pandas', or 'unit'
+ - py.test -m 'not fortran and not pandas and not unit'
    # If all basic tests pass, run the 'pandas' tests.
  - pip install -r requirements.txt
  - py.test -m 'pandas'

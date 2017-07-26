@@ -25,6 +25,7 @@ def compare_dataframes(frame1, frame2, tol=1.0e-12):
     return passed
 
 @pytest.mark.skip()
+@pytest.mark.pandas
 @pytest.mark.parametrize('stretch', [1.5, 1.001, 0.999, 0.5])
 @pytest.mark.parametrize('kappa', [2.0, 1.0, 0.0, -1.0, 2.0])
 def test_defgrad_basic(kappa, stretch):

@@ -73,6 +73,7 @@ def compare_dataframes(frame1, frame2, tol=1.0e-12):
 # * mps.run_from_data(?string?)
 # * mps.run_from_data(?array?)
 
+@pytest.mark.pandas
 def test_strain_evolution_strain():
 
     # Initialize the simulator
@@ -92,6 +93,7 @@ def test_strain_evolution_strain():
     assert compare_dataframes(solution_pd, mps.df)
 
 
+@pytest.mark.pandas
 def test_strain_evolution_strain_increment():
 
     # Initialize the simulator
@@ -114,6 +116,7 @@ def test_strain_evolution_strain_increment():
     assert compare_dataframes(solution_pd, mps.df)
 
 
+@pytest.mark.pandas
 @pytest.mark.parametrize('kappa', [-2.0, -1.0, 0.0, 1.0, 2.0])
 def test_strain_evolution_defgrad(kappa):
 

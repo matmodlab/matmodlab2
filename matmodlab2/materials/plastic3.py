@@ -92,7 +92,7 @@ class HardeningPlasticMaterial(Material):
 
         # Trial stress
         de = d * dtime
-        T = stress + dot(C, de)
+        T = stress + double_dot(C, de)
 
         # check yield
         S = deviatoric_part(T)

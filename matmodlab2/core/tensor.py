@@ -68,7 +68,7 @@ def has_valid_shape(A):
 
 def is_valid_shape(shape):
     """Return whether the shape is valid for these set of functions"""
-    return shape in ((6,),(9,),(3,3))
+    return shape in ((6,),(9,),(3,3),(6,6))
 
 def identity(n):
     """Return an identity tensor according to n"""
@@ -229,6 +229,10 @@ def double_dot(A, B):
     A, B = np.asarray(A), np.asarray(B)
     assert has_valid_shape(A)
     assert has_valid_shape(B)
+    if A.shape == (6,6) and B.shape == (6,):
+        return np.dot(A, B)
+    if A.shape == (6,) and B.shape == (6,6):
+        return np.dot(A, B)
     A, B = A.reshape(-1), B.reshape(-1)
     if B.shape == (6,) and A.shape == (9,):
         A, B = B, A

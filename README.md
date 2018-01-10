@@ -13,7 +13,7 @@ and the Apple Mac OSX 10 operating systems.
 
 *Matmodlab2* requires the following software installed for your platform:
 
-- [Python (2.7 or greater)](http://www.python.org) or newer
+- [Python (3.5 or newer)](http://www.python.org) or newer
 
 - [Numpy](http://www.numpy.org)
 
@@ -27,6 +27,31 @@ and the Apple Mac OSX 10 operating systems.
 - [Pandas](http://www.pandas.pydata.org)
 
 - [py.test](http://doc.pytest.org/en/latest)
+
+## Installation
+
+The easiest way to get started with *Matmodlab2* is to
+clone or download *Matmodlab2* from the
+[repository](https://www.github.com/matmodlab/matmodlab2), navigate to the
+`matmodlab2` directory, and execute
+
+```
+python setup.py install
+```
+
+which will install *Matmodlab2* to your Python package's `site-packages`
+directory.  Optionally, execute
+
+```
+python setup.py develop
+```
+
+and source files files are *linked* to the Python interpreter’s site-packages,
+rather than copied. This way, changes made to source files are applied
+immediately and do not require you to re-install *Matmodlab2*.
+
+Another method to "install" *Matmodlab2* is to simply set the `PYTHONPATH`
+environment variable to the `matmodlab2` directory.
 
 ## Documentation
 

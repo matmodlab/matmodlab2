@@ -374,7 +374,8 @@ class MaterialPointSimulator(object):
 
         Notes
         -----
-        `material` is assumed to be subclassed from the `Material` class.  Accordingly, the following members are assumed to exist:
+        `material` is assumed to be subclassed from the `Material` class.
+        Accordingly, the following members are assumed to exist:
 
         - `material.name`: The name of the material. Default is `None`
         - `material.num_sdv`: Number of state dependent variables. Default is

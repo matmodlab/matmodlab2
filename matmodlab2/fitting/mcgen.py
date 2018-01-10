@@ -1036,7 +1036,7 @@ def mc_init_notebook(plot_lib='bokeh', i=1):
         raise ValueError('expected bokeh or matplotlib, got {0!r}'.format(plot_lib))
 
 def mcgen_test_data():
-    from StringIO import StringIO
+    from io import StringIO
     return StringIO("""\
 # Each line shall be as
 # Temperature, Time, Value

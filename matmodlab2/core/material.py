@@ -16,10 +16,16 @@ class BaseMaterial(type):
 
         # Store the addon models
         obj.addon_models = []
-        expansion_model = kwargs.get('expansion_model', None)
+
+        expansion_model = kwargs.pop('expansion_model', None)
         if expansion_model is not None:
             expansion_model = ExpansionModel(expansion_model)
             obj.addon_models.append(expansion_model)
+
+        porepres = kwargs.pop('pore_pres', None)
+        if porepres is not None:
+            effstress_model = EffectiveStressModel(porepres)
+            obj.addon_models.append(effstress_model)
 
         return obj
 
@@ -46,7 +52,7 @@ class Material(object):
     name = None
     num_sdv = None
     sdv_names = None
-    initial_temp = 0.
+    _has_addon_models = None
 
     def sdvini(self, statev):
         """Initialize the state dependent variables
@@ -70,6 +76,62 @@ class Material(object):
 
         """
         return statev
+
+    @property
+    def has_addon_models(self):
+        if self._has_addon_models is None:
+            self._has_addon_models = hasattr(self, 'addon_models')
+        return self._has_addon_models
+
+    def base_eval(self, kappa, time, dtime, temp, dtemp,
+                  F0, F, strain, d, stress, ufield, dufield, statev,
+                  initial_temp, **kwds):
+        """Wrapper method to material.eval. This is called by Matmodlab so that
+        addon models can first be evaluated. See documentation for eval.
+
+        """
+        num_sdv = getattr(self, 'num_sdv', None)
+        i = 0 if num_sdv is None else num_sdv
+
+        if hasattr(self, 'addon_models'):
+            for model in self.addon_models:
+                # Evaluate each addon model.  Each model must change the input
+                # arrays in place.
+
+                # Determine starting point in statev array
+                j = i + model.num_sdv
+                xv = statev[i:j]
+                model.eval(kappa, time, dtime, temp, dtemp,
+                           F0, F, strain, d, stress, xv,
+                           initial_temp=initial_temp,
+                           ufield=ufield, dufield=dufield, **kwds)
+                statev[i:j] = xv
+                i += j
+
+        if num_sdv is not None:
+            xv = statev[:num_sdv]
+        else:
+            xv = None
+        sig, xv, ddsdde = self.eval(time, dtime, temp, dtemp, F0, F, strain, d,
+                                    stress, xv, ufield=ufield, dufield=dufield,
+                                    **kwds)
+
+        if hasattr(self, 'addon_models'):
+            for model in self.addon_models:
+                # Determine starting point in statev array
+                j = i + model.num_sdv
+                xv = statev[i:j]
+                model.posteval(kappa, time, dtime, temp, dtemp,
+                               F0, F, strain, d, sig, xv,
+                               initial_temp=initial_temp,
+                               ufield=ufield, dufield=dufield, **kwds)
+                statev[i:j] = xv
+                i += j
+
+        if num_sdv is not None:
+            statev[:num_sdv] = xv
+
+        return sig, statev, ddsdde
 
     def eval(self, time, dtime, temp, dtemp,
              F0, F, strain, d, stress, statev, **kwds):
@@ -119,7 +181,20 @@ class Material(object):
         """
         raise NotImplementedError
 
-class ExpansionModel(object):
+class AddonModel(object):
+    def sdvini(self, statev):
+        return statev
+    def eval(self, kappa, time, dtime, temp, dtemp, F0, F, strain, d,
+             stress, statev, initial_temp=0., **kwds):
+        # All arrays must be modified in place
+        return None
+    def posteval(self, kappa, time, dtime, temp, dtemp, F0, F, strain, d,
+                 stress, statev, initial_temp=0., **kwds):
+        # All arrays must be modified in place
+        return None
+
+
+class ExpansionModel(AddonModel):
     """Thermal expansion model"""
     def __init__(self, expansion):
         """Format the thermal expansion term"""
@@ -163,3 +238,39 @@ class ExpansionModel(object):
         statev[:self.num_sdv] = np.append(strain, F)
 
         return None
+
+class EffectiveStressModel(AddonModel):
+    """Effective stress model"""
+    def __init__(self, porepres):
+        """Format the thermal expansion term"""
+        self.num_sdv = 1
+        self.sdv_names = ['POREPRES']
+        self.porepres = np.asarray(porepres)
+        if len(self.porepres.shape) != 2:
+            raise ValueError('pore_pres must be a 2 dimensional array with '
+                             'the first column being time and the second the '
+                             'associated pore pressure.')
+    def get_porepres_at_time(self, time):
+        return np.interp(1, self.porepres[0,:], self.porepres[1,:],
+                         left=self.porepres[1,0], right=self.porepres[1,-1])
+    def sdvini(self, statev):
+        statev = np.array([self.get_porepres_at_time(0.)])
+        return statev
+
+    def eval(self, kappa, time, dtime, temp, dtemp,
+             F0, F, strain, d, stress, statev, **kwds):
+        """Evaluate the effective stress model
+
+        """
+        porepres = self.get_porepres_at_time(time+dtime/2.)
+        stress[[0,1,2]] -= porepres
+        statev[0] = porepres
+        return None
+
+    def posteval(self, kappa, time, dtime, temp, dtemp, F0, F, strain, d,
+                 stress, statev, **kwds):
+        porepres = self.get_porepres_at_time(time+dtime/2.)
+        stress[[0,1,2]] += porepres
+        statev[0] = porepres
+        return None
+

@@ -164,21 +164,45 @@ def rate_of_matrix_function(A, Adot, f, fprime):
 
     return Ydot
 
-def polar_decomp(F):
+def polar_decomp(F, method='higham', maxit=100):
+    if method == 'higham':
+        return higham_polar_decomp(F, maxit=maxit)
+    elif method == 'fast':
+        return fast_polar_decomp(F, maxit=maxit)
+    elif method == 'analytic':
+        R, V = scipy.linalg.qr(F)
+        U = np.dot(R.T, np.dot(V, R))
+        return R, U
+    raise ValueError('Invalid polar decomposition method {0!r}'.format(method))
+
+def fast_polar_decomp(F, maxit=20):
     F = F.reshape(3,3)
     I = np.eye(3)
     R = F.copy()
-    for j in range(20):
+    for j in range(maxit):
         R = .5 * np.dot(R, 3. * I - np.dot(R.T, R))
         if (np.amax(np.abs(np.dot(R.T, R) - I)) < 1.e-12):
             U = np.dot(R.T, F)
             return R, U
-    try:
-        R, V = scipy.linalg.qr(F)
-        U = np.dot(R.T, np.dot(V, R))
-        return R, U
-    except:
-        raise RuntimeError('Fast polar decompositon failed')
+    raise RuntimeError('Fast polar decompositon failed')
+
+def higham_polar_decomp(F, maxit=100):
+    F = F.reshape(3,3)
+    I = np.eye(3)
+    R = F.copy()
+    e = 1
+    mag = lambda x: np.sqrt(np.dot(x.flatten(),x.flatten()))
+    for i in range(maxit):
+        R = .5 * (inv(R.T) + R)
+        E = .5 * (np.dot(R.T, R) - I)
+        e = mag(E)
+        if e <= 1e-14:
+            break
+    else:
+        raise RuntimeError('Fast polar decomposition failed')
+
+    U = np.dot(R.T, F)
+    return R, U
 
 def solve(A, b):
     return scipy.linalg.solve(A, b)

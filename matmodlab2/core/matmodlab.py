@@ -5,9 +5,9 @@ import numpy as np
 from copy import deepcopy as copy
 from collections import OrderedDict
 
-from .tensor import VOIGT
+from .tensor import VOIGT, I9, inv, dot
 from .environ import environ
-from .tensor import array_rep
+from .tensor import array_rep, unrotate, rotate
 from .material import Material
 from .misc import is_stringlike, is_listlike
 from .logio import logger, add_filehandler, splash
@@ -24,8 +24,28 @@ class MaterialPointSimulator(object):
     """The material point simulator
 
     The material point simulator exercises a material model just as a finite
-    element solver would. The steps to creating and running a simulation with
-    the `MaterialPointSimulator` are:
+    element solver would.
+
+    Parameters
+    ----------
+    jobid : str
+        A job identifier
+    initiali_temp : float [0.]
+        The (optional) initial temperature
+    db_fmt : str ['npz'], {'npz', 'exo'}
+        The output database format.  npz is the numpy compressed storage format
+        and exo is the ExodusII format
+    logfile : bool [False]
+        Whether to write a log file
+    write_db : bool [True]
+        Whether to write the database file
+    ufield : ndarray [None]
+        The initial user defined field.
+
+    Notes
+    -----
+    The steps to creating and running a simulation with the
+    `MaterialPointSimulator` are:
 
     1. Instantiate a `MaterialPointSimulator` simulator object, giving it a
        string `jobid`
@@ -54,7 +74,7 @@ class MaterialPointSimulator(object):
     """
     valid_descriptors = ['DE', 'E', 'S', 'DS', 'U', 'F']
     def __init__(self, jobid, initial_temp=0., db_fmt='npz',
-                 logfile=False, write_db=True):
+                 logfile=False, write_db=True, ufield=None):
 
         logger.info('Initializing the simulation')
         self.jobid = jobid
@@ -73,7 +93,7 @@ class MaterialPointSimulator(object):
         # Create initial step
         self.initial_temp = initial_temp
         logger.info('Creating initial step... ', extra=continued)
-        self.steps = self._initialize_steps(self.initial_temp)
+        self.steps = self._initialize_steps(self.initial_temp, ufield)
         logger.info('done')
 
         # Set defaults
@@ -83,6 +103,7 @@ class MaterialPointSimulator(object):
         self._elem_var_names = None
         self.db = None
         self.data = None
+        self.num_ufield = len(self.steps[0].ufield)
 
         # Following attributes are only applicable if using add_step/run
         self._steps = []
@@ -90,12 +111,12 @@ class MaterialPointSimulator(object):
 
         logger.info('Done initializing the simulation')
 
-    def _initialize_steps(self, temp):
+    def _initialize_steps(self, temp, ufield):
         """Create the initial step"""
         begin, end = 0., 0.
         components = np.zeros(6)
         descriptors = ['E'] * 6
-        return [Step(0, 0, 1, descriptors, components, temp, 0)]
+        return [Step(0, 0, 1, descriptors, components, temp, 0, ufield)]
 
     def _format_descriptors_and_components(self, descriptors, components):
         """Validate the user given descriptors"""
@@ -146,9 +167,10 @@ class MaterialPointSimulator(object):
         return descriptors, components
 
     def add_step(self, descriptors, components, increment=1., frames=1,
-                 scale=1., kappa=0., temperature=0., time_whole=None):
+                 scale=1., kappa=0., temperature=0., time_whole=None,
+                 ufield=None):
         self._steps.append((descriptors, components, increment, frames,
-                            scale, kappa, temperature, time_whole))
+                            scale, kappa, temperature, time_whole, ufield))
 
     def run(self):
         """Run the simulation"""
@@ -157,15 +179,17 @@ class MaterialPointSimulator(object):
             return
         for step in self._steps:
             (descriptors, components, increment, frames,
-             scale, kappa, temperature, time_whole) = step
+             scale, kappa, temperature, time_whole, ufield) = step
             self.run_step(descriptors, components, increment=increment,
                           frames=frames, scale=scale, kappa=kappa,
-                          temperature=temperature, time_whole=time_whole)
+                          temperature=temperature, time_whole=time_whole,
+                          ufield=ufield)
         if self.write_db:
             self.dump()
 
     def run_step(self, descriptors, components, increment=1., frames=1,
-                 scale=1., kappa=0., temperature=0., time_whole=None):
+                 scale=1., kappa=0., temperature=0., time_whole=None,
+                 ufield=None):
         """Create a deformation step for the simulation
 
         Parameters
@@ -196,6 +220,12 @@ class MaterialPointSimulator(object):
         time_whole : float
             The whole time at the end of the step.  Default is `None`.
             If defined, the `increment` argument is ignored.
+        ufield : ndarray [None]
+            The value of the user defined field at the end of the step.  The
+            ufield argument must have been also passed to the constructor.  The
+            interpolated value at the beginning of an increment and the
+            increment in ufield are passed to material models as the `ufield`
+            and `dufield` keyword arguments, respectively.
 
         Tensor Component Ordering
         -------------------------
@@ -215,7 +245,9 @@ class MaterialPointSimulator(object):
 
         >>> obj.run_step('SSSEEE', [1., 0., 0., 0., 0., 0.], scale=1e6)
 
-        Stress and strain (and their increments) can be mixed.  To create a step of uniaxial stress by holding the lateral stress components at 0. and deforming along the axial direction:
+        Stress and strain (and their increments) can be mixed.  To create a step
+        of uniaxial stress by holding the lateral stress components at 0. and
+        deforming along the axial direction:
 
         >>> obj.run_step('ESSEEE', [1., 0., 0., 0., 0., 0.], scale=.1)
 
@@ -266,6 +298,26 @@ class MaterialPointSimulator(object):
         if any([x in descriptors for x in ('S', 'DS')]) and abs(kappa) > 1e-12:
             raise ValueError('Stress control requires kappa = 0')
 
+        istep = len(self.steps)
+        previous_step = self.steps[-1]
+
+        if ufield is not None:
+            if previous_step.ufield is None:
+                s = 'Invalid ufield specification on step {0}.\n' \
+                    'Was ufield passed to the MaterialPointSimulator\'s ' \
+                    'constructor?'
+                raise ValueError(s.format(istep))
+            if not is_listlike(ufield):
+                ufield = [ufield]
+            ufield = np.asarray(ufield)
+            if ufield.shape != previous_step.ufield.shape:
+                s = 'Invalid ufield specification on step {0}.\n' \
+                    'ufield.shape is different than previous step'
+                raise ValueError(s.format(istep))
+        if previous_step.ufield is not None and ufield is None:
+            # Must define ufield for *all* steps
+            ufield = np.asarray(previous_step.ufield)
+
         if not is_listlike(scale):
             # Scalar scale factor
             scale = np.ones(len(components)) * scale
@@ -277,13 +329,14 @@ class MaterialPointSimulator(object):
         components = components * scale
 
         if 'F' in descriptors:
+            pass
             # Convert deformation gradient to strain
-            components, rotation = dfm.strain_from_defgrad(components, kappa)
-            if np.max(np.abs(rotation - np.eye(3))) > 1e-8:
-                raise ValueError('QR decomposition of deformation gradient '
-                                 'gave unexpected rotations (rotations are '
-                                 'not yet supported)')
-            descriptors = ['E'] * 6
+            #components, rotation = dfm.strain_from_defgrad(components, kappa)
+            #if np.max(np.abs(rotation - np.eye(3))) > 1e-8:
+            #    raise ValueError('QR decomposition of deformation gradient '
+            #                     'gave unexpected rotations (rotations are '
+            #                     'not yet supported)')
+            #descriptors = ['E'] * 6
 
         elif 'U' in descriptors:
             # Convert displacement to strain
@@ -317,11 +370,10 @@ class MaterialPointSimulator(object):
                 descriptors.extend(['E'] * n)
                 components = np.append(components, [0.] * n)
 
-        n = len(self.steps)
         xc = '[{0}]'.format(', '.join(['{0:g}'.format(x) for x in components]))
         logger.debug('Adding step {0:4d} with descriptors: {1}\n'
                      '                   and components: {2}'.format(
-                         n, ''.join(descriptors), xc))
+                         istep, ''.join(descriptors), xc))
 
         begin = self.steps[-1].end
 
@@ -335,20 +387,19 @@ class MaterialPointSimulator(object):
 
         end = begin + increment
         step = Step(begin, end, frames, descriptors, components,
-                    temperature, kappa)
+                    temperature, kappa, ufield)
 
         # Add space for this step
         irow, icol = self.data.shape
         self.data = np.row_stack((self.data, np.zeros((frames, icol))))
 
         # Now run the thing - adding enough rows to the data array for this step
-        istep = len(self.steps)
         logger.info('\rRunning step {0}... '.format(istep), extra=continued)
-        previous_step = self.steps[-1]
         assert step.begin == previous_step.end
         self.run_istep(istep, step.begin, step.end, step.frames,
                        step.descriptors, step.components,
-                       step.temp, step.kappa, self.J0, self.data[irow-1:, :])
+                       step.temp, step.ufield, step.kappa, self.J0,
+                       self.data[irow-1:, :])
 
         logger.info('done')
         self.steps.append(step)
@@ -397,6 +448,7 @@ class MaterialPointSimulator(object):
         """
         if not hasattr(material, 'eval'):
             raise Exception('Material models must define the `eval` method')
+        self.mat_is_Material_subclass = hasattr(material, 'base_eval')
         optional_attrs = ('name', 'num_sdv', 'sdv_names', 'sdvini')
         not_defined = []
         for attr in optional_attrs:
@@ -447,16 +499,18 @@ class MaterialPointSimulator(object):
         glo_var_vals = [step.increment, 1, 0]
         elem_var_vals = self.astack(strain, np.zeros(6),
                                     stress, stress-np.zeros(6),
-                                    defgrad, step.temp, statev)
+                                    defgrad, step.temp, step.ufield, statev)
         self.data[0, 0  ] = step.end
         self.data[0, 1:4] = glo_var_vals
         self.data[0, 4:] = elem_var_vals
 
         # Call the material with a zero state to get the initial Jacobian
-        self.J0 = numerical_jacobian(self.eval, 1, 1, step.temp, 0,
-                                     defgrad, defgrad,
-                                     np.zeros(6), np.zeros(6),
-                                     np.zeros(6), copy(statev), range(6))
+        dtemp = 0.
+        dufield = np.zeros_like(step.ufield)
+        self.J0 = numerical_jacobian(self.eval, 1, 1, step.temp, dtemp,
+                                     defgrad, defgrad, np.zeros(6), np.zeros(6),
+                                     np.zeros(6), step.ufield, dufield,
+                                     copy(statev), range(6))
 
         # This step is not actually ran - it's just the initial state
         step.ran = True
@@ -628,15 +682,20 @@ class MaterialPointSimulator(object):
         elem_var_names.extend(expand_var_name('F', xc3))
         elem_var_names.append('Temp')
 
+        # User defined field
+        if self.num_ufield:
+            ufield_names = expand_var_name('UFIELD', range(1, self.num_ufield+1))
+            elem_var_names.extend(ufield_names)
+
         # Material state variables
         num_sdv = getattr(self.material, 'num_sdv', Material.num_sdv)
         sdv_names = getattr(self.material, 'sdv_names', Material.sdv_names)
         if num_sdv:
             if sdv_names:
                 assert len(sdv_names) == num_sdv
-                elem_var_names.extend(sdv_names)
             else:
-                elem_var_names.extend(expand_var_name('SDV', range(1, n+1)))
+                sdv_names = expand_var_name('SDV', range(1, num_sdv+1))
+            elem_var_names.extend(sdv_names)
 
         # Names for material addons
         if hasattr(self.material, 'addon_models'):
@@ -669,13 +728,17 @@ class MaterialPointSimulator(object):
 
         return statev
 
-    def astack(self, E, DE, S, DS, F, T, XV):
+    def astack(self, E, DE, S, DS, F, T, UF, XV):
         """Concatenates input arrays into a single flattened array"""
-        a = [E, DE, S, DS, F, T, XV]
+        a = [E, DE, S, DS, F, T]
+        if len(UF):
+            a.append(UF)
+        if XV is not None:
+            a.append(XV)
         return np.hstack(tuple([x for x in a if x is not None]))
 
     def run_istep(self, istep, begin, end, frames, descriptors, components,
-                  temp, kappa, J0, data):
+                  temp, ufield, kappa, J0, data):
         """Run this step, using the previous step as the initial state
 
         Parameters
@@ -684,39 +747,61 @@ class MaterialPointSimulator(object):
             The step number to run
 
         """
+        if 'F' in descriptors:
+            self._run_istep_F(istep, begin, end, frames, descriptors,
+                              components, temp, ufield, kappa, J0, data)
+        else:
+            self._run_istep(istep, begin, end, frames, descriptors, components,
+                            temp, ufield, kappa, J0, data)
+
+    def _run_istep(self, istep, begin, end, frames, descriptors, components,
+                   temp, ufield, kappa, J0, data):
         assert istep != 0
         increment = end - begin
 
         #---------------------------------------------------------------------- #
         # The following variables have values at
         # [begining, end, current] of step
+        #
+        # The deformation gradient has values at
+        # [begining of step, end of step, beginning of frame, current]
         #---------------------------------------------------------------------- #
         # Time
         time = np.array([begin, end, begin])
+
+        # Strain and stress states
+        start_strain = data[0,  4:10]
+        start_stress = data[0, 16:22]
+        end_strain = np.where(descriptors=='E', components, 0.)
+        end_stress = np.where(descriptors=='S', components, 0.)
+        strain = np.vstack((start_strain, end_strain, start_strain))
+        stress = np.vstack((start_stress, end_stress, start_stress))
 
         # Temperature
         temp = np.array((data[0, 37], temp, data[0, 37]))
         dtemp = (temp[1] - temp[0]) / float(frames)
 
-        # Strain and stress states
-        previous_strain = data[0,  4:10]
-        previous_stress = data[0, 16:22]
-        current_strain = np.where(descriptors=='E', components, 0.)
-        current_stress = np.where(descriptors=='S', components, 0.)
-        strain = np.vstack((previous_strain, current_strain, previous_strain))
-        stress = np.vstack((previous_stress, current_stress, previous_stress))
+        # User defined field
+        start = 38
+        end = start + len(ufield)
+        ufield = np.array((data[0, start:end], ufield, data[0, start:end]))
+        dufield = (ufield[1] - ufield[0]) / float(frames)
+        start = end
 
         #---------------------------------------------------------------------- #
         # The following variables have values at
         # [begining, current] of step
         #---------------------------------------------------------------------- #
-        previous_statev = data[0, 38:]
-        if not len(previous_statev):
+        start_statev = data[0, start:]
+        if not len(start_statev):
             statev = [None, None]
         else:
-            statev = np.vstack((previous_statev, previous_statev))
-        F0 = data[0, 28:37]
-        F = np.vstack((F0, F0))
+            statev = np.vstack((start_statev, start_statev))
+
+        start_defgrad = data[0, 28:37]
+        F = np.vstack((start_defgrad, start_defgrad))
+
+        dtime = 1. if increment < 1.e-14 else (time[1]-time[0])/float(frames)
 
         # v array is an array of integers that contains the rows and columns of
         # the slice needed in the jacobian subroutine.
@@ -743,10 +828,8 @@ class MaterialPointSimulator(object):
         vx = [x for x in range(6) if x not in v]
         if increment < 1.e-14:
             dedt = np.zeros_like(strain[1])
-            dtime = 1.
         else:
             dedt = (strain[1] - strain[0]) / increment
-            dtime = (time[1] - time[0]) / float(frames)
 
         # --- find current value of d: sym(velocity gradient)
         if not nv:
@@ -766,6 +849,7 @@ class MaterialPointSimulator(object):
                 d = np.array(dedt)
 
         else:
+
             # Initial guess for d[v]
             dedt[v] = 0.
             Jsub = J0[[[x] for x in v], v]
@@ -780,6 +864,7 @@ class MaterialPointSimulator(object):
         for iframe in range(frames):
             a1 = float(frames - (iframe + 1)) / frames
             a2 = float(iframe + 1) / frames
+
             strain[2] = a1 * strain[0] + a2 * strain[1]
             pstress = a1 * stress[0] + a2 * stress[1]
 
@@ -788,82 +873,151 @@ class MaterialPointSimulator(object):
                 d = d_from_prescribed_stress(
                     self.eval, time[2], dtime, temp[2], dtemp,
                     F[0], F[1], strain[2]*VOIGT, dedt*VOIGT, stress[2],
-                    statev[0], v, pstress[v])
+                    ufield[2], dufield, statev[0], v, pstress[v])
                 d = d / VOIGT
 
             # compute the current deformation gradient and strain from
             # previous values and the deformation rate
             F[1], e = dfm.update_deformation(F[0], d, dtime, kappa)
             strain[2,v] = e[v]
+
             if environ.SQA and not np.allclose(strain[2,vx], e[vx]):
                 logger.warn('SQA: bad strain on  step {0}'.format(istep))
 
-            state = self.eval(kappa, time[2], dtime, temp[2], dtemp,
-                              F[0], F[1], strain[2]*VOIGT, d*VOIGT,
-                              np.array(stress[2]), statev[1])
+            state = self.eval(kappa, time[2], dtime, temp[2], dtemp, F[0], F[1],
+                              strain[2]*VOIGT, d*VOIGT, np.array(stress[2]),
+                              ufield[2], dufield, statev[1])
             s, x, ddsdde = state
             self.ddsdde = ddsdde
 
-            # Evaluate the numerical jacobian. This commented code is retained
-            # For debugging use.
-            #nddsdde = numerical_jacobian(self.eval, time[2], dtime, temp[2], dtemp,
-            #                         F[0], F[1], strain[2]*VOIGT, d*VOIGT,
-            #                         np.array(stress[2]), statev[1], range(6))
-
-            dstress = s - stress[2]
             F[0] = F[1]
+            dstress = s - stress[2]
             time[2] = a1 * time[0] + a2 * time[1]
             temp[2] = a1 * temp[0] + a2 * temp[1]
+            ufield[2] = a1 * ufield[0] + a2 * ufield[1]
             stress[2], statev[1] = s, x
             statev[0] = statev[1]
 
             glo_var_vals = [dtime, istep+1, iframe+1]
-            elem_var_vals = self.astack(strain[2], dedt,
-                                        stress[2], dstress, F[1], temp[2], x)
+            elem_var_vals = self.astack(strain[2], dedt, stress[2], dstress,
+                                        F[1], temp[2], ufield[2], x)
+            data[iframe+1, 0] = time[2]
+            data[iframe+1, 1:4] = glo_var_vals
+            data[iframe+1, 4:] = elem_var_vals
+
+    def _run_istep_F(self, istep, begin, end, frames, descriptors, components,
+                     temp, ufield, kappa, J0, data):
+        assert istep != 0
+        increment = end - begin
+
+        #---------------------------------------------------------------------- #
+        # The following variables have values at
+        # [begining, end, current] of step
+        #
+        # The deformation gradient has values at
+        # [begining of step, end of step, beginning of frame, current]
+        #---------------------------------------------------------------------- #
+
+        # Time
+        time = np.array([begin, end, begin])
+
+        # Strain and stress states
+        start_strain = data[0,  4:10]
+        start_stress = data[0, 16:22]
+        start_defgrad = data[0, 28:37]
+        # Will be computed from defgrad
+        end_strain = np.zeros(6)
+        end_stress = np.zeros(6)
+        end_defgrad = components
+
+        strain = np.vstack((start_strain, end_strain, start_strain))
+        stress = np.vstack((start_stress, end_stress, start_stress))
+        F = np.vstack((start_defgrad, end_defgrad, start_defgrad, I9))
+
+        # Temperature
+        temp = np.array((data[0, 37], temp, data[0, 37]))
+        dtemp = (temp[1] - temp[0]) / float(frames)
+
+        # User defined field
+        start = 38
+        end = start + len(ufield)
+        ufield = np.array((data[0, start:end], ufield, data[0, start:end]))
+        dufield = (ufield[1] - ufield[0]) / float(frames)
+        start = end
+
+        #---------------------------------------------------------------------- #
+        # The following variables have values at
+        # [begining, current] of step
+        #---------------------------------------------------------------------- #
+        start_statev = data[0, start:]
+        if not len(start_statev):
+            statev = [None, None]
+        else:
+            statev = np.vstack((start_statev, start_statev))
+
+        dtime = 1. if increment < 1.e-14 else (time[1]-time[0])/float(frames)
+
+        # Process each frame of the step
+        for iframe in range(frames):
+            a1 = float(frames - (iframe + 1)) / frames
+            a2 = float(iframe + 1) / frames
+
+            F[3] = a1 * F[0] + a2 * F[1]
+            _, R0 = dfm.strain_from_defgrad(F[2], kappa)
+            strain[2], R = dfm.strain_from_defgrad(F[3], kappa)
+            if dtime < 1.e-14:
+                d = np.zeros(6)
+            else:
+                d = dfm.rate_of_defomation_from_defgrad(F[2], F[3], dtime)
+            dedt = d  # FIXME: this is for output only, should be fixed
+
+            #d_b = unrotate(R0, d)
+            #strain_b = unrotate(R0, strain[2])
+            #stress_b = unrotate(R0, stress[2])
+            state = self.eval(kappa, time[2], dtime, temp[2], dtemp, F[2], F[3],
+                              strain[2]*VOIGT, d*VOIGT, np.array(stress[2]),
+                              ufield[2], dufield, statev[1])
+            s, x, ddsdde = state
+            self.ddsdde = ddsdde
+
+            F[2] = F[3]
+            dstress = s - stress[2]
+            time[2] = a1 * time[0] + a2 * time[1]
+            temp[2] = a1 * temp[0] + a2 * temp[1]
+            ufield[2] = a1 * ufield[0] + a2 * ufield[1]
+            statev[1] = x
+            statev[0] = statev[1]
+            stress[2] = s
+            #stress[2] = rotate(R, s)
+
+            glo_var_vals = [dtime, istep+1, iframe+1]
+            elem_var_vals = self.astack(strain[2], dedt, stress[2], dstress,
+                                        F[3], temp[2], ufield[2], x)
             data[iframe+1, 0] = time[2]
             data[iframe+1, 1:4] = glo_var_vals
             data[iframe+1, 4:] = elem_var_vals
 
     def eval(self, kappa, time, dtime, temp, dtemp,
-             F0, F, strain, d, stress, statev, **kwds):
+             F0, F, strain, d, stress, ufield, dufield, statev, **kwds):
         """Wrapper method to material.eval. This is called by Matmodlab so that
         addon models can first be evaluated. See documentation for eval.
 
         """
-        num_sdv = getattr(self.material, 'num_sdv', Material.num_sdv)
-        i = 0 if num_sdv is None else num_sdv
-        if hasattr(self.material, 'addon_models'):
-            for model in self.material.addon_models:
-                # Evaluate each addon model.  Each model must change the input
-                # arrays in place.
-
-                # Determine starting point in statev array
-                j = i + model.num_sdv
-                xv = statev[i:j]
-                model.eval(kappa, time, dtime, temp, dtemp,
-                           F0, F, strain, d, stress, xv,
-                           initial_temp=self.initial_temp, **kwds)
-                statev[i:j] = xv
-                i += j
-
-        if num_sdv is not None:
-            xv = statev[:num_sdv]
+        if self.mat_is_Material_subclass:
+            return self.material.base_eval(kappa, time, dtime, temp, dtemp, F0, F,
+                                           strain, d, stress, ufield, dufield,
+                                           statev, self.initial_temp, **kwds)
         else:
-            xv = None
-        sig, xv, ddsdde = self.material.eval(time, dtime, temp, dtemp, F0, F,
-                                             strain, d, stress, xv, **kwds)
-
-        if num_sdv is not None:
-            statev[:num_sdv] = xv
-
-        return sig, statev, ddsdde
-
+            # Not a subclass of the Material class, call its eval method
+            return self.material.eval(time, dtime, temp, dtemp, F0, F,
+                                      strain, d, stress, statev, ufield=ufield,
+                                      dufield=dufield, **kwds)
 
 class Step(object):
     def __init__(self, begin, end, frames,
-                 descriptors, components, temp, kappa):
-        assert len(components) == 6
-        assert len(descriptors) == 6
+                 descriptors, components, temp, kappa, ufield=None):
+        assert len(components) == len(descriptors)
+#        assert len(descriptors) == 6
         self.begin = float(begin)
         self.end = float(end)
         self.increment = self.end - self.begin
@@ -875,3 +1029,13 @@ class Step(object):
         self.temp = temp
         self.kappa = kappa
         self.ran = False
+        if ufield is not None:
+            if not is_listlike(ufield):
+                ufield = [ufield]
+        else:
+            ufield = []
+        ufield = np.asarray(ufield)
+        if len(ufield.shape) != 1:
+            raise ValueError('ufield must be a 1D array')
+        self.ufield = ufield
+

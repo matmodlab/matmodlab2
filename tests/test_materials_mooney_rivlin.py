@@ -1,6 +1,7 @@
 # Hyperelastic parameters, D1 set to a large number to force incompressibility
 import pytest
 import numpy as np
+np.seterr(invalid='raise')
 
 from matmodlab2 import MaterialPointSimulator, MooneyRivlinMaterial
 from testing_utils import *

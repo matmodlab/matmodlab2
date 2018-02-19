@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
-from .tensor import array_rep, matrix_rep
+from .tensor import array_rep, matrix_rep, inv, symmetric_part, dot
 import matmodlab2.core.linalg as la
 
 def update_deformation(farg, darg, dt, kappa):
@@ -246,3 +246,8 @@ def scalar_volume_strain_to_tensor(ev, kappa):
         eij = eij / kappa
     components = np.array([eij, eij, eij, 0., 0., 0.])
     return components
+
+def rate_of_defomation_from_defgrad(F0, F1, dtime):
+    Fdot = (F1 - F0) / dtime
+    L = dot(Fdot, inv(F1))
+    return symmetric_part(L)

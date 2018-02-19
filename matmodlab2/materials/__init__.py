@@ -9,6 +9,7 @@ from .vonmises import VonMisesMaterial
 from .polyhyper import PolynomialHyperelasticMaterial
 from .mooney_rivlin import MooneyRivlinMaterial
 from .tresca import TrescaMaterial
+from .neohooke import NeoHookeMaterial
 
 __all__ = ['DebuggerMaterial',
            'ElasticMaterial',
@@ -20,4 +21,5 @@ __all__ = ['DebuggerMaterial',
            'VonMisesMaterial',
            'PolynomialHyperelasticMaterial',
            'MooneyRivlinMaterial',
+           'NeoHookeMaterial',
            'TrescaMaterial']

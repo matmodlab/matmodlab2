@@ -703,16 +703,16 @@ class MaterialPointSimulator(object):
                 sdv_names = expand_var_name('SDV', range(1, num_sdv+1))
             elem_var_names.extend(sdv_names)
 
-        # Names for material addons
-        if hasattr(self.material, 'addon_models'):
-            for addon_model in self.material.addon_models:
-                elem_var_names.extend(addon_model.sdv_names)
+        # Names for material aux models
+        if hasattr(self.material, 'aux_models'):
+            for (name, aux_model) in self.material.aux_models.items():
+                elem_var_names.extend(aux_model.sdv_names)
 
         self._elem_var_names = elem_var_names
         return elem_var_names
 
     def initialize_statev(self):
-        """Initialize the state dependent variables - including addon models"""
+        """Initialize the state dependent variables - including aux models"""
         numx = getattr(self.material, 'num_sdv', Material.num_sdv)
         statev = None if numx is None else np.zeros(numx)
         try:
@@ -720,17 +720,17 @@ class MaterialPointSimulator(object):
         except AttributeError:
             pass
 
-        addon_sdv = []
-        if hasattr(self.material, 'addon_models'):
-            for addon_model in self.material.addon_models:
-                xv = np.zeros(addon_model.num_sdv)
-                addon_sdv.extend(addon_model.sdvini(xv))
+        aux_sdv = []
+        if hasattr(self.material, 'aux_models'):
+            for (name, aux_model) in self.material.aux_models.items():
+                xv = np.zeros(aux_model.num_sdv)
+                aux_sdv.extend(aux_model.sdvini(xv))
 
-        if addon_sdv:
+        if aux_sdv:
             if statev is not None:
-                statev = np.append(statev, addon_sdv)
+                statev = np.append(statev, aux_sdv)
             else:
-                statev = np.array(addon_sdv)
+                statev = np.array(aux_sdv)
 
         return statev
 
@@ -1006,7 +1006,7 @@ class MaterialPointSimulator(object):
     def eval(self, kappa, time, dtime, temp, dtemp,
              F0, F, strain, d, stress, ufield, dufield, statev, **kwds):
         """Wrapper method to material.eval. This is called by Matmodlab so that
-        addon models can first be evaluated. See documentation for eval.
+        aux models can first be evaluated. See documentation for eval.
 
         """
         if self.mat_is_Material_subclass:

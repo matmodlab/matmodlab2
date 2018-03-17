@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 from copy import deepcopy as copy
 
 from .misc import add_metaclass
@@ -10,16 +11,7 @@ class BaseMaterial(type):
         # Call the objects __init__ method (indirectly through __call__)
         obj = type.__call__(cls, *args, **kwargs)
 
-        # Store the addon models
-        obj.addon_models = []
-
-        x = kwargs.pop('addon_model', None)
-        if x is not None:
-            obj.addon_models.append(x)
-
-        x = kwargs.pop('addon_models', None)
-        if x is not None:
-            obj.addon_models.extend(x)
+        obj.aux_models = OrderedDict()
 
         return obj
 
@@ -46,7 +38,6 @@ class Material(object):
     name = None
     num_sdv = None
     sdv_names = None
-    _has_addon_models = None
     assigned = False
 
     def sdvini(self, statev):
@@ -73,10 +64,20 @@ class Material(object):
         return statev
 
     @property
-    def has_addon_models(self):
-        if self._has_addon_models is None:
-            self._has_addon_models = hasattr(self, 'addon_models')
-        return self._has_addon_models
+    def num_aux_sdv(self):
+        return sum([x.num_sdv for x in self.aux_models.values()])
+
+    def get_aux_model_sdv_slice(self, aux_model):
+        num_sdv = getattr(self, 'num_sdv', None)
+        start = 0 if num_sdv is None else num_sdv
+        for (name, model) in self.aux_models.items():
+            if model == aux_model:
+                break
+            start += model.num_sdv
+        else:
+            raise ValueError('No such aux model: {0!r}'.format(key))
+        end = start + aux_model.num_sdv
+        return slice(start, end)
 
     def base_eval(self, kappa, time, dtime, temp, dtemp,
                   F0, F, strain, d, stress, ufield, dufield, statev,
@@ -85,46 +86,75 @@ class Material(object):
         addon models can first be evaluated. See documentation for eval.
 
         """
+        from matmodlab2.materials.expansion import ExpansionModel
+        from matmodlab2.materials.viscoelastic import ViscoelasticModel
+        from matmodlab2.materials.effective_stress import EffectiveStressModel
+
         num_sdv = getattr(self, 'num_sdv', None)
-        i = 0 if num_sdv is None else num_sdv
 
-        if hasattr(self, 'addon_models'):
-            for model in self.addon_models:
-                # Evaluate each addon model.  Each model must change the input
-                # arrays in place.
+        if ExpansionModel.name in self.aux_models:
+            # Evaluate thermal expansion
+            aux_model = self.aux_models[ExpansionModel.name]
 
-                # Determine starting point in statev array
-                j = i + model.num_sdv
-                xv = statev[i:j]
-                model.eval(kappa, time, dtime, temp, dtemp,
-                           F0, F, strain, d, stress, xv,
+            # Determine starting point in statev array
+            x_slice = self.get_aux_model_sdv_slice(aux_model)
+
+            aux_model.eval(kappa, time, dtime, temp, dtemp,
+                           F0, F, strain, d, stress, statev[x_slice],
                            initial_temp=initial_temp,
                            ufield=ufield, dufield=dufield, **kwds)
-                statev[i:j] = xv
-                i += j
 
-        if num_sdv is not None:
-            xv = statev[:num_sdv]
-        else:
-            xv = None
+        if EffectiveStressModel.name in self.aux_models:
+            # Evaluate effective stress model
+            aux_model = self.aux_models[EffectiveStressModel.name]
+
+            # Determine starting point in statev array
+            x_slice = self.get_aux_model_sdv_slice(aux_model)
+
+            aux_model.eval(kappa, time, dtime, temp, dtemp,
+                           F0, F, strain, d, stress, statev[x_slice],
+                           initial_temp=initial_temp,
+                           ufield=ufield, dufield=dufield, **kwds)
+
+        # Evaluate the material model
+        xv = None if num_sdv is None else statev[:num_sdv]
         sig, xv, ddsdde = self.eval(time, dtime, temp, dtemp, F0, F, strain, d,
                                     stress, xv, ufield=ufield, dufield=dufield,
                                     **kwds)
 
-        if hasattr(self, 'addon_models'):
-            for model in self.addon_models:
-                # Determine starting point in statev array
-                j = i + model.num_sdv
-                xv = statev[i:j]
-                model.posteval(kappa, time, dtime, temp, dtemp,
-                               F0, F, strain, d, sig, xv,
+        if xv is not None:
+            statev[:num_sdv] = xv
+
+        if ViscoelasticModel.name in self.aux_models:
+            # Evaluate the viscoelastic overstress model
+            aux_model = self.aux_models[ViscoelasticModel.name]
+
+            # Determine starting point in statev array
+            x_slice = self.get_aux_model_sdv_slice(aux_model)
+
+            cfac = aux_model.eval(kappa, time, dtime, temp, dtemp,
+                                  F0, F, strain, d, stress, statev[x_slice],
+                                  initial_temp=initial_temp,
+                                  ufield=ufield, dufield=dufield, **kwds)
+
+            # Force the use of a numerical stiffness - otherwise we would have
+            # to convert the stiffness to that corresponding to the Truesdell
+            # rate, pull it back to the reference frame, apply the visco
+            # correction, push it forward, and convert to Jaummann rate. It's
+            # not as trivial as it sounds...
+            ddsdde = None
+
+        if EffectiveStressModel.name in self.aux_models:
+            # Add pore pressure back
+            aux_model = self.aux_models[EffectiveStressModel.name]
+
+            # Determine starting point in statev array
+            x_slice = self.get_aux_model_sdv_slice(aux_model)
+
+            aux_model.posteval(kappa, time, dtime, temp, dtemp,
+                               F0, F, strain, d, stress, statev[x_slice],
                                initial_temp=initial_temp,
                                ufield=ufield, dufield=dufield, **kwds)
-                statev[i:j] = xv
-                i += j
-
-        if num_sdv is not None:
-            statev[:num_sdv] = xv
 
         return sig, statev, ddsdde
 
@@ -181,18 +211,18 @@ class Material(object):
             raise ValueError('Expansion model must be created before assigning '
                              'material model to MaterialPointSimulator')
         from matmodlab2.materials.expansion import ExpansionModel
-        self.addon_models.append(ExpansionModel(alpha))
+        self.aux_models[ExpansionModel.name] = ExpansionModel(alpha)
 
     def Viscoelastic(self, wlf, prony):
         if self.assigned:
             raise ValueError('Viscoelastic model must be created before assigning '
                              'material model to MaterialPointSimulator')
         from matmodlab2.materials.viscoelastic import ViscoelasticModel
-        self.addon_models.append(ViscoelasticModel(wlf, prony))
+        self.aux_models[ViscoelasticModel.name] = ViscoelasticModel(wlf, prony)
 
     def EffectiveStress(self, porepres):
         if self.assigned:
             raise ValueError('EffectiveStress model must be created before assigning '
                              'material model to MaterialPointSimulator')
         from matmodlab2.materials.effective_stress import EffectiveStressModel
-        self.addon_models.append(EffectiveStressModel(porepres))
+        self.aux_models[EffectiveStressModel.name] = EffectiveStressModel(porepres)

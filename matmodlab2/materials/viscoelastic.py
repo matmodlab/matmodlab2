@@ -40,6 +40,7 @@ class ViscoelasticModel(AddonModel):
      (63:68) : VISCO DEV PK2 STRESS FOR 10TH PRONY TERM
 
     """
+    name = '__viscoelastic__'
     def __init__(self, wlf, prony):
 
         # check data
@@ -194,7 +195,7 @@ class ViscoelasticModel(AddonModel):
         sdev = sodev - sdev
 
         # total stress
-        stress = sdev.copy()
+        stress[:] = sdev.copy()
         pressure = -sum(sigo[:3]) / 3.
         stress[:3] -= pressure
 
@@ -202,7 +203,7 @@ class ViscoelasticModel(AddonModel):
         # reference state
         statev[2:8] = pk2odev
 
-        return stress, cfac, statev
+        return cfac
 
     def shiftfac(self, dtime, time, temp, dtemp, F, statev):
 

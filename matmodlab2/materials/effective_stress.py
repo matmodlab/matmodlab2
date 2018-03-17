@@ -5,6 +5,7 @@ from .addon import AddonModel
 
 class EffectiveStressModel(AddonModel):
     """Effective stress model"""
+    name = '__effstress__'
     def __init__(self, porepres):
         self.num_sdv = 1
         self.sdv_names = ['POREPRES']

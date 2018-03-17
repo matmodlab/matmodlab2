@@ -11,11 +11,6 @@ from .mooney_rivlin import MooneyRivlinMaterial
 from .tresca import TrescaMaterial
 from .neohooke import NeoHookeMaterial
 
-# Addon models
-from .effective_stress import EffectiveStressModel
-from .viscoelastic import ViscoelasticModel
-from .expansion import ExpansionModel
-
 
 __all__ = ['DebuggerMaterial',
            'ElasticMaterial',
@@ -28,7 +23,4 @@ __all__ = ['DebuggerMaterial',
            'PolynomialHyperelasticMaterial',
            'MooneyRivlinMaterial',
            'NeoHookeMaterial',
-           'TrescaMaterial',
-           'EffectiveStressModel',
-           'ViscoelasticModel',
-           'ExpansionModel',]
+           'TrescaMaterial']

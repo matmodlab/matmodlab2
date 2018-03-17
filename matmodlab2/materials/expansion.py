@@ -9,6 +9,7 @@ from .addon import AddonModel
 
 class ExpansionModel(AddonModel):
     """Thermal expansion model"""
+    name = '__expansion__'
     def __init__(self, expansion):
         """Format the thermal expansion term"""
         self.num_sdv = 15

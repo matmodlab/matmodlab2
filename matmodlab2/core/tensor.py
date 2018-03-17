@@ -453,6 +453,9 @@ def unrotate(R, A):
 def rotate(R, A):
     return push(R, A)
 
+def pull(F, A):
+    return push(inv(F), A)
+
 def push(F, A):
     """Computes the push operation F A F.T / J"""
     F = np.asarray(F).reshape(-1)

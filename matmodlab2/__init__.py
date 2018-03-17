@@ -15,4 +15,5 @@ __all__ = ['MaterialPointSimulator',
            'PolynomialHyperelasticMaterial',
            'MooneyRivlinMaterial', 'NeoHookeMaterial',
            'TrescaMaterial', 'UMat', 'UHyper',
+           'EffectiveStressModel', 'ViscoelasticModel', 'ExpansionModel',
            'read_db', 'read_exodb', 'read_npzdb', 'environ', 'logger']

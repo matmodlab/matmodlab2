@@ -109,6 +109,8 @@ class MaterialPointSimulator(object):
         self._steps = []
         self.write_db = write_db
 
+        self._initialized = False
+
         logger.info('Done initializing the simulation')
 
     def _initialize_steps(self, temp, ufield):
@@ -291,6 +293,9 @@ class MaterialPointSimulator(object):
         if self.material is None:
             raise RuntimeError('Material must be assigned before adding steps')
 
+        if not self._initialized:
+            self.initialize_data()
+
         descriptors, components = self._format_descriptors_and_components(
             descriptors, components)
 
@@ -462,7 +467,7 @@ class MaterialPointSimulator(object):
             attrs = ', '.join(not_defined)
             logger.warning('Optional material members not defined: ' + attrs)
         self._material = material
-        self.initialize_data()
+        material.assigned = True
 
     def undo_step(self):
         """Undo the last step, resetting the state variables """
@@ -514,6 +519,7 @@ class MaterialPointSimulator(object):
 
         # This step is not actually ran - it's just the initial state
         step.ran = True
+        self._initialized = True
 
     @property
     def df(self):

@@ -13,7 +13,10 @@ def test_expansion(itemp, dtemp, alpha):
     temp = (itemp, itemp+dtemp)
     E, Nu = 500, .45
     mps = MaterialPointSimulator('Job-1', initial_temp=temp[0])
-    mps.material = ElasticMaterial(E=E, Nu=Nu, expansion_model=alpha)
+    material = ElasticMaterial(E=E, Nu=Nu)
+    material.Expansion(alpha)
+    mps.material = material
+
     mps.run_step('ESS', (.01,0,0), temperature=temp[0], frames=20)
     mps.run_step(('DE','DE','DE'), (0,0,0), temperature=temp[1], frames=20)
 

@@ -10,7 +10,7 @@ import numpy as np
 import testing_utils as tu
 from subprocess import Popen, STDOUT
 from matmodlab2.ext_helpers import build_extension_module_as_subprocess
-from matmodlab2 import MaterialPointSimulator, UMat
+from matmodlab2 import MaterialPointSimulator, UHyper
 
 try:
     fc = os.getenv('FC', 'gfortran')
@@ -23,7 +23,7 @@ except:
 
 def teardown_module():
     tu.teardown_module()
-    for filename in glob.glob('_umat*.so'):
+    for filename in glob.glob('_uhyper*.so'):
         os.remove(filename)
 
 def build_extension_module(name, sources, user_ics=False):
@@ -33,28 +33,28 @@ def build_extension_module(name, sources, user_ics=False):
                                                 verbose=True, cwd=this_dir)
 
 @pytest.mark.slow
-@pytest.mark.umat
+@pytest.mark.uhyper
 @pytest.mark.fortran
 @pytest.mark.material
 @pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
-def test_umat_neohooke():
+def test_uhyper_neohooke():
     """Test building a umat"""
 
-    name = 'umat'
-    sources = ['../matmodlab2/umat/umats/umat_neohooke.f90']
+    name = 'uhyper'
+    sources = ['../../matmodlab2/umat/umats/uhyper_neohooke.f90']
     assert os.path.isfile(sources[0])
     returncode = build_extension_module(name, sources)
-    assert returncode == 0, 'umat not built'
-    assert len(glob.glob('_umat*.so')), 'umat not built'
-    if '_umat' in sys.modules:
+    assert returncode == 0, 'uhyper not built'
+    assert len(glob.glob('_uhyper*.so')), 'uhyper not built'
+    if '_uhyper' in sys.modules:
         # Remove so it can be loaded below
-        del sys.modules['_umat']
+        del sys.modules['_uhyper']
     try:
-        import _umat
+        import _uhyper
     except ImportError:
-        raise Exception('_umat not imported')
-    assert hasattr(_umat, 'sdvini')
-    assert hasattr(_umat, 'umat')
+        raise Exception('_uhyper not imported')
+    assert hasattr(_uhyper, 'sdvini')
+    assert hasattr(_uhyper, 'umat')
 
     # Now do the actual material test
     E = 500
@@ -63,8 +63,8 @@ def test_umat_neohooke():
     D1 = 1. / (6. * (1. - 2. * Nu) / E)
 
     X = .1
-    mps = MaterialPointSimulator('Umat')
-    mps.material = UMat([E, Nu])
+    mps = MaterialPointSimulator('UHyper')
+    mps.material = UHyper([C1, 1./D1])
     mps.run_step('ESS', (1,0,0), frames=10, scale=X)
     mps.run_step('ESS', (0,0,0), frames=10)
 

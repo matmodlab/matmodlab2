@@ -44,7 +44,7 @@ def test_build_umat_ext_no_user_ics():
     """Test building a umat"""
 
     name = 'umat'
-    sources = ['../matmodlab2/umat/umats/umat_neohooke.f90']
+    sources = ['../../matmodlab2/umat/umats/umat_neohooke.f90']
     assert os.path.isfile(sources[0])
     returncode = build_extension_module(name, sources)
     assert returncode == 0, 'umat not built'
@@ -65,8 +65,8 @@ def test_build_umat_ext_no_user_ics():
 def test_build_umat_ext_with_user_ics():
     """Test building a umat with user defined sdvini"""
     name = 'umat'
-    sources = ['../matmodlab2/umat/umats/umat_neohooke.f90',
-               '../matmodlab2/umat/aba_sdvini.f90']
+    sources = ['../../matmodlab2/umat/umats/umat_neohooke.f90',
+               '../../matmodlab2/umat/aba_sdvini.f90']
     assert os.path.isfile(sources[0])
     assert os.path.isfile(sources[1])
     returncode = build_extension_module(name, sources, user_ics=True)

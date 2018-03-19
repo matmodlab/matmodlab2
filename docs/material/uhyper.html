@@ -1,0 +1,143 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>User Model to Define a Material’s Hyperelastic Response &#8212; Material Model Laboratory 3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="User Model to Define a Material’s Anisotropic Hyperelastic Response" href="uanisohyper_inv.html" />
+    <link rel="prev" title="User Model to Define a Material’s Mechanical Response" href="umat.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="user-model-to-define-a-material-s-hyperelastic-response">
+<h1>User Model to Define a Material’s Hyperelastic Response<a class="headerlink" href="#user-model-to-define-a-material-s-hyperelastic-response" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p><em>uhyper</em> is a material model for hyperelastic materials.</p>
+</div>
+<div class="section" id="interface">
+<h2>Interface<a class="headerlink" href="#interface" title="Permalink to this headline">¶</a></h2>
+<div class="code fortran highlight-default"><div class="highlight"><pre><span></span>subroutine uhyper(i1b, i2b, jac, u, du, d2u, d3u, temp, noel, cmname, &amp;
+     incmpflag, nstatev, statev, nfieldv, fieldv, fieldvinc, &amp;
+     nprops, props)
+  implicit none
+  integer, parameter :: dp=selected_real_kind(14)
+  real(kind=dp), parameter :: zero=0._dp, one=1._dp, two=2._dp, three=3._dp
+  character*8, intent(in) :: cmname
+  integer, intent(in) :: nprops, noel, nstatev, incmpflag, nfieldv
+  real(kind=dp), intent(in) :: i1b, i2b, jac, props(nprops), temp
+  real(kind=dp), intent(inout) :: u(2), du(3), d2u(6), d3u(6), statev(nstatev)
+  real(kind=dp), intent(inout) :: fieldv(nfieldv), fieldvinc(nfieldv)
+
+  ! User coding
+
+end subroutine uhyper
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro/index.html">1. Introduction and Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">3. Materials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">3.1. Materials: Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="builtin.html">3.2. Material Library</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="user.html">3.3. User Defined Materials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="user.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="user.html#material-model-api">Material Model API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="user.html#auxiliary-subroutines">Auxiliary Subroutines</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="python.html">Python User Material Interface</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="fortran.html">Fortran User Material Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="comm.html">Writing Messages to the Console and/or Log File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sdvini.html">User Defined Initial Conditions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/material/uhyper.rst.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

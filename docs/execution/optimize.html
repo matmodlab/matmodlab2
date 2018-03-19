@@ -1,0 +1,279 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2.7. Optimizer &#8212; Material Model Laboratory 3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.8. Annotated Examples" href="examples.html" />
+    <link rel="prev" title="2.6. Permutator" href="permutate.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="optimizer">
+<span id="optimize"></span><h1>2.7. Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="mps.html#mps"><span class="std std-ref">MaterialPointSimulator</span></a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Optimize specified parameters against user specified objective function. Ideal for finding optimal model parameters. A optimizer instance is created through the <code class="docutils literal"><span class="pre">Optimizer</span></code> constructor.</p>
+</div>
+<div class="section" id="the-optimizer-constructor">
+<h2>The Optimizer Constructor<a class="headerlink" href="#the-optimizer-constructor" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="Optimzer">
+<em class="property">class </em><code class="descname">Optimzer</code><span class="sig-paren">(</span><em>job</em>, <em>func</em>, <em>xinit</em>, <em>method=SIMPLEX</em>, <em>verbosity=1</em>, <em>d=None</em>, <em>maxiter=MAXITER</em>, <em>tolerance=TOL</em>, <em>descriptors=None</em>, <em>funcargs=[]</em>, <em>Ns=10</em><span class="sig-paren">)</span><a class="headerlink" href="#Optimzer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Optimzer object and set up the simulation.</p>
+<p>The <em>job</em> string is the simulation ID.  The Permutator creates a job.eval/ directory in the simulation directory. The ith individual job is then run in job.eval/eval_i/.</p>
+<p>The Optimzer writes relevant simulation information to job.eval/job.xml.  The Matmodlab.Visualizer can read the job.xml file and display the permutated job.</p>
+<p><em>func</em> is a function that evaluates a Matmodlab simulation.  It is called as <em>func(x, xnames, d, job, *funcargs)</em>, where <em>x</em> are the current values of the permutated variables, <em>xnames</em> are their names, <em>d</em> is the simulation directory of the current job, <em>job</em> is the job ID, and <em>funcargs</em> are additional arguments to be sent to <em>func</em>.</p>
+<p><em>xinit</em> is a list of initial values of the simulation parameters to be optimized.  Each member of the list must be a OptimizeVariable instance.</p>
+<p>The following arguments are optional</p>
+<p><em>method</em> is the method for determining how to combine parameter values. One of <code class="docutils literal"><span class="pre">SIMPLEX</span></code>, <code class="docutils literal"><span class="pre">POWELL</span></code>, <code class="docutils literal"><span class="pre">COBYLA</span></code>, or <code class="docutils literal"><span class="pre">BRUTE</span></code>.</p>
+<p><em>maxiter</em> is the integer maximum number of iterations and <em>tolerance</em> is the tolerance.  The default tolerance is 1e-8.</p>
+<p><em>descriptors</em> is a list of descriptors for the values returned from <em>func</em>.</p>
+<p><em>d</em> is the parent directory to run jobs.  If the directory does not exist, it will be created.  If the directory exists and <em>bu</em> is <em>False</em>, the directory will be first erased and then re-created.  If the directory exists but <em>bu</em> is <em>True</em>, the directory is archived.</p>
+<p><em>Ns</em> is the number of evaluations per dimension for brute force optimization.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="running-the-optimizer">
+<h2>Running the Optimizer<a class="headerlink" href="#running-the-optimizer" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="Optimizer.run">
+<code class="descclassname">Optimizer.</code><code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Optimizer.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the simulation</p>
+</dd></dl>
+
+</div>
+<div class="section" id="optimizevariable-factory-method">
+<h2>OptimizeVariable Factory Method<a class="headerlink" href="#optimizevariable-factory-method" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="OptimizeVariable">
+<code class="descname">OptimizeVariable</code><span class="sig-paren">(</span><em>name</em>, <em>initial_value</em>, <em>bounds=None</em><span class="sig-paren">)</span><a class="headerlink" href="#OptimizeVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a OptimizeVariable object</p>
+<p><em>name</em> is the name of variable and <em>initial_value</em> is its initial value.  <em>bounds</em> are the bounds on the variable given as (lower_bound, upper_bound).  Bounds are only applicable if the optimizer method is <code class="docutils literal"><span class="pre">COBYLA</span></code>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>The following input demonstrates how to optimize the <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">G</span></code>
+parameters and can be found in <code class="docutils literal"><span class="pre">matmodlab/examples/optimize.py</span></code>.  The objective function calls <code class="docutils literal"><span class="pre">calculate_bounded_area</span></code> to find the area between the calculated stress strain curve and the experimental.</p>
+<div class="section" id="the-example-script">
+<h3>The Example Script<a class="headerlink" href="#the-example-script" title="Permalink to this headline">¶</a></h3>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">matmodlab</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">matmodlab.utils.fileio</span> <span class="k">as</span> <span class="nn">ufio</span>
+<span class="kn">import</span> <span class="nn">matmodlab.utils.numerix.nonmonotonic</span> <span class="k">as</span> <span class="nn">unnm</span>
+
+<span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_my_directory</span><span class="p">(),</span> <span class="s2">&quot;optimize.xls&quot;</span><span class="p">)</span>
+<span class="n">strain_exp</span><span class="p">,</span> <span class="n">stress_exp</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">ufio</span><span class="o">.</span><span class="n">loadfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sheet</span><span class="o">=</span><span class="s2">&quot;MML&quot;</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;STRAIN_XX&quot;</span><span class="p">,</span> <span class="s2">&quot;STRESS_XX&quot;</span><span class="p">]))</span>
+
+<span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[],</span> <span class="n">xnames</span><span class="o">=</span><span class="p">[],</span> <span class="n">evald</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="n">xp</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xnames</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+    <span class="n">NU</span> <span class="o">=</span> <span class="mf">0.32</span>  <span class="c1"># poisson&#39;s ratio for aluminum</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;K&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;E&quot;</span><span class="p">]</span><span class="o">/</span><span class="mf">3.0</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">NU</span><span class="p">),</span> <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;E&quot;</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="n">NU</span><span class="p">),</span>
+                  <span class="s2">&quot;Y0&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;Y0&quot;</span><span class="p">],</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;H&quot;</span><span class="p">],</span> <span class="s2">&quot;BETA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="s2">&quot;vonmises&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+    <span class="c1"># create steps from data. note, len(columns) below is &lt; len(descriptors).</span>
+    <span class="c1"># The missing columns are filled with zeros -&gt; giving uniaxial stress in</span>
+    <span class="c1"># this case. Declaring the steps this way does require loading the excel</span>
+    <span class="c1"># file anew for each run</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">DataSteps</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">sheet</span><span class="o">=</span><span class="s1">&#39;MML&#39;</span><span class="p">,</span>
+                  <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;STRAIN_XX&#39;</span><span class="p">,),</span> <span class="n">descriptors</span><span class="o">=</span><span class="s1">&#39;ESS&#39;</span><span class="p">)</span>
+
+    <span class="n">mps</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mps</span><span class="o">.</span><span class="n">ran</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0e9</span>
+
+    <span class="n">strain_sim</span><span class="p">,</span> <span class="n">stress_sim</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;STRAIN_XX&quot;</span><span class="p">,</span> <span class="s2">&quot;STRESS_XX&quot;</span><span class="p">))</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="n">unnm</span><span class="o">.</span><span class="n">calculate_bounded_area</span><span class="p">(</span><span class="n">strain_exp</span><span class="p">,</span> <span class="n">stress_exp</span><span class="p">,</span>
+                                      <span class="n">strain_sim</span><span class="p">,</span> <span class="n">stress_sim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">error</span>
+
+<span class="n">E</span> <span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;E&quot;</span><span class="p">,</span>  <span class="mf">2.0e6</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e5</span><span class="p">,</span> <span class="mf">1.0e7</span><span class="p">))</span>
+<span class="n">Y0</span><span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;Y0&quot;</span><span class="p">,</span> <span class="mf">0.3e5</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e4</span><span class="p">,</span> <span class="mf">1.0e6</span><span class="p">))</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span>  <span class="mf">1.0e6</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e4</span><span class="p">,</span> <span class="mf">1.0e7</span><span class="p">))</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">Optimizer</span><span class="p">(</span><span class="s2">&quot;optimize&quot;</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">Y0</span><span class="p">,</span> <span class="n">H</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">POWELL</span><span class="p">,</span>
+                      <span class="n">maxiter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mf">1.e-3</span><span class="p">)</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="how-does-the-script-work">
+<h3>How Does the Script Work?<a class="headerlink" href="#how-does-the-script-work" title="Permalink to this headline">¶</a></h3>
+<p>This section describes each part of the example script</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matmodlab</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">matmodlab.utils.fileio</span> <span class="k">as</span> <span class="nn">ufio</span>
+<span class="kn">import</span> <span class="nn">matmodlab.utils.numerix.nonmonotonic</span> <span class="k">as</span> <span class="nn">unnm</span>
+
+<span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_my_directory</span><span class="p">(),</span> <span class="s2">&quot;optimize.xls&quot;</span><span class="p">)</span>
+<span class="n">strain_exp</span><span class="p">,</span> <span class="n">stress_exp</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">ufio</span><span class="o">.</span><span class="n">loadfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sheet</span><span class="o">=</span><span class="s2">&quot;MML&quot;</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;STRAIN_XX&quot;</span><span class="p">,</span> <span class="s2">&quot;STRESS_XX&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p>This statement makes the Matmodlab objects accessible to the script and import other functions for reading Excel data files and comparing two curves.  The experimental data is read and stored.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">E</span> <span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;E&quot;</span><span class="p">,</span>  <span class="mf">2.0e6</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e5</span><span class="p">,</span> <span class="mf">1.0e7</span><span class="p">))</span>
+<span class="n">Y0</span><span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;Y0&quot;</span><span class="p">,</span> <span class="mf">0.3e5</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e4</span><span class="p">,</span> <span class="mf">1.0e6</span><span class="p">))</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">OptimizeVariable</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span>  <span class="mf">1.0e6</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0e4</span><span class="p">,</span> <span class="mf">1.0e7</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>These statements define parameters <code class="docutils literal"><span class="pre">E</span></code>, <code class="docutils literal"><span class="pre">Y0</span></code>, and <code class="docutils literal"><span class="pre">H</span></code> to be the variable to be optimized.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">Optimizer</span><span class="p">(</span><span class="s2">&quot;optimize&quot;</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">Y0</span><span class="p">,</span> <span class="n">H</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">POWELL</span><span class="p">,</span>
+                      <span class="n">maxiter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mf">1.e-3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This statement instantiates the <code class="docutils literal"><span class="pre">Optimzer</span></code> object, using the <code class="docutils literal"><span class="pre">POWELL</span></code> method.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">optimizer</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This statement runs the job.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">xnames</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+
+    <span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xnames</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+    <span class="n">NU</span> <span class="o">=</span> <span class="mf">0.32</span>  <span class="c1"># poisson&#39;s ratio for aluminum</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;K&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;E&quot;</span><span class="p">]</span><span class="o">/</span><span class="mf">3.0</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">NU</span><span class="p">),</span> <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;E&quot;</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="n">NU</span><span class="p">),</span>
+                  <span class="s2">&quot;Y0&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;Y0&quot;</span><span class="p">],</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="n">xp</span><span class="p">[</span><span class="s2">&quot;H&quot;</span><span class="p">],</span> <span class="s2">&quot;BETA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="s2">&quot;vonmises&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These statements define the function exercised by the Optimzer.  The first lines are the instantiation of the MaterialPointSimulator, and its material.  The current parameters are passed in from Matmodlab.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">mps</span><span class="o">.</span><span class="n">DataSteps</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">sheet</span><span class="o">=</span><span class="s1">&#39;MML&#39;</span><span class="p">,</span>
+              <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;STRAIN_XX&#39;</span><span class="p">,),</span> <span class="n">descriptors</span><span class="o">=</span><span class="s1">&#39;ESS&#39;</span><span class="p">)</span>
+
+<span class="n">mps</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>These statements create the analysis steps from the experimental data file and run the simulation</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">strain_sim</span><span class="p">,</span> <span class="n">stress_sim</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;STRAIN_XX&quot;</span><span class="p">,</span> <span class="s2">&quot;STRESS_XX&quot;</span><span class="p">))</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">unnm</span><span class="o">.</span><span class="n">calculate_bounded_area</span><span class="p">(</span><span class="n">strain_exp</span><span class="p">,</span> <span class="n">stress_exp</span><span class="p">,</span>
+                                  <span class="n">strain_sim</span><span class="p">,</span> <span class="n">stress_sim</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">error</span>
+</pre></div>
+</div>
+<p>These statements read in the analysis results and compute the error between them and the experimental data.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro/index.html">1. Introduction and Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">2. Job Execution</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">2.1. Job Execution: Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">2.2. Execution Procedures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mps.html">2.3. MaterialPointSimulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="post.html">2.4. Postprocessing Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook.html">2.5. Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="permutate.html">2.6. Permutator</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">2.7. Optimizer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-optimizer-constructor">The Optimizer Constructor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-optimizer">Running the Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optimizevariable-factory-method">OptimizeVariable Factory Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-example-script">The Example Script</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-does-the-script-work">How Does the Script Work?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">2.8. Annotated Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/execution/optimize.rst.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

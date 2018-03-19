@@ -1,0 +1,257 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2.6. Permutator &#8212; Material Model Laboratory 3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.7. Optimizer" href="optimize.html" />
+    <link rel="prev" title="2.5. Notebook" href="notebook.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="permutator">
+<span id="inpperm"></span><h1>2.6. Permutator<a class="headerlink" href="#permutator" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="mps.html#mps"><span class="std std-ref">MaterialPointSimulator</span></a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>It is useful to investiage sensitivities of models to model inputs. The <code class="docutils literal"><span class="pre">Permutator</span></code> runs jobs with different realization of parameters.  The <code class="docutils literal"><span class="pre">Permutator</span></code> is designed as a tool for discovering and investigating model sensitivities.</p>
+</div>
+<div class="section" id="the-permutator-constructor">
+<h2>The Permutator Constructor<a class="headerlink" href="#the-permutator-constructor" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="Permutator">
+<em class="property">class </em><code class="descname">Permutator</code><span class="sig-paren">(</span><em>job</em>, <em>func</em>, <em>xinit</em>, <em>method=ZIP</em>, <em>correlations=False</em>, <em>verbosity=None</em>, <em>descriptors=None</em>, <em>nprocs=1</em>, <em>funcargs=[]</em>, <em>d=None</em>, <em>shotgun=False</em>, <em>bu=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Permutator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Permutator object and set up the simulation.</p>
+<p>The <em>job</em> string is the simulation ID.  The Permutator creates a job.eval/ directory in the simulation directory. The ith individual job is then run in job.eval/eval_i/.</p>
+<p>The Permutator writes relevant simulation information to job.eval/job.xml.  The Matmodlab.Visualizer can read the job.xml file and display the permutated job.</p>
+<p><em>func</em> is a function that evaluates a Matmodlab simulation.  It is called as <em>func(x, xnames, d, job, *funcargs)</em>, where <em>x</em> are the current values of the permutated variables, <em>xnames</em> are their names, <em>d</em> is the simulation directory of the current job, <em>job</em> is the job ID, and <em>funcargs</em> are additional arguments to be sent to <em>func</em>.</p>
+<p><em>xinit</em> is a list of initial values of the simulation parameters to be permutated.  Each member of the list must be a PermutateVariable instance.</p>
+<p>The following arguments are optional</p>
+<p><em>method</em> is the method for determining how to combine parameter values. One of <code class="docutils literal"><span class="pre">ZIP</span></code> or <code class="docutils literal"><span class="pre">COMBINATION</span></code>. The <code class="docutils literal"><span class="pre">ZIP</span></code> method runs one job for each set of parameters (and, thus, the number of realizations for each parameter must be identical), the <code class="docutils literal"><span class="pre">COMBINATION</span></code> method runs every combination of parameters.</p>
+<p><em>correlations</em> is a boolean that, if True, instructs the Permutator to create a correlation table and plots relating permutated parameters and return value of <em>func</em>.</p>
+<p><em>descriptors</em> is a list of descriptors for the values returned from <em>func</em>.</p>
+<p><em>nprocs</em> is the integer number of simultaneous jobs to run.</p>
+<p><em>d</em> is the parent directory to run jobs.  If the directory does not exist, it will be created.  If the directory exists and <em>bu</em> is <em>False</em>, the directory will be first erased and then re-created.  If the directory exists but <em>bu</em> is <em>True</em>, the directory is archived.</p>
+<p>If <em>shotgun</em> is <em>True</em>, input parameters are randomized.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="running-the-permutator">
+<h2>Running the Permutator<a class="headerlink" href="#running-the-permutator" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="Permutator.run">
+<code class="descclassname">Permutator.</code><code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Permutator.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the simulation</p>
+</dd></dl>
+
+</div>
+<div class="section" id="permutatevariable-factory-method">
+<h2>PermutateVariable Factory Method<a class="headerlink" href="#permutatevariable-factory-method" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="PermutateVariable">
+<code class="descname">PermutateVariable</code><span class="sig-paren">(</span><em>name</em>, <em>init</em>, <em>method=LIST</em>, <em>b=None</em>, <em>N=10</em><span class="sig-paren">)</span><a class="headerlink" href="#PermutateVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PermutateVariable object</p>
+<p><em>name</em> is the name of variable and <em>init</em> is its initial value (or values).  <em>method</em> is the method use to generate all values. If <em>method</em> is <code class="docutils literal"><span class="pre">LIST</span></code>, then all values shall be given in <em>init</em>.  Otherwise, values will be generated. Valid methods are <code class="docutils literal"><span class="pre">LIST,</span> <span class="pre">WEIBULL,</span> <span class="pre">UNIFORM,</span> <span class="pre">NORMAL,</span> <span class="pre">PERCENTAGE</span></code>.</p>
+<p>The interpretation of the following arguments depends on <em>method</em></p>
+<p>For methods other than <code class="docutils literal"><span class="pre">LIST</span></code>, values are generated from a function called as <em>fun(init, b, N)</em>.  The interpretation of <em>b</em> is dependent on which method fun represents.  <em>N</em> is the number of values to generate.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>The following input demonstrates how to permutate the <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">G</span></code>
+parameters to the <code class="docutils literal"><span class="pre">elastic</span></code> model.  The input can be found in <code class="docutils literal"><span class="pre">matmodlab/examples/permutate.py</span></code>.</p>
+<div class="section" id="the-example-script">
+<h3>The Example Script<a class="headerlink" href="#the-example-script" title="Permalink to this headline">¶</a></h3>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matmodlab</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">xnames</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+
+    <span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># set up the material</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xnames</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="s1">&#39;elastic&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+    <span class="c1"># set up and run the model</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="n">s</span> <span class="o">=</span> <span class="n">mps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;STRESS_XX&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+<span class="n">K</span> <span class="o">=</span> <span class="n">PermutateVariable</span><span class="p">(</span><span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="mf">125e9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">WEIBULL</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">PermutateVariable</span><span class="p">(</span><span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="mf">45e9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">PERCENTAGE</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">permutator</span> <span class="o">=</span> <span class="n">Permutator</span><span class="p">(</span><span class="s1">&#39;permutation&#39;</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">G</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">ZIP</span><span class="p">,</span>
+                        <span class="n">descriptors</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;MAX_PRES&#39;</span><span class="p">],</span> <span class="n">correlations</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">permutator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="how-does-the-script-work">
+<h3>How Does the Script Work?<a class="headerlink" href="#how-does-the-script-work" title="Permalink to this headline">¶</a></h3>
+<p>This section describes each part of the example script</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matmodlab</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>This statement makes the Matmodlab objects accessible to the script.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">K</span> <span class="o">=</span> <span class="n">PermutateVariable</span><span class="p">(</span><span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="mf">125e9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">WEIBULL</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">PermutateVariable</span><span class="p">(</span><span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="mf">45e9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">PERCENTAGE</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These statements define parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">G</span></code> to be permutated by the <code class="docutils literal"><span class="pre">WEIBULL</span></code> method with a Weibull modulus of 14 (<code class="docutils literal"><span class="pre">b</span></code>) and <code class="docutils literal"><span class="pre">PERCENTAGE</span></code> method with parameters chosen between +/- 10% of the initial (<code class="docutils literal"><span class="pre">b</span></code>), respectively.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">permutator</span> <span class="o">=</span> <span class="n">Permutator</span><span class="p">(</span><span class="s1">&#39;permutation&#39;</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">G</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">ZIP</span><span class="p">,</span>
+                        <span class="n">descriptors</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;MAX_PRES&#39;</span><span class="p">],</span> <span class="n">correlations</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This statement instantiates the <code class="docutils literal"><span class="pre">Permutator</span></code> object, using the <code class="docutils literal"><span class="pre">ZIP</span></code> method.  Correlations between <code class="docutils literal"><span class="pre">K</span></code>, <code class="docutils literal"><span class="pre">G</span></code> and the output variable <code class="docutils literal"><span class="pre">MAX_PRES</span></code> are requested.  Note that <code class="docutils literal"><span class="pre">MAX_PRES</span></code> is returned by <code class="docutils literal"><span class="pre">func</span></code> and not Matmodlab.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">permutator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This statement runs the job.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">xnames</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+
+    <span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">StrainStep</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">increment</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-.</span><span class="mi">5</span><span class="p">,</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># set up the material</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xnames</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>These statements define the function exercised by the Permutator.  The first lines are the instantiation of the MaterialPointSimulator, and specification of the analysis steps.  In the last line, the <em>parameters</em> dictionary is assembled with the current values of the permutated variables in <em>x</em> and their names <em>xnames</em>.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="s1">&#39;elastic&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+<span class="c1"># set up and run the model</span>
+<span class="n">mps</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>These statements set up the simulators material and run the job.</p>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">mps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;STRESS_XX&#39;</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These statements get the maximum axial stress from the simulation and return it.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro/index.html">1. Introduction and Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">2. Job Execution</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">2.1. Job Execution: Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">2.2. Execution Procedures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mps.html">2.3. MaterialPointSimulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="post.html">2.4. Postprocessing Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook.html">2.5. Notebook</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">2.6. Permutator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-permutator-constructor">The Permutator Constructor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-permutator">Running the Permutator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#permutatevariable-factory-method">PermutateVariable Factory Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-example-script">The Example Script</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-does-the-script-work">How Does the Script Work?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optimize.html">2.7. Optimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">2.8. Annotated Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/execution/permutate.rst.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

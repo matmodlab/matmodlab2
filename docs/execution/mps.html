@@ -1,0 +1,325 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2.3. MaterialPointSimulator &#8212; Material Model Laboratory 3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.4. Postprocessing Results" href="post.html" />
+    <link rel="prev" title="2.2. Execution Procedures" href="cli.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="materialpointsimulator">
+<span id="mps"></span><h1>2.3. MaterialPointSimulator<a class="headerlink" href="#materialpointsimulator" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">See Also</p>
+<ul class="simple">
+<li><a class="reference internal" href="../intro/conventions.html#intro-conventions"><span class="std std-ref">Conventions</span></a></li>
+<li><a class="reference internal" href="../intro/output.html#mml-out-dbs"><span class="std std-ref">Matmodlab File Formats</span></a></li>
+<li><a class="reference internal" href="../material/builtin.html#mat-builtin"><span class="std std-ref">Material Library</span></a></li>
+<li><a class="reference internal" href="../material/user.html#user-mats"><span class="std std-ref">User Defined Materials</span></a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>A model in Matmodlab is defined by a <code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code> object. The
+<code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code> object manages and allocates memory for materials and
+analysis steps. In this section, the <code class="docutils literal"><span class="pre">MaterialPointSimulator</span></code> object is
+described.</p>
+</div>
+<div class="section" id="the-materialpointsimulator-constructor">
+<h2>The MaterialPointSimulator Constructor<a class="headerlink" href="#the-materialpointsimulator-constructor" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="MaterialPointSimulator">
+<em class="property">class </em><code class="descname">MaterialPointSimulator</code><span class="sig-paren">(</span><em>job</em>, <em>verbosity=1</em>, <em>d=None</em>, <em>inital_temperature=DEFAULT_TEMP</em>, <em>output=DBX</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a MaterialPointSimulator object and set up the simulation.</p>
+<p>The <code class="docutils literal"><span class="pre">job</span></code> string is the simulation ID.  Generated files are named <code class="docutils literal"><span class="pre">job.ext</span></code>, where ext is the file extension.</p>
+<p>The following arguments are optional.</p>
+<p>The <code class="docutils literal"><span class="pre">verbosity</span></code> integer set the simulation verbosity. Generally, 0=quiet, 2=noisy.  The <code class="docutils literal"><span class="pre">d</span></code> string is the simulation directory, the default is the working directory.  <code class="docutils literal"><span class="pre">initial_temperature</span></code> is the initial temperature, the default is <code class="docutils literal"><span class="pre">298</span></code> K.  The <code class="docutils literal"><span class="pre">output</span></code> symbolic constant specifies the output type, it defaults to <code class="docutils literal"><span class="pre">DBX</span></code> if not specified.  See <a class="reference internal" href="../intro/output.html#mml-out-dbs"><span class="std std-ref">Matmodlab File Formats</span></a> for a description of supported output formats.</p>
+<p>Examples:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mps</span> <span class="o">=</span> <span class="n">MaterialPointSimulator</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="s1">&#39;/home/user/sim&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="defining-a-material-model">
+<span id="defining-a-material"></span><h2>Defining a Material Model<a class="headerlink" href="#defining-a-material-model" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="MaterialPointSimulator.Material">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">Material</code><span class="sig-paren">(</span><em>model</em>, <em>parameters</em>, <em>name=None</em>, <em>switch=None</em>, <em>rebuild=False</em>, <em>source_files=None</em>, <em>depvar=None</em>, <em>fiber_dirs=None</em>, <em>user_ics=False</em>, <em>order=None</em>, <em>response=None</em>, <em>libname=None</em>, <em>param_names=None</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.Material" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and assign a material model</p>
+<p>The required arguments are a model name and material parameters.  The model name must be a recognized material model (see <a class="reference internal" href="../material/index.html#mat-index"><span class="std std-ref">Materials</span></a>).  <code class="docutils literal"><span class="pre">parameters</span></code> is either a dictionary of <code class="docutils literal"><span class="pre">key:value</span></code> (<code class="docutils literal"><span class="pre">key</span></code> being the parameter name, <code class="docutils literal"><span class="pre">value</span></code> its numeric value) or ndarray.</p>
+<p>The following arguments are optional and applicable to all materials.</p>
+<p><code class="docutils literal"><span class="pre">rebuild</span></code> is a boolean that, when <code class="docutils literal"><span class="pre">True</span></code>, forces the material model to be rebuilt before the simulation.  <code class="docutils literal"><span class="pre">switch</span></code> is a tuple containing the material name and the name of another material to be switched in to its place.</p>
+<p><strong>The following arguments are applicable to user materials:</strong></p>
+<p>A user material is invoked by setting <code class="docutils literal"><span class="pre">model</span></code> to one of <code class="docutils literal"><span class="pre">USER</span></code>, <code class="docutils literal"><span class="pre">UMAT</span></code>, <code class="docutils literal"><span class="pre">UHYPER</span></code>, <code class="docutils literal"><span class="pre">UANISOHYPER_INV</span></code> (see <a class="reference internal" href="../material/user.html#user-mats"><span class="std std-ref">User Defined Materials</span></a> for details).</p>
+<p><code class="docutils literal"><span class="pre">source_files</span></code> is a list of model source files.  Each file must exist and be readable on the file system.  <code class="docutils literal"><span class="pre">depvar</span></code> is either the integer number of state dependent variables or a list of state dependent variable names. <code class="docutils literal"><span class="pre">fiber_dirs</span></code> is an array of fiber directions (applicable only to uanisohyper_inv models). <code class="docutils literal"><span class="pre">param_names</span></code> is a list of parameter names. If <code class="docutils literal"><span class="pre">user_ics</span></code> is <code class="docutils literal"><span class="pre">True</span></code>, Matmodlab calls the user supplied <code class="docutils literal"><span class="pre">SDVINI</span></code> subroutine to initialize state dependent variables - otherwise they are set to <code class="docutils literal"><span class="pre">0</span></code>.  <code class="docutils literal"><span class="pre">order</span></code> is a list of strings specifying the component ordering of second order tensors.  <code class="docutils literal"><span class="pre">response</span></code> is one of <code class="docutils literal"><span class="pre">MECHANICAL</span></code>, <code class="docutils literal"><span class="pre">HYPERELASTIC</span></code>, or <code class="docutils literal"><span class="pre">ANISOHYPER</span></code> and is used to determine which type of response the model will describe.</p>
+<p>Examples:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="s1">&#39;elastic&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mf">123e9</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="mf">53e9</span><span class="p">})</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mps</span><span class="o">.</span><span class="n">Material</span><span class="p">(</span><span class="n">UMAT</span><span class="p">,</span> <span class="p">(</span><span class="mf">10e6</span><span class="p">,</span> <span class="o">.</span><span class="mi">333</span><span class="p">,</span> <span class="mf">42e3</span><span class="p">),</span>
+<span class="go">                 source_files=(&#39;umat.f&#39;, &#39;umat.pyf&#39;),</span>
+<span class="go">                 param_names=(&#39;E&#39;, &#39;nu&#39;, &#39;Y&#39;), user_ics=True,</span>
+<span class="go">                 depvar=(&#39;EQPS&#39;,))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<div class="section" id="optional-material-addons">
+<h3>Optional Material Addons<a class="headerlink" href="#optional-material-addons" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="thermal-expansion">
+<span id="expan-model"></span><h4>Thermal Expansion<a class="headerlink" href="#thermal-expansion" title="Permalink to this headline">¶</a></h4>
+<p>A <a class="reference internal" href="#expan-model"><span class="std std-ref">Thermal Expansion</span></a> object, enabling the computation of thermal strains associated with thermal expansion.</p>
+</div>
+<div class="section" id="viscoelasticity">
+<span id="visco-model"></span><h4>Viscoelasticity<a class="headerlink" href="#viscoelasticity" title="Permalink to this headline">¶</a></h4>
+<p>A <a class="reference internal" href="#visco-model"><span class="std std-ref">Viscoelasticity</span></a> object defining the linear relaxation response of the material.  When given, the elastic moduli are treated as the instantaneous values.</p>
+</div>
+<div class="section" id="time-temperature-shift">
+<span id="trs-model"></span><h4>Time-Temperature Shift<a class="headerlink" href="#time-temperature-shift" title="Permalink to this headline">¶</a></h4>
+<p>Used in conjuction with a <a class="reference internal" href="#visco-model"><span class="std std-ref">Viscoelasticity</span></a> to compute a reduced time.</p>
+</div>
+</div>
+</div>
+<div class="section" id="defining-simulation-steps">
+<h2>Defining Simulation Steps<a class="headerlink" href="#defining-simulation-steps" title="Permalink to this headline">¶</a></h2>
+<p>The recommended way to create simulation steps is to use the following convenience functions.</p>
+<dl class="method">
+<dt id="MaterialPointSimulator.StrainStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">StrainStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.StrainStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the strain tensor.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.StrainRateStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">StrainRateStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.StrainRateStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the strain rate tensor.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.StressStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">StressStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.StressStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the stress tensor.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><code class="docutils literal"><span class="pre">kappa</span></code> is set to <code class="docutils literal"><span class="pre">0</span></code> for stress steps</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.StressRateStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">StressRateStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.StressRateStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the stress rate tensor.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><code class="docutils literal"><span class="pre">kappa</span></code> is set to <code class="docutils literal"><span class="pre">0</span></code> for stress rate steps</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.DisplacementStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">DisplacementStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.DisplacementStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the displacement vector, applied only to the “+” faces of a unit cube centered at the coordinate origin.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.DefGradStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">DefGradStep</code><span class="sig-paren">(</span><em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.DefGradStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of the deformation gradient tensor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="MaterialPointSimulator.DataSteps">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">DataSteps</code><span class="sig-paren">(</span><em>filename</em>, <em>tc=0</em>, <em>columns=None</em>, <em>descriptors=None</em>, <em>skiprows=0</em>, <em>comments='#'</em>, <em>sheet=None</em>, <em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.DataSteps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate steps from a data file.</p>
+<p><code class="docutils literal"><span class="pre">filename</span></code> is the name of a file containing the data.  <code class="docutils literal"><span class="pre">tc</span></code> is the integer index of the column containing time.  <code class="docutils literal"><span class="pre">columns</span></code> are the indices of the columns containing data.  If not given, <code class="docutils literal"><span class="pre">columns</span></code> is taken to be the first six columns of the file, that are not <code class="docutils literal"><span class="pre">tc</span></code>.</p>
+<p><code class="docutils literal"><span class="pre">skiprows</span></code> is the integer number of rows to skip before reading data, <code class="docutils literal"><span class="pre">comments</span></code> is the comment delimiter.  <code class="docutils literal"><span class="pre">sheet</span></code> is the sheet from which to read data, if <code class="docutils literal"><span class="pre">filename</span></code> is an excel file.</p>
+<p>The i<sup>th</sup> <code class="docutils literal"><span class="pre">descriptor</span></code> designates the physical interpretation of the i<sup>th</sup>.  <code class="docutils literal"><span class="pre">descriptors</span></code> must be one of <code class="docutils literal"><span class="pre">'E'</span></code> (strain), <code class="docutils literal"><span class="pre">'D'</span></code> (strain rate), <code class="docutils literal"><span class="pre">'S'</span></code> (stress), <code class="docutils literal"><span class="pre">'R'</span></code> (stress rate), <code class="docutils literal"><span class="pre">'P'</span></code> (electric field), <code class="docutils literal"><span class="pre">'T'</span></code> (temperature).</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+</dd></dl>
+
+<span class="target" id="mixed-step"></span><dl class="method">
+<dt id="MaterialPointSimulator.MixedStep">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">MixedStep</code><span class="sig-paren">(</span><em>descriptors=None</em>, <em>*</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.MixedStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>All step components are interpreted as components of stress and/or strain.</p>
+<p>The i<sup>th</sup> <code class="docutils literal"><span class="pre">descriptor</span></code> designates the physical interpretation of the i<sup>th</sup>.  <code class="docutils literal"><span class="pre">descriptors</span></code> must be one of <code class="docutils literal"><span class="pre">'E'</span></code> or <code class="docutils literal"><span class="pre">'S'</span></code> with <code class="docutils literal"><span class="pre">'E'</span></code> representing strain and <code class="docutils literal"><span class="pre">'S'</span></code> representing stress.</p>
+<p>The arguments represented by the * are common to all other step methods and are described in <a class="reference internal" href="#common-args"><span class="std std-ref">Common Step Arguments</span></a>.</p>
+</dd></dl>
+
+<div class="section" id="common-step-arguments">
+<span id="common-args"></span><h3>Common Step Arguments<a class="headerlink" href="#common-step-arguments" title="Permalink to this headline">¶</a></h3>
+<p>The arguments common to all step functions are:</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">components</span></code> are the components of the tensor defining the step.  Tensor ordering is described in <a class="reference internal" href="../intro/conventions.html#intro-conventions"><span class="std std-ref">Conventions</span></a>.  For all tensors, the components are assumed to be the “tensor values”, as opposed to the “engineering values”.  For symmetric tensors, specifying only the three diagonal components implicitly assigns the off-diagonal components a value of zero.  For strain type tensors, if only a single component is given, it is assumed to be a volumetric deformation.  For stress type tensors, if only a single component is given, it is assumed to be a pressure.</p>
+<p><code class="docutils literal"><span class="pre">scale</span></code> is a multiplier applied to all components.  It can be a float or a numpy ndarray (so that a different scale could be applied to each component separately).</p>
+<p><code class="docutils literal"><span class="pre">frames</span></code> is the integer number of increments that the step is subdivided in to.</p>
+<p><code class="docutils literal"><span class="pre">kappa</span></code> the Seth-Hill strain parameter.  See <a class="reference internal" href="../intro/solution.html#strain-tensor"><span class="std std-ref">The Strain Tensor</span></a> for details.</p>
+<p><code class="docutils literal"><span class="pre">temperature</span></code> is the temperature.  If not specified, the step is assigned the same temperature as the previous step.</p>
+<p><code class="docutils literal"><span class="pre">elec_field</span></code> is the electric field vector.  If none is given, it is set to <code class="docutils literal"><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">0)</span></code>.</p>
+<p><code class="docutils literal"><span class="pre">num_dumps</span></code> is the integer number of times to write the output database.  If not specified, all step increments are written.</p>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="running-the-simulation">
+<h2>Running the Simulation<a class="headerlink" href="#running-the-simulation" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="MaterialPointSimulator.run">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">run</code><span class="sig-paren">(</span><em>termination_time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the simulation</p>
+<p><code class="docutils literal"><span class="pre">termination_time</span></code> is the termination time.  If not given, the final time from the last step is used.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="extracting-results-from-the-output-database">
+<h2>Extracting Results from the Output Database<a class="headerlink" href="#extracting-results-from-the-output-database" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="MaterialPointSimulator.get">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">get</code><span class="sig-paren">(</span><em>*variables</em>, <em>model=None</em>, <em>disp=0</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get variables from output database.</p>
+<p><code class="docutils literal"><span class="pre">variables</span></code> is a list of variables to extract.  If <code class="docutils literal"><span class="pre">disp</span></code> is <code class="docutils literal"><span class="pre">1</span></code>, the variables are returned, in addition to a header describing the variables.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="viewing-simulation-results">
+<h2>Viewing Simulation Results<a class="headerlink" href="#viewing-simulation-results" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="MaterialPointSimulator.view">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">view</code><span class="sig-paren">(</span><em>model=None</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.view" title="Permalink to this definition">¶</a></dt>
+<dd><p>Display simulation results in visualizer.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="exporting-results-to-other-formats">
+<h2>Exporting Results to Other Formats<a class="headerlink" href="#exporting-results-to-other-formats" title="Permalink to this headline">¶</a></h2>
+<dl class="method">
+<dt id="MaterialPointSimulator.dump">
+<code class="descclassname">MaterialPointSimulator.</code><code class="descname">dump</code><span class="sig-paren">(</span><em>variables</em>, <em>model=None</em>, <em>format='ascii'</em>, <em>ffmt='%.18f'</em><span class="sig-paren">)</span><a class="headerlink" href="#MaterialPointSimulator.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes simulation results for the requested <code class="docutils literal"><span class="pre">variables</span></code> to the requested <code class="docutils literal"><span class="pre">format</span></code>.</p>
+<p><code class="docutils literal"><span class="pre">variables</span></code> is a list of variables to extract from the database and are written the <code class="docutils literal"><span class="pre">MaterialPointSimulator.job.ext</span></code>, where <code class="docutils literal"><span class="pre">ext</span></code> is a file extension that depends on the requested output <code class="docutils literal"><span class="pre">format</span></code>.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Material Model Laboratory</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=tjfulle&repo=matmodlab&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro/index.html">1. Introduction and Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">2. Job Execution</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">2.1. Job Execution: Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">2.2. Execution Procedures</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">2.3. MaterialPointSimulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-materialpointsimulator-constructor">The MaterialPointSimulator Constructor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-a-material-model">Defining a Material Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#optional-material-addons">Optional Material Addons</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-simulation-steps">Defining Simulation Steps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#common-step-arguments">Common Step Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-simulation">Running the Simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extracting-results-from-the-output-database">Extracting Results from the Output Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#viewing-simulation-results">Viewing Simulation Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exporting-results-to-other-formats">Exporting Results to Other Formats</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="post.html">2.4. Postprocessing Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook.html">2.5. Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="permutate.html">2.6. Permutator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimize.html">2.7. Optimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">2.8. Annotated Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Tim Fuller, Scot Swan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
+      
+      |
+      <a href="../_sources/execution/mps.rst.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

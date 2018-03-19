@@ -8,7 +8,6 @@ Overview
 
 Conventions used through out *Matmodlab2* are described.
 
-
 Dimension
 =========
 

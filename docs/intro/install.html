@@ -1,31 +1,29 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>1.2. Installing Matmodlab &#8212; Material Model Laboratory 3.0 documentation</title>
-    
+    <title>1.2. Installing Matmodlab2 &#8212; Material Model Laboratory 3.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
         VERSION:     '3.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
-    <link rel="up" title="1. Introduction and Overview" href="index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="1.3. Input Syntax Guidelines" href="input.html" />
     <link rel="prev" title="1.1. Introduction: Background" href="about.html" />
    
@@ -33,20 +31,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
 
   </head>
-  <body role="document">  
+  <body>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="installing-matmodlab">
-<span id="intro-install"></span><h1>1.2. Installing Matmodlab<a class="headerlink" href="#installing-matmodlab" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="installing-matmodlab2">
+<span id="intro-install"></span><h1>1.2. Installing Matmodlab2<a class="headerlink" href="#installing-matmodlab2" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p><em>Matmodlab2</em>&#8216;s code base is largely written in Python and requires no
+<p><em>Matmodlab2</em>’s code base is largely written in Python and requires no
 additional compiling. However, several (optional) linear algebra packages and
-material models are written in Fortran and require a seperate compile step.</p>
+material models are written in Fortran and require a separate compile step.</p>
 </div>
 <div class="section" id="system-requirements">
 <h2>System Requirements<a class="headerlink" href="#system-requirements" title="Permalink to this headline">¶</a></h2>
@@ -69,8 +67,7 @@ packages are installed.</p>
 <li><a class="reference external" href="http://pandas.pydata.org">pandas</a> for the <code class="docutils literal"><span class="pre">DataFrame</span></code> object.</li>
 </ol>
 <p>The required software may be obtained in several ways, though most development
-has been made using the <a class="reference external" href="http://www.continuum.io">Anaconda</a> and <a class="reference external" href="http://www.enthought.com">Enthought
-Canopy</a> Python Distributions.</p>
+has been made using the <a class="reference external" href="http://www.continuum.io">Anaconda</a> Python distribution.</p>
 </div>
 <div class="section" id="installation">
 <span id="id1"></span><h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
@@ -78,14 +75,19 @@ Canopy</a> Python Distributions.</p>
 <p class="first admonition-title">Note</p>
 <p class="last">Ensure that all <em>Matmodlab2</em> prerequisites are installed and working properly before proceeding.</p>
 </div>
-<p>Obtain the source code from <a class="reference external" href="https://github.com/tjfulle/matmodlab2">github</a>
+<p>Obtain the source code from <a class="reference external" href="https://github.com/matmodlab/matmodlab2">github</a>
 and add the path to the <code class="docutils literal"><span class="pre">matmodlab2</span></code> directory to your <code class="docutils literal"><span class="pre">PYTHONPATH</span></code> environment
-variable.</p>
+variable:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ git clone https://www.github.com/matmodlab/matmodlab2
+$ export MATMODLAB2_DIR=`pwd`/matmodlab
+$ export PYTHONPATH=${PYTHONPATH}:${MATMODLAB2_DIR}
+</pre></div>
+</div>
 <div class="section" id="build-optional">
 <h3>Build (Optional)<a class="headerlink" href="#build-optional" title="Permalink to this headline">¶</a></h3>
 <p>A library of Fortran linear algebra routines can also be built. Navigate to
 <code class="docutils literal"><span class="pre">matmodlab2/matmodlab2/ext_helpers</span></code> and execute the <code class="docutils literal"><span class="pre">build_ext.py</span></code> script:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>$ cd matmodlab2/matmodlab2/ext_helpers
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ cd ${MATMODLAB2_DIR}/matmodlab2/ext_helpers
 $ ./build_ext.py matfuncs
 </pre></div>
 </div>
@@ -94,7 +96,7 @@ $ ./build_ext.py matfuncs
 <div class="section" id="testing-the-installation">
 <h2>Testing the Installation<a class="headerlink" href="#testing-the-installation" title="Permalink to this headline">¶</a></h2>
 <p>Testing requires that the <a class="reference external" href="http://pytest.org/latest">pytest</a> module be installed.  Tests are run by executing:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>$ cd matmodlab2/tests
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ cd ${MATMODLAB2_DIR}/tests
 $ py.test .
 </pre></div>
 </div>
@@ -102,7 +104,7 @@ $ py.test .
 <div class="section" id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
 <p>If you run in to problems, open an issue at
-<a class="reference external" href="https://github.com/tjfulle/matmodlab2">https://github.com/tjfulle/matmodlab2</a>.</p>
+<a class="reference external" href="https://github.com/matmodlab/matmodlab2">https://github.com/matmodlab/matmodlab2</a>.</p>
 </div>
 </div>
 
@@ -128,7 +130,7 @@ $ py.test .
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="about.html">1.1. Introduction: Background</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">1.2. Installing Matmodlab</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">1.2. Installing Matmodlab2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#system-requirements">System Requirements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#required-software">Required Software</a></li>
@@ -147,6 +149,10 @@ $ py.test .
 <li class="toctree-l2"><a class="reference internal" href="output.html">1.7. Matmodlab File Formats</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
 </ul>
 
 
@@ -168,11 +174,11 @@ $ py.test .
       &copy;2014, Tim Fuller, Scot Swan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
       
       |
-      <a href="../_sources/intro/install.txt"
+      <a href="../_sources/intro/install.rst.txt"
           rel="nofollow">Page source</a></li>
     </div>
 

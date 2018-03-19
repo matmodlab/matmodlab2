@@ -8,19 +8,20 @@ Overview
 ========
 
 *Matmodlab2* sets up and performs execution of input scripts in a customized
-environment (not to be confused with Python virtural environments). The
-environment can be modifed by user environment files that are read at the
+environment (not to be confused with Python virtual environments). The
+environment can be modified by user environment files that are read at the
 beginning of each job.
 
 Environment File Locations
 ==========================
 
-*Matmodlab2* searches for the optional user environment file, ``mml_userenv.py``, in two locations, in the following order:
+*Matmodlab2* searches for the optional user environment file,
+``mml_userenv.py``, in two locations, in the following order:
 
 1) The location specified by the environment variable ``MML_USERENV``
 2) The current working directory.
 
-The value of a parameter is the the last definition encountered, meaning that
+The value of a parameter is the last definition encountered, meaning that
 the order of precedence for user settings is the current working directory and
 ``MML_USERENV``.
 

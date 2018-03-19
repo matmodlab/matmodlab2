@@ -1,39 +1,37 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
     <title>1.3. Input Syntax Guidelines &#8212; Material Model Laboratory 3.0 documentation</title>
-    
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
         VERSION:     '3.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="Material Model Laboratory 3.0 documentation" href="../index.html" />
-    <link rel="up" title="1. Introduction and Overview" href="index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="1.4. Conventions" href="conventions.html" />
-    <link rel="prev" title="1.2. Installing Matmodlab" href="install.html" />
+    <link rel="prev" title="1.2. Installing Matmodlab2" href="install.html" />
    
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
 
   </head>
-  <body role="document">  
+  <body>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -44,7 +42,8 @@
 <h1>1.3. Input Syntax Guidelines<a class="headerlink" href="#input-syntax-guidelines" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>This section describes some conventions used in the <em>Matmodlab2</em> API and adopted in user input scripts.</p>
+<p>This section describes some conventions used in the <em>Matmodlab2</em> API and adopted
+in user input scripts.</p>
 </div>
 <div class="section" id="matmodlab2-namespace">
 <h2>Matmodlab2 Namespace<a class="headerlink" href="#matmodlab2-namespace" title="Permalink to this headline">¶</a></h2>
@@ -52,7 +51,7 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matmodlab2</span> <span class="k">import</span> <span class="o">*</span>
 </pre></div>
 </div>
-<p>to populate the script&#8217;s namespace with <em>Matmodlab2</em> specific functions and
+<p>to populate the script’s namespace with <em>Matmodlab2</em> specific functions and
 classes.</p>
 <div class="section" id="primary-classes">
 <h3>Primary Classes<a class="headerlink" href="#primary-classes" title="Permalink to this headline">¶</a></h3>
@@ -70,9 +69,9 @@ classes.</p>
 <a class="reference external" href="https://www.python.org/dev/peps/pep-0008">PEP8</a> guidelines for more
 guidance):</p>
 <ul class="simple">
-<li>Class names use the CapWords convention.</li>
-<li>Method names use lowercase with words separated by underscores as necessary to
-improve readability.</li>
+<li>Class names use the <code class="docutils literal"><span class="pre">CapWords</span></code> convention.</li>
+<li>Method names use <code class="docutils literal"><span class="pre">lowercase</span></code> with words separated by underscores as
+necessary to improve readability.</li>
 <li>Variable names adopt the same rule as method names.</li>
 </ul>
 </div>
@@ -100,7 +99,7 @@ improve readability.</li>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">1. Introduction and Overview</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="about.html">1.1. Introduction: Background</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html">1.2. Installing Matmodlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html">1.2. Installing Matmodlab2</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">1.3. Input Syntax Guidelines</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#matmodlab2-namespace">Matmodlab2 Namespace</a><ul>
@@ -116,6 +115,10 @@ improve readability.</li>
 <li class="toctree-l2"><a class="reference internal" href="output.html">1.7. Matmodlab File Formats</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../execution/index.html">2. Job Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../material/index.html">3. Materials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">4. Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../test/index.html">5. Material Model Testing</a></li>
 </ul>
 
 
@@ -137,11 +140,11 @@ improve readability.</li>
       &copy;2014, Tim Fuller, Scot Swan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.4</a>
       
       |
-      <a href="../_sources/intro/input.txt"
+      <a href="../_sources/intro/input.rst.txt"
           rel="nofollow">Page source</a></li>
     </div>
 

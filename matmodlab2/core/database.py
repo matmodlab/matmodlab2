@@ -12,11 +12,10 @@ def read_exodb(filename):
 
 def read_npzdb(filename):
     from pandas import DataFrame
-    f = np.load(filename)
+    f = np.load(filename, allow_pickle=True)
     return DataFrame(f['data'], columns=f['columns'])
 
 def read_db(filename):
-    print(filename)
     if filename.endswith('npz'):
         return read_npzdb(filename)
     elif filename.endswith('exo'):
@@ -65,7 +64,7 @@ def DatabaseFile(jobid, mode='r'):
         return DatabaseFileWriter(jobid, filename)
     if filename.endswith('.npz'):
         from pandas import DataFrame
-        f = np.load(filename)
+        f = np.load(filename, allow_pickle=True)
         df = DataFrame(f['data'], columns=f['columns'])
     else:
         db = DatabaseFileReader(filename)

@@ -1,13 +1,12 @@
-import os
 import numpy as np
+
 
 def amag(a):
     return np.sqrt(np.sum(a * a))
 
-def rms_error(t1, d1, t2, d2, disp=1):
-    """Compute the RMS and normalized RMS error
 
-    """
+def rms_error(t1, d1, t2, d2, disp=1):
+    """Compute the RMS and normalized RMS error"""
     t1 = np.asarray(t1)
     d1 = np.asarray(d1)
     t2 = np.asarray(t2)
@@ -18,27 +17,26 @@ def rms_error(t1, d1, t2, d2, disp=1):
     else:
         rms = interp_rms_error(t1, d1, t2, d2)
     dnom = np.amax(np.abs(d1))
-    if dnom < 1.e-12: dnom = 1.
+    if dnom < 1.0e-12:
+        dnom = 1.0
     if disp:
         return rms, rms / dnom
     return rms / dnom
 
 
 def interp_rms_error(t1, d1, t2, d2):
-    """Compute RMS error by interpolation
-
-    """
+    """Compute RMS error by interpolation"""
     ti = max(np.amin(t1), np.amin(t2))
     tf = min(np.amax(t1), np.amax(t2))
     n = t1.shape[0]
     f1 = lambda x: np.interp(x, t1, d1)
     f2 = lambda x: np.interp(x, t2, d2)
-    rms = np.sqrt(np.mean([(f1(t) - f2(t)) ** 2
-                           for t in np.linspace(ti, tf, n)]))
+    rms = np.sqrt(np.mean([(f1(t) - f2(t)) ** 2 for t in np.linspace(ti, tf, n)]))
     return rms
 
+
 def line_intersect(pt0, pt1, pt2, pt3):
-    """ Determine if and where two line segments intersect.
+    """Determine if and where two line segments intersect.
 
     The four (x,y) point pairs define the two line segments with
     pt0 and pt1 defining the first segment and pt2 and pt3 defining
@@ -52,11 +50,17 @@ def line_intersect(pt0, pt1, pt2, pt3):
     Created: 2015 April 29, msswan
     """
     # Simplest check: do bounding boxes intersect?
-    if (max(pt0[0], pt1[0]) < min(pt2[0], pt3[0]) or   # box 0 left of box 1
-        max(pt2[0], pt3[0]) < min(pt0[0], pt1[0])):    # box 1 left of box 0
+    if max(pt0[0], pt1[0]) < min(pt2[0], pt3[0]) or max(  # box 0 left of box 1
+        pt2[0], pt3[0]
+    ) < min(
+        pt0[0], pt1[0]
+    ):  # box 1 left of box 0
         return False, []
-    elif (max(pt0[1], pt1[1]) < min(pt2[1], pt3[1]) or # box 0 below box 1
-          max(pt2[1], pt3[1]) < min(pt0[1], pt1[1])):  # box 1 below box 0
+    elif max(pt0[1], pt1[1]) < min(pt2[1], pt3[1]) or max(  # box 0 below box 1
+        pt2[1], pt3[1]
+    ) < min(
+        pt0[1], pt1[1]
+    ):  # box 1 below box 0
         return False, []
 
     p0 = np.array(pt0)
@@ -64,19 +68,18 @@ def line_intersect(pt0, pt1, pt2, pt3):
     p2 = np.array(pt2)
     p3 = np.array(pt3)
 
-
     # If both points of the other segment are on one side then they do
     # not intersect.
 
     # Check from segment 1's perspective
-    cp0 = np.cross(p1-p0, p2-p0)
-    cp1 = np.cross(p1-p0, p3-p0)
+    cp0 = np.cross(p1 - p0, p2 - p0)
+    cp1 = np.cross(p1 - p0, p3 - p0)
     if cp0 * cp1 > 0.0:
         return False, []
 
     # Check from segment 2's perspective
-    cp0 = np.cross(p3-p2, p0-p2)
-    cp1 = np.cross(p3-p2, p1-p2)
+    cp0 = np.cross(p3 - p2, p0 - p2)
+    cp1 = np.cross(p3 - p2, p1 - p2)
     if cp0 * cp1 > 0.0:
         return False, []
 
@@ -96,7 +99,7 @@ def line_intersect(pt0, pt1, pt2, pt3):
 
 
 def get_area(ptlist):
-    """ Calculate the area of a polygon defined by a list of points.
+    """Calculate the area of a polygon defined by a list of points.
 
     The variable ptlist is a list of (x, y) point pairs. Be careful,
     the implementation can give unexpected results with self-intersecting
@@ -108,12 +111,13 @@ def get_area(ptlist):
     """
     I = lambda pt1, pt2: (pt2[1] + pt1[1]) * (pt2[0] - pt1[0]) / 2.0
     area = I(ptlist[-1], ptlist[0])
-    for idx in range(0, len(ptlist)-1):
-        area += I(ptlist[idx], ptlist[idx+1])
+    for idx in range(0, len(ptlist) - 1):
+        area += I(ptlist[idx], ptlist[idx + 1])
     return abs(area)
 
+
 def calculate_bounded_area(x0, y0, x1, y1):
-    """ Calculate the area bounded by two potentially-nonmonotonic 2D data sets
+    """Calculate the area bounded by two potentially-nonmonotonic 2D data sets
 
     This function is written to calculate the area between two arbitrary
     piecewise-linear curves. The method was inspired by the arbitrary polygon
@@ -139,19 +143,28 @@ def calculate_bounded_area(x0, y0, x1, y1):
     area = 0.0
     while len(pts0) + len(pts1) > 0:
         shouldbreak = False
-        for idx in range(0, len(pts0)-1):
-            for jdx in range(0, len(pts1)-1):
-                doesintersect, int_pt = line_intersect(pts0[idx], pts0[idx+1],
-                                                       pts1[jdx], pts1[jdx+1])
+        for idx in range(0, len(pts0) - 1):
+            for jdx in range(0, len(pts1) - 1):
+                doesintersect, int_pt = line_intersect(
+                    pts0[idx], pts0[idx + 1], pts1[jdx], pts1[jdx + 1]
+                )
                 if not doesintersect:
                     continue
 
-                polygon = list(reversed(pts1[:jdx])) + pts0[:idx] + [int_pt,]
+                polygon = (
+                    list(reversed(pts1[:jdx]))
+                    + pts0[:idx]
+                    + [
+                        int_pt,
+                    ]
+                )
                 area += get_area(polygon)
 
                 # Trim the processed points off of the datasets
-                pts0 = [int_pt,] + pts0[idx+1:]
-                pts1 = pts1[jdx+1:]
+                pts0 = [
+                    int_pt,
+                ] + pts0[idx + 1 :]
+                pts1 = pts1[jdx + 1 :]
 
                 # Exit out of both for-loops
                 shouldbreak = True
@@ -170,7 +183,7 @@ def calculate_bounded_area(x0, y0, x1, y1):
     return area
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     if True:
@@ -213,7 +226,16 @@ if __name__ == '__main__':
             plt.plot(x, y, style)
 
             if a[0]:
-                plt.plot([a[1][0],], [a[1][1],], "b-o", lw=10)
+                plt.plot(
+                    [
+                        a[1][0],
+                    ],
+                    [
+                        a[1][1],
+                    ],
+                    "b-o",
+                    lw=10,
+                )
 
             plt.suptitle(repr(a[0]))
             plt.show()

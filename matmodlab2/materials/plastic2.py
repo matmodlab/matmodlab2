@@ -2,24 +2,24 @@ import numpy as np
 
 from ..core.logio import logger
 from ..core.material import Material
-from ..core.tensor import VOIGT, deviatoric_part, double_dot, \
-    dyad, magnitude
+from ..core.tensor import deviatoric_part, double_dot, dyad, magnitude
 
-ROOT2 = np.sqrt(2.)
-ROOT3 = np.sqrt(3.)
-ROOT23 = np.sqrt(2./3.)
+ROOT2 = np.sqrt(2.0)
+ROOT3 = np.sqrt(3.0)
+ROOT23 = np.sqrt(2.0 / 3.0)
 TOLER = 1e-8
+
 
 class NonhardeningPlasticMaterial(Material):
     name = "nonhardening-plastic"
 
     def __init__(self, **parameters):
-        """Set up the Plastic material """
+        """Set up the Plastic material"""
 
         # Check inputs
-        E = parameters.get('E', 0.)
-        Nu = parameters.get('Nu', 0.)
-        Y = parameters.get('Y', 0.)
+        E = parameters.get("E", 0.0)
+        Nu = parameters.get("Nu", 0.0)
+        Y = parameters.get("Y", 0.0)
         errors = 0
         if E <= 0.0:
             errors += 1
@@ -34,49 +34,48 @@ class NonhardeningPlasticMaterial(Material):
             logger.warn("#---- WARNING: negative Poisson's ratio")
         if Y < 0:
             errors += 1
-            logger.error('Yield strength must be positive')
+            logger.error("Yield strength must be positive")
         if Y < 1e-12:
             # zero strength -> assume the user wants elasticity
-            logger.info('Zero strength detected, setting it to a larg number')
+            logger.info("Zero strength detected, setting it to a larg number")
             Y = 1e60
 
         if errors:
             raise ValueError("stopping due to previous errors")
 
-        self.params = {'E': E, 'Nu': Nu, 'Y': Y}
+        self.params = {"E": E, "Nu": Nu, "Y": Y}
 
         # At this point, the parameters have been checked.  Now request
         # allocation of solution dependent variables.  The only variable
         # is the equivalent plastic strain
         self.num_sdv = 1
-        self.sdv_names = ['EP_Equiv']
+        self.sdv_names = ["EP_Equiv"]
 
-    def eval(self, time, dtime, temp, dtemp, F0, F,
-             stran, d, stress, X, **kwargs):
+    def eval(self, time, dtime, temp, dtemp, F0, F, stran, d, stress, X, **kwargs):
         """Compute updated stress given strain increment"""
 
         #  material properties
-        Y = self.params['Y']
-        E = self.params['E']
-        Nu = self.params['Nu']
+        Y = self.params["Y"]
+        E = self.params["E"]
+        Nu = self.params["Nu"]
 
         # Input parameter is yield in tension -> convert to yield in shear
         k = Y / ROOT3
 
         # Get the bulk, shear, and Lame constants
-        K = E / 3. / (1. - 2. * Nu)
-        G = E / 2. / (1. + Nu)
+        K = E / 3.0 / (1.0 - 2.0 * Nu)
+        G = E / 2.0 / (1.0 + Nu)
 
-        K3 = 3. * K
-        G2 = 2. * G
-        G3 = 3. * G
-        Lam = (K3 - G2) / 3.
+        K3 = 3.0 * K
+        G2 = 2.0 * G
+        # G3 = 3.0 * G
+        Lam = (K3 - G2) / 3.0
 
         # elastic stiffness
-        C = np.zeros((6,6))
+        C = np.zeros((6, 6))
         C[np.ix_(range(3), range(3))] = Lam
-        C[range(3),range(3)] += G2
-        C[range(3,6),range(3,6)] = G
+        C[range(3), range(3)] += G2
+        C[range(3, 6), range(3, 6)] = G
 
         # Trial stress
         de = d * dtime
@@ -116,16 +115,16 @@ class NonhardeningPlasticMaterial(Material):
             A = 2 * G * M
             Q = 2 * G * N
 
-            if abs(dGamma + 1.) < TOLER + 1.:
+            if abs(dGamma + 1.0) < TOLER + 1.0:
                 break
 
         else:
-            raise RuntimeError('Newton iterations failed to converge')
+            raise RuntimeError("Newton iterations failed to converge")
 
         # Elastic strain rate and equivalent plastic strain
-        dT = T - stress
-        dep = Gamma * M
-        dee = de - dep
+        # dT = T - stress
+        # dep = Gamma * M
+        # dee = de - dep
         deqp = ROOT2 / ROOT3 * Gamma
 
         # Elastic stiffness

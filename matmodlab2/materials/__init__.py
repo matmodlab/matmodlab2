@@ -12,15 +12,17 @@ from .tresca import TrescaMaterial
 from .neohooke import NeoHookeMaterial
 
 
-__all__ = ['DebuggerMaterial',
-           'ElasticMaterial',
-           'AnisotropicElasticMaterial',
-           'ElasticMaterialTotal',
-           'PlasticMaterial',
-           'NonhardeningPlasticMaterial',
-           'HardeningPlasticMaterial',
-           'VonMisesMaterial',
-           'PolynomialHyperelasticMaterial',
-           'MooneyRivlinMaterial',
-           'NeoHookeMaterial',
-           'TrescaMaterial']
+__all__ = [
+    "DebuggerMaterial",
+    "ElasticMaterial",
+    "AnisotropicElasticMaterial",
+    "ElasticMaterialTotal",
+    "PlasticMaterial",
+    "NonhardeningPlasticMaterial",
+    "HardeningPlasticMaterial",
+    "VonMisesMaterial",
+    "PolynomialHyperelasticMaterial",
+    "MooneyRivlinMaterial",
+    "NeoHookeMaterial",
+    "TrescaMaterial",
+]

@@ -1,8 +1,8 @@
-from numpy import reshape, dot, zeros, asarray, array, exp
+from numpy import dot, zeros, asarray, exp
 from .addon import AddonModel
-from ..core.tensor import inv, deviatoric_part, matrix_rep, push, pull, \
-    array_rep
+from ..core.tensor import deviatoric_part, push, pull, array_rep
 from ..core.logio import logger
+
 
 class ViscoelasticModel(AddonModel):
     """
@@ -40,72 +40,79 @@ class ViscoelasticModel(AddonModel):
      (63:68) : VISCO DEV PK2 STRESS FOR 10TH PRONY TERM
 
     """
-    name = '__viscoelastic__'
+
+    name = "__viscoelastic__"
+
     def __init__(self, wlf, prony):
 
         # check data
         prony = asarray(prony)
         if len(prony.shape) != 2:
-            logger.error('expected prony to be a 2D array')
+            logger.error("expected prony to be a 2D array")
 
         if len(prony) > 10:
-            logger.error('At most 10 shear relaxation coefficients '
-                          'can be specified')
+            logger.error("At most 10 shear relaxation coefficients " "can be specified")
 
-        Goo = 1. - sum(prony[:,0])
-        if Goo < 0.:
-            logger.error('expected sum of shear Prony coefficients, '
-                          'including infinity term to be one')
+        Goo = 1.0 - sum(prony[:, 0])
+        if Goo < 0.0:
+            logger.error(
+                "expected sum of shear Prony coefficients, "
+                "including infinity term to be one"
+            )
 
         # starting location of G and T Prony terms
         # setup viscoelastic params
         self.params = zeros(24)
 
-        n = len(prony[:,0])
+        n = len(prony[:, 0])
         I, J = (4, 14)
-        self.params[I:I+n] = prony[:,0]
-        self.params[J:J+n] = prony[:,1]
+        self.params[I : I + n] = prony[:, 0]
+        self.params[J : J + n] = prony[:, 1]
 
         # Ginf
         self.params[3] = Goo
 
         # wlf coefficients
         if wlf is not None:
-            self.params[0] = wlf[0] # C1
-            self.params[1] = wlf[1] # C2
-            self.params[2] = wlf[2] # REF TEMP
+            self.params[0] = wlf[0]  # C1
+            self.params[1] = wlf[1]  # C2
+            self.params[2] = wlf[2]  # REF TEMP
 
         # Check sum of prony series coefficients
-        psum  = sum(self.params[I:I+n])
-        if any(self.params[I:I+n] < 0.):
-            logger.error('Expected all shear Prony series coefficients > 0')
+        psum = sum(self.params[I : I + n])
+        if any(self.params[I : I + n] < 0.0):
+            logger.error("Expected all shear Prony series coefficients > 0")
 
         if abs(psum) < 1e-10:
-            logger.warning('Sum of normalized shear prony series coefficients\n'
-                            'including infinity term is zero. normalized infinity\n'
-                            'coefficient set to one for elastic response.')
-            self.params[3] = 1.
+            logger.warning(
+                "Sum of normalized shear prony series coefficients\n"
+                "including infinity term is zero. normalized infinity\n"
+                "coefficient set to one for elastic response."
+            )
+            self.params[3] = 1.0
 
-        elif abs(psum - 1.) > 1e-3:
-            message = ('Expected sum of normalized shear prony series\n'
-                       'coefficients including inf term to be 1,\n'
-                       'got {0}'.format(psum))
-            if abs(psum - 1) < .03:
+        elif abs(psum - 1.0) > 1e-3:
+            message = (
+                "Expected sum of normalized shear prony series\n"
+                "coefficients including inf term to be 1,\n"
+                "got {0}".format(psum)
+            )
+            if abs(psum - 1) < 0.03:
                 logger.warning(message)
             else:
                 logger.error(message)
 
         # Verify that all relaxation times are positive
         for (i, param) in enumerate(self.params[J:], start=J):
-            if param <= 0.:
-                logger.warning('Shear relaxation time term <=0, SETTING TO 1')
-                self.params[i] = 1.
+            if param <= 0.0:
+                logger.warning("Shear relaxation time term <=0, SETTING TO 1")
+                self.params[i] = 1.0
 
         # Allocate storage for visco data
         self.sdv_names = []
 
         # Shift factors
-        self.sdv_names.extend(["SHIFT_{0}".format(i+1) for i in range(2)])
+        self.sdv_names.extend(["SHIFT_{0}".format(i + 1) for i in range(2)])
 
         # Instantaneous deviatoric PK2
         m = {0: "XX", 1: "YY", 2: "ZZ", 3: "XY", 4: "YZ", 5: "XZ"}
@@ -114,20 +121,34 @@ class ViscoelasticModel(AddonModel):
         # Visco elastic model supports up to 10 Prony series terms,
         # allocate storage for stress corresponding to each
         nprony = 10
-        for l in range(nprony):
+        for lp in range(nprony):
             for i in range(6):
-                self.sdv_names.append("H{0}_{1}".format(l+1, m[i]))
+                self.sdv_names.append("H{0}_{1}".format(lp + 1, m[i]))
 
         self.num_sdv = len(self.sdv_names)
 
     def sdvini(self, statev):
         nvisco = len(self.sdv_names)
         statev = zeros(nvisco)
-        statev[:2] = 1.
+        statev[:2] = 1.0
         return statev
 
-    def eval(self, kappa, time, dtime, temp, dtemp,
-             F0, F, strain, d, stress, statev, initial_temp=0., **kwds):
+    def eval(
+        self,
+        kappa,
+        time,
+        dtime,
+        temp,
+        dtemp,
+        F0,
+        F,
+        strain,
+        d,
+        stress,
+        statev,
+        initial_temp=0.0,
+        **kwds
+    ):
         """Evaluate the viscoelastic relaxation model
 
         stress is updated in place
@@ -140,7 +161,7 @@ class ViscoelasticModel(AddonModel):
 
         # change reference state on sodev from configuration at end of current
         # time step to initial configuration
-        F = F.reshape((3,3))
+        F = F.reshape((3, 3))
         C = array_rep(dot(F.T, F), (6,))
         sigo = stress.copy()
         pk2o = pull(F, sigo)
@@ -150,33 +171,35 @@ class ViscoelasticModel(AddonModel):
         dtred = dtime / statev[1] / statev[0]
 
         # loop over the prony terms
-        I, J = (4, 14)
+        _, J = (4, 14)
         for k in range(10):
             j = k * 6
             # compute needed viscoelastic factors
-            ratio = dtred / self.params[J+k]
+            ratio = dtred / self.params[J + k]
             e = exp(-ratio)
 
             if ratio > 1e-3:
-              # explicit calculation of (1-exp(-ratio))/ratio
-                s = (1. - e) / ratio
+                # explicit calculation of (1-exp(-ratio))/ratio
+                s = (1.0 - e) / ratio
             else:
-               # taylor series calculation of (1 - exp(-ratio))/ratio
-                s = 1. - .5 * ratio + 1. / 6. * ratio ** 2
+                # taylor series calculation of (1 - exp(-ratio))/ratio
+                s = 1.0 - 0.5 * ratio + 1.0 / 6.0 * ratio**2
 
-           # update the viscoelastic state variable history for kth prony term
-            for l in range(6):
-                statev[8+j+l] = (e * statev[8+j+l] +
-                                 self.params[4+k] * (s - e) * statev[2+l] +
-                                 self.params[4+k] * (1 - s) * pk2odev[l])
-            cfac[0] += (1 - s) * self.params[4+k]
+            # update the viscoelastic state variable history for kth prony term
+            for lp in range(6):
+                statev[8 + j + lp] = (
+                    e * statev[8 + j + lp]
+                    + self.params[4 + k] * (s - e) * statev[2 + lp]
+                    + self.params[4 + k] * (1 - s) * pk2odev[lp]
+                )
+            cfac[0] += (1 - s) * self.params[4 + k]
 
         # compute decaying deviatoric stress
         pk2dev = zeros(6)
-        for l in range(6):
+        for lp in range(6):
             for k in range(10):
                 j = k * 6
-                pk2dev[l] += statev[8+j+l]
+                pk2dev[lp] += statev[8 + j + lp]
 
         # change reference state on decaying portion of deviatoric stress from
         # initial configuration to configuration at end of current time step
@@ -186,8 +209,8 @@ class ViscoelasticModel(AddonModel):
         # in computing the decaying portion of the deviatoric stress
         tr = sum(sdev[:3])
         if abs(tr) > 1e-16:
-            sdev[0] -= tr / 3.
-            sdev[1] -= tr / 3.
+            sdev[0] -= tr / 3.0
+            sdev[1] -= tr / 3.0
             sdev[2] = -(sdev[0] + sdev[1])
 
         # compute total deviatoric stress
@@ -196,7 +219,7 @@ class ViscoelasticModel(AddonModel):
 
         # total stress
         stress[:] = sdev.copy()
-        pressure = -sum(sigo[:3]) / 3.
+        pressure = -sum(sigo[:3]) / 3.0
         stress[:3] -= pressure
 
         # instantaneous deviatoric stress with original configuration as
@@ -208,28 +231,28 @@ class ViscoelasticModel(AddonModel):
     def shiftfac(self, dtime, time, temp, dtemp, F, statev):
 
         # retrieve the WLF parameters - thermal analysis
-        C1, C2, Tref   = self.params[:3]
+        C1, C2, Tref = self.params[:3]
         temp_new = temp + dtemp
 
         # Evaluate the WLF shift factor at the average temp of the step
-        at = 1. # Default shift factor
+        at = 1.0  # Default shift factor
         ts_flag = 1
         if ts_flag:
-            tempavg = .5 * (temp + temp_new)
+            tempavg = 0.5 * (temp + temp_new)
             tempdiff = tempavg - Tref
             if abs(C1) < 1e-10:
-                at = 1.
+                at = 1.0
             elif C2 + tempdiff <= 1e-30:
                 at = 1e-30
             else:
                 log_at = C1 * tempdiff / (C2 + tempdiff)
-                if log_at > 30.:
+                if log_at > 30.0:
                     at = 1e30
-                elif log_at < -30.:
+                elif log_at < -30.0:
                     at = 1e-30
                 else:
-                    at = 10. ** log_at
+                    at = 10.0**log_at
 
         # Store the numerical shift factor for WLF
-        statev[0] = 1. / at
-        statev[1] = 1.
+        statev[0] = 1.0 / at
+        statev[1] = 1.0

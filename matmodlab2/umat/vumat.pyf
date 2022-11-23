@@ -1,0 +1,68 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+python module mml__user__routines
+    interface mml_user_interface
+        subroutine log_message(message)
+            intent(callback) log_message
+            character*(*) :: message
+        end subroutine log_message
+        subroutine log_warning(message)
+            intent(callback) log_warning
+            character*(*) :: message
+        end subroutine log_warning
+        subroutine log_error(message)
+            intent(callback) log_error
+            character*(*) :: message
+        end subroutine log_error
+    end interface mml_user_interface
+end python module mml__user__routines
+
+python module _vumat ! in
+    interface  ! in :
+        subroutine vumat(nblock,ndir,nshr,nstatev,nfieldv,nprops,lanneal,stepTime,totalTime,dt,cmname,coordMp,charLength,props,density,strainInc,relSpinInc,tempOld,stretchOld,defgradOld,fieldOld,stressOld,stateOld,enerInternOld,enerInelasOld,tempNew,stretchNew,defgradNew,fieldNew,stressNew,stateNew,enerInternNew,enerInelasNew)
+            use mml__user__routines
+            intent(callback) log_message
+            external log_message
+            intent(callback) log_warning
+            external log_warning
+            intent(callback) log_error
+            external log_error
+            integer intent(in) :: nblock
+            integer intent(in) :: ndir
+            integer intent(in) :: nshr
+            integer intent(in) :: nstatev
+            integer intent(in) :: nfieldv
+            integer intent(in) :: nprops
+            integer intent(in) :: lanneal
+            real(kind=8) intent(in) :: stepTime
+            real(kind=8) intent(in) :: totalTime
+            real(kind=8) intent(in) :: dt
+            character*8 intent(in) :: cmname
+            real(kind=8) dimension(nblock,3),intent(in) :: coordMp
+            real(kind=8) dimension(nblock),intent(in) :: charLength
+            real(kind=8) dimension(nprops),intent(in) :: props
+            real(kind=8) dimension(nblock),intent(in) :: density
+            real(kind=8) dimension(nblock,ndir+nshr),intent(in) :: strainInc
+            real(kind=8) dimension(nblock,nshr),intent(in) :: relSpinInc,
+            real(kind=8) dimension(nblock),intent(in) :: tempOld
+            real(kind=8) dimension(nblock,ndir+nshr),intent(in) :: stretchOld
+            real(kind=8) dimension(nblock,ndir+nshr+nshr),intent(in) :: defgradOld
+            real(kind=8) dimension(nblock,nfieldv),intent(in) :: fieldOld
+            real(kind=8) dimension(nblock,ndir+nshr),intent(in) :: stressOld
+            real(kind=8) dimension(nblock,nstatev),intent(in) :: stateOld
+            real(kind=8) dimension(nblock),intent(in) :: enerInternOld
+            real(kind=8) dimension(nblock),intent(in) :: enerInelasOld
+            real(kind=8) dimension(nblock),intent(in) :: tempNew
+            real(kind=8) dimension(nblock,ndir+nshr),intent(in) :: stretchNew
+            real(kind=8) dimension(nblock,ndir+nshr+nshr),intent(in) :: defgradNew
+            real(kind=8) dimension(nblock,nfieldv),intent(in) :: fieldNew
+            real(kind=8) dimension(nblock,ndir+nshr),intent(out) :: stressNew
+            real(kind=8) dimension(nblock,nstatev),intent(out) :: stateNew
+            real(kind=8) dimension(nblock),intent(out) :: enerInternNew
+            real(kind=8) dimension(nblock),intent(out) :: enerInelasNew
+        end subroutine vumat
+    end interface
+end python module _vumat
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

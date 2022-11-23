@@ -1,9 +1,7 @@
-import warnings
 import numpy as np
-from copy import deepcopy as copy
-from .environ import environ
 from .tensor import array_rep, matrix_rep, inv, symmetric_part, dot
 import matmodlab2.core.linalg as la
+
 
 def update_deformation(farg, darg, dt, kappa):
     """Update the deformation gradient and strain
@@ -73,6 +71,7 @@ def update_deformation(farg, darg, dt, kappa):
 
     return f, e
 
+
 def defgrad_from_strain(E, kappa, flatten=1):
     """Compute the deformation gradient from the strain measure
 
@@ -97,13 +96,14 @@ def defgrad_from_strain(E, kappa, flatten=1):
     if kappa == 0:
         U = la.expm(E)
     else:
-        U = la.powm(kappa * E + I, 1. / kappa)
+        U = la.powm(kappa * E + I, 1.0 / kappa)
     F = np.dot(R, U)
     if la.det(F) <= 0.0:
         raise Exception("negative jacobian encountered")
     if flatten:
         return F.flatten()
     return F
+
 
 def strain_from_defgrad(farg, kappa):
     """Compute the strain measure from the deformation gradient
@@ -130,28 +130,30 @@ def strain_from_defgrad(farg, kappa):
 
     where kappa is the Seth-Hill strain parameter.
     """
-    F = farg.reshape((3,3))
+    F = farg.reshape((3, 3))
     jac = la.det(F)
     if jac <= 0:
-        raise ValueError('Negative or zero Jacobian')
+        raise ValueError("Negative or zero Jacobian")
     # convert deformation gradient to strain E with associated rotation
     R, U = la.polar_decomp(F)
     eps = strain_from_stretch(U, kappa)
     strain = array_rep(eps, (6,))
     return strain, R
 
+
 def strain_from_stretch(u, kappa):
     """Convert the 3x3 stretch tensor to a strain tensor using the
     Seth-Hill parameter kappa and return a 9x1 array"""
     mat, orig_shape = matrix_rep(u)
     if abs(kappa) > 1e-12:
-        mat = 1. / kappa * (la.powm(mat, kappa) - np.eye(3))
+        mat = 1.0 / kappa * (la.powm(mat, kappa) - np.eye(3))
     else:
         mat = la.logm(mat)
     return array_rep(mat, orig_shape)
 
+
 def rate_of_strain_to_rate_of_deformation(dedt, e, kappa, disp=0):
-    """ Compute symmetric part of velocity gradient given depsdt
+    """Compute symmetric part of velocity gradient given depsdt
 
     Parameters
     ----------
@@ -201,7 +203,7 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, kappa, disp=0):
         u = la.expm(eps)
         dudt = la.rate_of_matrix_function(eps, depsdt, np.exp, np.exp)
     else:
-        u = la.powm(kappa*eps+np.eye(3), 1./kappa)
+        u = la.powm(kappa * eps + np.eye(3), 1.0 / kappa)
         f = lambda x: (kappa * x + 1.0) ** (1.0 / kappa)
         fprime = lambda x: (kappa * x + 1.0) ** (1.0 / kappa - 1.0)
         dudt = la.rate_of_matrix_function(eps, depsdt, f, fprime)
@@ -214,6 +216,7 @@ def rate_of_strain_to_rate_of_deformation(dedt, e, kappa, disp=0):
     if not disp:
         return d
     return d, dudt
+
 
 def scalar_volume_strain_to_tensor(ev, kappa):
     """Convert the scalar volume strain ev to a 2nd order symmetric tensor.
@@ -235,17 +238,18 @@ def scalar_volume_strain_to_tensor(ev, kappa):
     The returned tensor is represented as a first order 6d tensor.
 
     """
-    if kappa * ev + 1. < 0.:
-        raise ValueError('1 + kappa * ev must be positive')
+    if kappa * ev + 1.0 < 0.0:
+        raise ValueError("1 + kappa * ev must be positive")
 
     if abs(kappa) < np.finfo(np.float).eps:
         # Log strain
-        eij = ev / 3.
+        eij = ev / 3.0
     else:
-        eij = ((kappa * ev + 1.) ** (1. / 3.) - 1.)
+        eij = (kappa * ev + 1.0) ** (1.0 / 3.0) - 1.0
         eij = eij / kappa
-    components = np.array([eij, eij, eij, 0., 0., 0.])
+    components = np.array([eij, eij, eij, 0.0, 0.0, 0.0])
     return components
+
 
 def rate_of_defomation_from_defgrad(F0, F1, dtime):
     Fdot = (F1 - F0) / dtime

@@ -1,5 +1,4 @@
 from __future__ import print_function
-import os
 import sys
 import time
 import argparse
@@ -8,19 +7,19 @@ import xml.dom.minidom as xdom
 from os.path import realpath, join, isdir, isfile, dirname, splitext
 from ..core.environ import environ
 
-U_ROOT = u"SimulationData"
-U_JOB = u"job"
-U_DATE = u"date"
-U_EVAL = u"Evaluation"
-U_EVAL_N = u"n"
-U_EVAL_D = u"d"
-U_EVAL_S = u"status"
-U_PARAMS = u"Parameters"
-U_RESP = u"Responses"
+U_ROOT = "SimulationData"
+U_JOB = "job"
+U_DATE = "date"
+U_EVAL = "Evaluation"
+U_EVAL_N = "n"
+U_EVAL_D = "d"
+U_EVAL_S = "status"
+U_PARAMS = "Parameters"
+U_RESP = "Responses"
 IND = "  "
 
-class TabularWriter(object):
 
+class TabularWriter(object):
     def __init__(self, filename, job):
         """Set up a logger object, which takes evaluation events and outputs
         an XML log file
@@ -29,11 +28,11 @@ class TabularWriter(object):
         self.stack = []
 
         self.filename = realpath(filename)
-        if not self.filename.endswith('.edb'):
-            self.filename += '.edb'
+        if not self.filename.endswith(".edb"):
+            self.filename += ".edb"
         self.evald = dirname(self.filename)
         if not isdir(self.evald):
-            raise OSError('no such directory {0!r}'.format(self.evald))
+            raise OSError("no such directory {0!r}".format(self.evald))
         self.start_document(job)
         pass
 
@@ -68,8 +67,7 @@ class TabularWriter(object):
             stream.write("""<?xml version="1.0"?>\n""")
             stream.flush()
         now = time.asctime(time.localtime())
-        self.start_element(U_ROOT, ((U_JOB, job),
-                                    (U_DATE, now)))
+        self.start_element(U_ROOT, ((U_JOB, job), (U_DATE, now)))
         return
 
     def end_document(self):
@@ -139,7 +137,7 @@ def read_mml_evaldb(filepath):
     parameters = {}
     responses = {}
     for evaluation in root.getElementsByTagName(U_EVAL):
-        n = evaluation.getAttribute(U_EVAL_N)
+        n = evaluation.getAttribute(U_EVAL_N) # noqa
         d = realpath(join(D, evaluation.getAttribute(U_EVAL_D)))
         f = join(d, "{0}.exo".format(job))
         if isfile(f):
@@ -164,6 +162,7 @@ def read_mml_evaldb(filepath):
 
     return sources, parameters, responses
 
+
 def read_mml_evaldb_nd(filepath, nonan=1):
     sources, parameters, responses = read_mml_evaldb(filepath)
     head = [x[0] for x in parameters[sources[0]]]
@@ -186,6 +185,7 @@ def read_mml_evaldb_nd(filepath, nonan=1):
         data = np.delete(data, rows, 0)
     return head, data, len(responses[sources[0]])
 
+
 def correlations(filepath, nonan=1):
     title = "CORRELATIONS AMONG INPUT AND OUTPUT VARIABLES CREATED BY MATMODLAB"
     head, data, nresp = read_mml_evaldb_nd(filepath, nonan=nonan)
@@ -197,11 +197,14 @@ def correlations(filepath, nonan=1):
         i = 1
         fobj.write("{0}\n".format(H))
         for row in corrcoef:
-            fobj.write("{0:>12} {1}\n".format(
-                head[i-1],
-                " ".join("{0: 12.2f}".format(x) for x in row[:i])))
+            fobj.write(
+                "{0:>12} {1}\n".format(
+                    head[i - 1], " ".join("{0: 12.2f}".format(x) for x in row[:i])
+                )
+            )
             i += 1
     return
+
 
 def plot_correlations(filepath, nonan=1, pdf=0):
     if environ.notebook == 2 and not pdf:
@@ -209,7 +212,7 @@ def plot_correlations(filepath, nonan=1, pdf=0):
 
     try:
         import matplotlib.pyplot as plt
-        from matplotlib.ticker import FormatStrFormatter
+        from matplotlib.ticker import FormatStrFormatter  # noqa
     except ImportError:
         print("unable to import matplotlib")
         return
@@ -237,18 +240,18 @@ def plot_correlations(filepath, nonan=1, pdf=0):
         x = data[:, i][sort]
         m2, m, b = np.polyfit(x, y, 2)
         m2, (m, b) = 0, np.polyfit(x, y, 1)
-        axs[i].plot(x, y, "{0}.".format(colors[i]),
-                    x, m2 * x * x + m * x + b, "-k")
+        axs[i].plot(x, y, "{0}.".format(colors[i]), x, m2 * x * x + m * x + b, "-k")
         axs[i].set_xlabel(r"{0}".format(key))
-        plt.setp(axs[i].xaxis.get_majorticklabels(),
-                 rotation=45, fontsize="small")
+        plt.setp(axs[i].xaxis.get_majorticklabels(), rotation=45, fontsize="small")
         continue
     plt.savefig(pdf, transparent=True)
 
     return
 
+
 def plot_bokeh_correlations(filepath, nonan=1):
     from bokeh.plotting import figure, gridplot
+
     head, data, nresp = read_mml_evaldb_nd(filepath, nonan=nonan)
 
     # create xy scatter plots
@@ -257,8 +260,7 @@ def plot_bokeh_correlations(filepath, nonan=1):
     y = y[sort]
 
     keys = head[:-nresp]
-    colors = ('blue', 'green', 'red', 'cyan',
-              'maroon', 'yellow', 'black', 'white')
+    colors = ("blue", "green", "red", "cyan", "maroon", "yellow", "black", "white")
 
     ylabel = r"{0}".format(head[-1])
     plots = []
@@ -268,21 +270,24 @@ def plot_bokeh_correlations(filepath, nonan=1):
         m2, (m, b) = 0, np.polyfit(x, y, 1)
         TOOLS = "pan,wheel_zoom,box_zoom,reset,save,resize"
         y_axis_label = ylabel if not i else None
-        p = figure(tools=TOOLS, x_axis_label=r'{0}'.format(key),
-                   y_axis_label=y_axis_label)
+        p = figure(
+            tools=TOOLS, x_axis_label=r"{0}".format(key), y_axis_label=y_axis_label
+        )
         p.scatter(x, y, color=colors[i])
-        p.line(x, m2 * x * x + m * x + b, color='black')
+        p.line(x, m2 * x * x + m * x + b, color="black")
         plots.append(p)
     return gridplot([plots])
 
+
 def is_evaldb(filename):
-    if not isfile(filename) or not filename.endswith('.edb'):
+    if not isfile(filename) or not filename.endswith(".edb"):
         return False
-    with open(filename, 'r') as fh:
+    with open(filename, "r") as fh:
         for i in range(4):
             if U_ROOT in fh.readline():
                 return True
     return False
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -292,6 +297,7 @@ def main(argv):
     if args.action == "plot":
         sys.exit(plot_correlations(args.filepath))
     sys.exit(correlations(args.filepath))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

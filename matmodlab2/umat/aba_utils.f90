@@ -62,6 +62,18 @@ subroutine stdb_abqerr(ierr, msg, intv, realv, charv)
   call mml_comm(ierr, msg, intv, realv, charv)
 end subroutine stdb_abqerr
 
+
+subroutine xplb_abqerr(ierr, msg, intv, realv, charv)
+  implicit none
+  integer, intent(in) :: ierr
+  character(120), intent(in) :: msg
+  integer, intent(in) :: intv(*)
+  real(8), intent(in) :: realv(*)
+  character(8), intent(in) :: charv(*)
+  call mml_comm(ierr, msg, intv, realv, charv)
+end subroutine xplb_abqerr
+
+
 subroutine xit
   implicit none
   character*120 :: msg

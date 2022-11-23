@@ -1,12 +1,9 @@
 from __future__ import print_function
 import os
-import sys
 import time
 import shutil
 import logging
-import datetime
 import traceback
-import subprocess
 import numpy as np
 
 from ..core.environ import environ
@@ -15,16 +12,28 @@ from .tabular import TabularWriter
 
 IOPT = 0
 LASTEVALD = None
-BIGNUM = 1.E+20
+BIGNUM = 1.0e20
 MAXITER = 50
-TOL = 1.E-06
+TOL = 1.0e-06
 MAX_ERR = None
 
+
 class Optimizer(object):
-    def __init__(self, job, func, xinit, method='simplex',
-                 maxiter=MAXITER, tolerance=TOL, descriptors=None,
-                 funcargs=[], Ns=10, dryrun=0, keep_intermediate=True,
-                 halt_on_err=False):
+    def __init__(
+        self,
+        job,
+        func,
+        xinit,
+        method="simplex",
+        maxiter=MAXITER,
+        tolerance=TOL,
+        descriptors=None,
+        funcargs=[],
+        Ns=10,
+        dryrun=0,
+        keep_intermediate=True,
+        halt_on_err=False,
+    ):
         environ.raise_e = True
         environ.no_cutback = True
         global IOPT
@@ -38,7 +47,7 @@ class Optimizer(object):
         d = os.path.realpath(os.getcwd())
         self.directory = d
         self.rootd = os.path.join(d, job + ".eval")
-        self.output = os.path.join(self.rootd, job + '.edb')
+        self.output = os.path.join(self.rootd, job + ".edb")
 
         if not isinstance(descriptors, (list, tuple)):
             descriptors = [descriptors]
@@ -53,10 +62,10 @@ class Optimizer(object):
         self.Ns = int(round(max(Ns, 2.0)))
 
         # check method
-        valid = ('simplex', 'powell', 'cobyla', 'brute')
+        valid = ("simplex", "powell", "cobyla", "brute")
         if method.lower() not in valid:
-            msg = 'Unknown optimization method {0!r}. '.format(method)
-            msg += 'Choose from {0}'.format(','.join(valid))
+            msg = "Unknown optimization method {0!r}. ".format(method)
+            msg += "Choose from {0}".format(",".join(valid))
             raise ValueError(msg)
         self.method = method.lower()
 
@@ -66,8 +75,8 @@ class Optimizer(object):
         os.makedirs(self.rootd)
 
         # basic logger
-        logfile = os.path.join(self.rootd, self.job + '.log')
-        logger = get_logger('optimize')
+        logfile = os.path.join(self.rootd, self.job + ".log")
+        logger = get_logger("optimize")
         add_filehandler(logger, logfile)
         splash(logger)
 
@@ -86,12 +95,12 @@ class Optimizer(object):
             self.idata.append(x.initial_value)
 
             if x.bounds is not None:
-                if self.method in ('simplex', 'powell'):
-                    logger.warn('optimization method does not support bounds')
+                if self.method in ("simplex", "powell"):
+                    logger.warn("optimization method does not support bounds")
                     x.bounds = None
             self.bounds.append(x.bounds)
 
-        if self.method in ('simplex', 'powell'):
+        if self.method in ("simplex", "powell"):
             self.bounds = None
 
         if maxiter <= 0:
@@ -108,8 +117,10 @@ class Optimizer(object):
         self.timing = {}
 
         # write summary to the log file
-        str_pars = "\n".join("  {0}={1:.2g}".format(name, self.idata[i])
-                             for (i, name) in enumerate(self.names))
+        str_pars = "\n".join(
+            "  {0}={1:.2g}".format(name, self.idata[i])
+            for (i, name) in enumerate(self.names)
+        )
         resp = "\n".join("  {0}".format(it) for it in self.descriptors)
         summary = """
 summary of optimization job input
@@ -120,7 +131,9 @@ Variables: {2:d}
 {3}
 Response descriptors:
 {4}
-""".format(self.job, self.method, len(self.names), str_pars, resp)
+""".format(
+            self.job, self.method, len(self.names), str_pars, resp
+        )
         logger.info(summary)
 
     def run(self):
@@ -130,7 +143,8 @@ Response descriptors:
 
         """
         import scipy.optimize
-        logger = logging.getLogger('optimize')
+
+        logger = logging.getLogger("optimize")
 
         self.timing["start"] = time.time()
         logger.info("{0}: Starting optimization jobs...".format(self.job))
@@ -154,47 +168,69 @@ Response descriptors:
             normalized_bounds = []
             for ibnd, bound in enumerate(self.bounds):
                 lbnd, ubnd = bound
-                lcons.append(lambda z, idx=ibnd, bnd=lbnd: z[idx]-bnd/xfac[idx])
-                ucons.append(lambda z, idx=ibnd, bnd=ubnd: bnd/xfac[idx]-z[idx])
-                normalized_bounds.append((lbnd/xfac[ibnd], ubnd/xfac[ibnd]))
+                lcons.append(lambda z, idx=ibnd, bnd=lbnd: z[idx] - bnd / xfac[idx])
+                ucons.append(lambda z, idx=ibnd, bnd=ubnd: bnd / xfac[idx] - z[idx])
+                normalized_bounds.append((lbnd / xfac[ibnd], ubnd / xfac[ibnd]))
                 continue
             cons = lcons + ucons
 
-        args = (self.func, self.funcargs, self.rootd, self.halt_on_err,
-                self.job, self.names, self.descriptors, self.tabular, xfac)
+        args = (
+            self.func,
+            self.funcargs,
+            self.rootd,
+            self.halt_on_err,
+            self.job,
+            self.names,
+            self.descriptors,
+            self.tabular,
+            xfac,
+        )
 
         if self.dryrun:
             # do a dry run of the function
             err = run_job(x0, *args)
             if err == np.nan:
-                s = 'Optimization dry run failed'
+                s = "Optimization dry run failed"
                 logger.error(s)
             else:
-                s = 'Optimization dry run successful'
+                s = "Optimization dry run successful"
                 logger.info(s)
             if environ.notebook:
                 print(s)
             self.dryrun_error = err
             return
 
-        if self.method == 'simplex':
+        if self.method == "simplex":
             xopt = scipy.optimize.fmin(
-                run_job, x0, xtol=self.tolerance, ftol=self.tolerance,
-                maxiter=self.maxiter, args=args, disp=0)
+                run_job,
+                x0,
+                xtol=self.tolerance,
+                ftol=self.tolerance,
+                maxiter=self.maxiter,
+                args=args,
+                disp=0,
+            )
 
-        elif self.method == 'powell':
+        elif self.method == "powell":
             xopt = scipy.optimize.fmin_powell(
-                run_job, x0, xtol=self.tolerance, ftol=self.tolerance,
-                maxiter=self.maxiter, args=args, disp=0)
+                run_job,
+                x0,
+                xtol=self.tolerance,
+                ftol=self.tolerance,
+                maxiter=self.maxiter,
+                args=args,
+                disp=0,
+            )
 
-        elif self.method == 'cobyla':
+        elif self.method == "cobyla":
             xopt = scipy.optimize.fmin_cobyla(
-                run_job, x0, cons, consargs=(), args=args, disp=0)
+                run_job, x0, cons, consargs=(), args=args, disp=0
+            )
 
-        elif self.method == 'brute':
+        elif self.method == "brute":
             xopt = scipy.optimize.brute(
-                run_job, normalized_bounds, args=args, Ns=self.Ns, disp=0,
-                finish=None)
+                run_job, normalized_bounds, args=args, Ns=self.Ns, disp=0, finish=None
+            )
 
         self.xopt = xopt * xfac
 
@@ -207,12 +243,14 @@ Response descriptors:
         return
 
     def finish(self):
-        """ finish up the optimization job """
-        logger = logging.getLogger('optimize')
+        """finish up the optimization job"""
+        logger = logging.getLogger("optimize")
         self.tabular.close()
         self.ran = True
-        opt_pars = "\n".join("  {0}={1:12.6E}".format(name, self.xopt[i])
-                             for (i, name) in enumerate(self.names))
+        opt_pars = "\n".join(
+            "  {0}={1:12.6E}".format(name, self.xopt[i])
+            for (i, name) in enumerate(self.names)
+        )
         opt_time = self.timing["end"] - self.timing["start"]
         summary = """
 Summary of optimization results
@@ -221,7 +259,9 @@ Summary of optimization results
 Iterations: {2}
 Optimized parameters
 {3}
-""".format(self.job, opt_time, IOPT, opt_pars)
+""".format(
+            self.job, opt_time, IOPT, opt_pars
+        )
         logger.info(summary)
 
         # write out optimized params
@@ -231,11 +271,13 @@ Optimized parameters
         environ.parent_process = 0
 
         # Link directory 'final' to the last evaluation directory
-        os.symlink(os.path.relpath(LASTEVALD, start=self.rootd),
-                   os.path.join(self.rootd, "final"))
+        os.symlink(
+            os.path.relpath(LASTEVALD, start=self.rootd),
+            os.path.join(self.rootd, "final"),
+        )
 
         if environ.notebook:
-            print('\nDone')
+            print("\nDone")
 
     def todict(self):
         if not self.ran:
@@ -248,9 +290,11 @@ Optimized parameters
             return None
         return self.timing["end"] - self.timing["start"]
 
+
 def catd(d, i):
     N = 3
     return os.path.join(d, "eval_{0:0{1}d}".format(i, N))
+
 
 def run_job(xcall, *args):
     """Objective function
@@ -265,7 +309,7 @@ def run_job(xcall, *args):
 
     """
     global IOPT, LASTEVALD, MAX_ERR
-    logger = logging.getLogger('optimize')
+    logger = logging.getLogger("optimize")
     func, funcargs, rootd, halt_on_err, job, xnames, desc, tabular, xfac = args
 
     IOPT += 1
@@ -284,12 +328,15 @@ def run_job(xcall, *args):
         for name, param in parameters:
             fobj.write("{0} = {1: .18f}\n".format(name, param))
 
-    logger.info("starting job {0} with {1}... ".format(
-        IOPT, ",".join("{0}={1:.2g}".format(n, p) for n, p in parameters)),
-        extra={'continued':1})
+    logger.info(
+        "starting job {0} with {1}... ".format(
+            IOPT, ",".join("{0}={1:.2g}".format(n, p) for n, p in parameters)
+        ),
+        extra={"continued": 1},
+    )
 
     if environ.notebook:
-        print('\rRunning job {0}'.format(IOPT), end='')
+        print("\rRunning job {0}".format(IOPT), end="")
 
     try:
         err = func(x, xnames, evald, job, *funcargs)
@@ -301,8 +348,10 @@ def run_job(xcall, *args):
     except BaseException:
         string = traceback.format_exc()
         if not environ.notebook:
-            logger.error("\nRun {0} failed with the following "
-                         "exception:\n{1}".format(IOPT, string))
+            logger.error(
+                "\nRun {0} failed with the following "
+                "exception:\n{1}".format(IOPT, string)
+            )
         else:
             logger.info("failed")
 
@@ -322,8 +371,8 @@ def run_job(xcall, *args):
 
     return err
 
-class OptimizeVariable(object):
 
+class OptimizeVariable(object):
     def __init__(self, name, initial_value, bounds=None):
         self.name = name
         self.ival = initial_value
@@ -337,8 +386,10 @@ class OptimizeVariable(object):
                 raise ValueError("expected bounds to be a tuple of length 2")
             if len(bounds) != 2:
                 raise ValueError("expected bounds to be a tuple of length 2")
-            if bounds[0] is None: bounds[0] = -BIGNUM
-            if bounds[1] is None: bounds[1] =  BIGNUM
+            if bounds[0] is None:
+                bounds[0] = -BIGNUM
+            if bounds[1] is None:
+                bounds[1] = BIGNUM
 
             if bounds[0] > bounds[1]:
                 errors += 1
@@ -346,8 +397,9 @@ class OptimizeVariable(object):
 
             if bounds[1] < initial_value < bounds[0]:
                 errors += 1
-                logging.error("{0}: initial value not bracketed "
-                              "by bounds".format(name))
+                logging.error(
+                    "{0}: initial value not bracketed " "by bounds".format(name)
+                )
             if errors:
                 raise ValueError("stopping due to previous errors")
 

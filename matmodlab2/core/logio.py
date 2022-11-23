@@ -12,20 +12,27 @@ SPLASH = r"""
     \|__|     \|__|\|__|     \|__|\|_______|\|_______|
                    Material Model Laboratory2 v {0}
 
-""".format('.'.join('{0}'.format(i) for i in VERSION))
+""".format(
+    ".".join("{0}".format(i) for i in VERSION)
+)
 
 # Monkey path the logging stream handler emit function
-logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+
+
 def emit(self, record):
-    '''Monkey-patch the logging StreamHandler emit function. Allows omiting
-    trailing newline when not wanted'''
-    if hasattr(self, 'baseFilename'):
-        fs = '%s\n'
+    """Monkey-patch the logging StreamHandler emit function. Allows omiting
+    trailing newline when not wanted"""
+    if hasattr(self, "baseFilename"):
+        fs = "%s\n"
     else:
-        fs = '%s' if getattr(record, 'continued', False) else '%s\n'
+        fs = "%s" if getattr(record, "continued", False) else "%s\n"
     self.stream.write(fs % self.format(record))
     self.flush()
+
+
 logging.StreamHandler.emit = emit
+
 
 def get_logger(name, verbosity=None):
     """Set up the logger"""
@@ -54,24 +61,29 @@ def get_logger(name, verbosity=None):
 
     return logger
 
+
 def add_filehandler(logger, filename):
     for handler in logger.handlers:
-        if hasattr(handler, 'baseFilename'):
+        if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
-    fh = logging.FileHandler(filename, mode='w')
+    fh = logging.FileHandler(filename, mode="w")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
+
 def splash(logger):
-    splashed = getattr(logger, 'splashed', False)
+    splashed = getattr(logger, "splashed", False)
     if not splashed:
         logger.info(SPLASH)
         logger.splashed = True
 
+
 class FortranError(Exception):
     pass
+
 
 def StopFortran(message):
     raise FortranError(message)
 
-logger = get_logger('matmodlab')
+
+logger = get_logger("matmodlab")

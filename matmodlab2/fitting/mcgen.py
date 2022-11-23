@@ -6,45 +6,70 @@ import logging
 import numpy as np
 from itertools import cycle
 
-try: import pandas
-except ImportError: pandas = None
-try: import scipy.optimize as sciopt
-except ImportError: sciopt = None
-try: import matplotlib.pyplot as plt
-except ImportError: plt = None
-try: import bokeh.plotting as bp
-except ImportError: bp = None
+try:
+    import pandas
+except ImportError:
+    pandas = None
+try:
+    import scipy.optimize as sciopt
+except ImportError:
+    sciopt = None
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+try:
+    import bokeh.plotting as bp
+except ImportError:
+    bp = None
 
-__all__ = ['MasterCurve', 'CurveFitter', 'mc_init_notebook',
-           'MODIFIED_POWER', 'POWER', 'PRONY', 'POLYNOMIAL',
-           'COBYLA', 'POWELL', 'FMIN']
+__all__ = [
+    "MasterCurve",
+    "CurveFitter",
+    "mc_init_notebook",
+    "MODIFIED_POWER",
+    "POWER",
+    "PRONY",
+    "POLYNOMIAL",
+    "COBYLA",
+    "POWELL",
+    "FMIN",
+]
 
-MODIFIED_POWER = 'Modified Power'
-POWER = 'Power'
-PRONY = 'Prony'
-POLYNOMIAL = 'Polynomial'
+MODIFIED_POWER = "Modified Power"
+POWER = "Power"
+PRONY = "Prony"
+POLYNOMIAL = "Polynomial"
 
-COBYLA = 'Cobyla'
-POWELL = 'Powell'
-FMIN = 'Fmin'
+COBYLA = "Cobyla"
+POWELL = "Powell"
+FMIN = "Fmin"
 
 PHONY = 123456.789
 EPS = np.finfo(float).eps
-BASE = 10.
+BASE = 10.0
+
 
 class Environment:
     pass
+
+
 environ = Environment()
 environ.notebook = 0
 
+
 def _loadcsv(filename):
     """Load the csv file written out by MasterCurve.dump"""
+
     class CSVData:
         data = {}
+
         def get(self, temp):
             return self.data[temp]
+
         def __iter__(self):
             return iter(self.data.items())
+
     dtype = np.float64
     array = np.array
     cstack = np.column_stack
@@ -53,41 +78,45 @@ def _loadcsv(filename):
     lines = open(filename).readlines()
 
     for (i, line) in enumerate(lines):
-        if re.search('Version', line):
-            version = float(lines[i+1])
-            assert version > 1.
-        if re.search('Curve Fitter', line):
-            fitter = lines[i+1]
-        if re.search('Fit Error', line):
-            fiterr = float(lines[i+1])
-        if re.search('WLF', line):
-            wlf_coeffs = [float(x) for x in lines[i+1].split(',')]
+        if re.search("Version", line):
+            version = float(lines[i + 1])
+            assert version > 1.0
+        if re.search("Curve Fitter", line):
+            fitter = lines[i + 1]  # noqa
+        if re.search("Fit Error", line):
+            fiterr = float(lines[i + 1])  # noqa
+        if re.search("WLF", line):
+            wlf_coeffs = [float(x) for x in lines[i + 1].split(",")]
             assert len(wlf_coeffs) == 2
 
-        if re.search('Data', line):
+        if re.search("Data", line):
             j = i + 1
 
-        if re.search('Master Curve', line):
+        if re.search("Master Curve", line):
             k = i + 1
 
     d = CSVData()
 
-    desc = lines[j].split(',')
+    desc = lines[j].split(",")
     temps = array([float(x) for x in desc[2:]])
-    data = array([[None if not x.split() else float(x) for x in y.split(',')]
-                  for y in lines[j+1:k-1]])
-    d.master = array([[float(x) for x in y.split(',')] for y in lines[k+1:]])
+    data = array(
+        [
+            [None if not x.split() else float(x) for x in y.split(",")]
+            for y in lines[j + 1 : k - 1]
+        ]
+    )
+    d.master = array([[float(x) for x in y.split(",")] for y in lines[k + 1 :]])
 
-    d.toat = data[:,0]
-    d.logtoat = data[:,1]
+    d.toat = data[:, 0]
+    d.logtoat = data[:, 1]
 
-    d.raw_master = cstack((d.toat, d.logtoat, array(data[:,2], dtype=dtype)))
+    d.raw_master = cstack((d.toat, d.logtoat, array(data[:, 2], dtype=dtype)))
     d.ref_temp = temps[0]
 
     d.temps = temps[1:]
     for (i, temp) in enumerate(temps[1:]):
-        td = data[:,i+3]
-        idx = [j for (j,x) in enumerate(td) if x is not None]
+        td = data[:, i + 3]
+        idx = [j for (j, x) in enumerate(td) if x is not None]
         a = array(td[idx], dtype=dtype)
         if len(a) == 0:
             continue
@@ -96,26 +125,26 @@ def _loadcsv(filename):
 
     return d
 
+
 def log(x, base=BASE):
     e = 2.718281828459045
-    if abs(base - 10.) < EPS:
+    if abs(base - 10.0) < EPS:
         return np.log10(x)
-    elif abs(base - 2.) < EPS:
+    elif abs(base - 2.0) < EPS:
         return np.log2(x)
     elif abs(base - e) < EPS:
         return np.log(x)
     else:
         return np.log(x) / np.log(BASE)
 
-def interp1d(xy, x, findx=False, clip=False):
-    """Wrapper around numpy's interp
 
-    """
+def interp1d(xy, x, findx=False, clip=False):
+    """Wrapper around numpy's interp"""
     xp = xy[:, 0]
     yp = xy[:, 1]
     if findx:
         xp, yp = yp, xp
-    xd = np.diff(xp)
+    # xd = np.diff(xp)
     if np.allclose(-1, np.sign(np.diff(xp))):
         # descending curve, reverse it
         xp, yp = xp[::-1], yp[::-1]
@@ -123,12 +152,14 @@ def interp1d(xy, x, findx=False, clip=False):
         return np.interp(x, xp, yp)
 
     yval = np.interp(x, xp, yp, left=PHONY, right=PHONY)
-    if abs(yval - PHONY) < 1.e-12:
+    if abs(yval - PHONY) < 1.0e-12:
         return None
     return yval
 
+
 def islist(a):
     return isinstance(a, (list, tuple, np.ndarray))
+
 
 def multidim(a):
     try:
@@ -137,15 +168,17 @@ def multidim(a):
     except IndexError:
         return False
 
-def joinn(l, sep=',', num=False, end='\n', ffmt='.18f'):
+
+def joinn(l, sep=",", num=False, end="\n", ffmt=".18f"):
     if num:
-        realfmt = lambda r: '{0:{1}}'.format(float(r), ffmt)
-        l = [realfmt(x) if x is not None else '' for x in l]
+        realfmt = lambda r: "{0:{1}}".format(float(r), ffmt)
+        l = [realfmt(x) if x is not None else "" for x in l]
     if not multidim(l):
         line = sep.join(l)
     else:
-        line = '\n'.join(sep.join(s) for s in l)
+        line = "\n".join(sep.join(s) for s in l)
     return line + end
+
 
 def bounding_box(curve):
     """Determine the box that bounds curve
@@ -172,17 +205,48 @@ def bounding_box(curve):
         xmax, ymax = curve[-1, 0], curve[-1, 1]
     return np.array([[xmin, ymin], [xmax, ymax]])
 
+
 def area(x, y, yaxis=False):
     if not yaxis:
         return np.trapz(y, x)
     return np.trapz(x, y)
 
-COLORS = ['Blue', 'Red', 'Purple', 'Green', 'Orange', 'HotPink', 'Cyan',
-          'Magenta', 'Chocolate', 'Yellow', 'Black', 'DodgerBlue', 'DarkRed',
-          'DarkViolet', 'DarkGreen', 'OrangeRed', 'Teal', 'DarkSlateGray',
-          'RoyalBlue', 'Crimson', 'SeaGreen', 'Plum', 'DarkGoldenRod',
-          'MidnightBlue', 'DarkOliveGreen', 'DarkMagenta', 'DarkOrchid',
-          'DarkTurquoise', 'Lime', 'Turquoise', 'DarkCyan', 'Maroon']
+
+COLORS = [
+    "Blue",
+    "Red",
+    "Purple",
+    "Green",
+    "Orange",
+    "HotPink",
+    "Cyan",
+    "Magenta",
+    "Chocolate",
+    "Yellow",
+    "Black",
+    "DodgerBlue",
+    "DarkRed",
+    "DarkViolet",
+    "DarkGreen",
+    "OrangeRed",
+    "Teal",
+    "DarkSlateGray",
+    "RoyalBlue",
+    "Crimson",
+    "SeaGreen",
+    "Plum",
+    "DarkGoldenRod",
+    "MidnightBlue",
+    "DarkOliveGreen",
+    "DarkMagenta",
+    "DarkOrchid",
+    "DarkTurquoise",
+    "Lime",
+    "Turquoise",
+    "DarkCyan",
+    "Maroon",
+]
+
 
 def gen_colors(keys):
     colors = {}
@@ -191,20 +255,36 @@ def gen_colors(keys):
         colors[key] = next(c).lower()
     return colors
 
+
 def aslist(item):
     if item is None:
         return []
     if not isinstance(item, (list, tuple, np.ndarray)):
-        item = [skip_temps]
+        item = [item]
     return [x for x in item]
+
 
 class MasterCurve(object):
     fiterr = None
-    def __init__(self, txy, ref_temp=75., apply_log=False, xfac=1., yfac=1.,
-                 skip_temps=None, wlf_coeffs=None,
-                 xvar='Time', xunits='min', yvar='Er', yunits='psi',
-                 optimizer=FMIN, fitter=PRONY, optwlf=sciopt is not None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        txy,
+        ref_temp=75.0,
+        apply_log=False,
+        xfac=1.0,
+        yfac=1.0,
+        skip_temps=None,
+        wlf_coeffs=None,
+        xvar="Time",
+        xunits="min",
+        yvar="Er",
+        yunits="psi",
+        optimizer=FMIN,
+        fitter=PRONY,
+        optwlf=sciopt is not None,
+        **kwargs
+    ):
         """Initialize the master curve object
 
         Parameters
@@ -229,9 +309,9 @@ class MasterCurve(object):
 
         """
         if pandas is None:
-            raise RuntimeError('master curve fitting requires pandas')
+            raise RuntimeError("master curve fitting requires pandas")
 
-        columns = ('Temp', 'X', 'Log[X]', 'Y')
+        columns = ("Temp", "X", "Log[X]", "Y")
         txy = np.asarray(txy)
         txy[:, -1] *= yfac
         if apply_log:
@@ -271,8 +351,15 @@ class MasterCurve(object):
         if item is not None:
             self._cf[1] = item
 
-    def fit(self, wlf_coeffs=None, skip_temps=None, ref_temp=None, optimize=None,
-            fitter=None, **kwargs):
+    def fit(
+        self,
+        wlf_coeffs=None,
+        skip_temps=None,
+        ref_temp=None,
+        optimize=None,
+        fitter=None,
+        **kwargs
+    ):
 
         skip_temps = aslist(skip_temps)
         skip_temps.extend(self.skip_temps)
@@ -284,14 +371,15 @@ class MasterCurve(object):
         # make skip temps a list, if not already
         df = self.df.copy()
         for temp in skip_temps:
-            df = df[~(np.abs(df['Temp'] - temp) < EPS)]
+            df = df[~(np.abs(df["Temp"] - temp) < EPS)]
 
         ref_temp = self.ref_temp if ref_temp is None else ref_temp
         wlf_coeffs = self.wlf_coeffs if wlf_coeffs is None else wlf_coeffs
 
-        if not any(np.abs(df['Temp'] - ref_temp) < EPS):
-            raise ValueError('Reference temperature {0} not '
-                             'found in data'.format(ref_temp))
+        if not any(np.abs(df["Temp"] - ref_temp) < EPS):
+            raise ValueError(
+                "Reference temperature {0} not " "found in data".format(ref_temp)
+            )
 
         wlf_opt = self.opt_wlf_coeffs(df, ref_temp, wlf_coeffs, optimize)
         self.dfm = self.shift_data(df, ref_temp, wlf_opt)
@@ -302,7 +390,7 @@ class MasterCurve(object):
     def opt_wlf_coeffs(self, df, ref_temp, wlf_coeffs, opt):
         """Generate the optimized master curve"""
 
-        temps = np.unique(df['Temp'])
+        temps = np.unique(df["Temp"])
         if len(temps) == 1:
             # only one data set
             return np.zeros(2)
@@ -322,7 +410,7 @@ class MasterCurve(object):
 
             """
             if np.any(np.abs(xopt[1] + temps - ref_temp) < EPS):
-                self.fiterr = 1000.
+                self.fiterr = 1000.0
                 return self.fiterr
 
             df1 = self.shift_data(df.copy(), ref_temp, xopt)
@@ -330,16 +418,18 @@ class MasterCurve(object):
 
             # determine error between fitted curve and master curve
             yvals = []
-            for logx in df1['Log[X/aT]']:
+            for logx in df1["Log[X/aT]"]:
                 yvals.append(self.cf.eval(fit, logx))
             yvals = np.asarray(yvals)
-            error = np.sqrt(np.mean((yvals - df1['Y']) ** 2))
+            error = np.sqrt(np.mean((yvals - df1["Y"]) ** 2))
             self.fiterr = error  # / area(data[:,0],data[:,1])
             return self.fiterr
 
         if self.optimizer == COBYLA:
-            cons = [lambda x: 1 if abs(x[1]+temp-ref_temp) > EPS else -1
-                    for temp in temps]
+            cons = [
+                lambda x: 1 if abs(x[1] + temp - ref_temp) > EPS else -1
+                for temp in temps
+            ]
             wlf_coeffs = sciopt.fmin_cobyla(func, wlf_coeffs, cons, disp=0)
         elif self.optimizer == POWELL:
             wlf_coeffs = sciopt.fmin_powell(func, wlf_coeffs, disp=0)
@@ -352,19 +442,18 @@ class MasterCurve(object):
         """Compute the master curve for data series"""
         # reference temperature curve
         def f(x):
-            temp = np.asarray(x['Temp'])[0]
+            temp = np.asarray(x["Temp"])[0]
             shift = -wlf[0] * (temp - ref_temp) / (wlf[1] + temp - ref_temp)
-            x['Log[X/aT]'] = np.asarray(x['Log[X]']) - shift
+            x["Log[X/aT]"] = np.asarray(x["Log[X]"]) - shift
             return x
-        df = df.groupby('Temp').apply(f)
+
+        df = df.groupby("Temp").apply(f)
         return df
 
     def fit_shifted_data(self, df):
-        """Fit the master curve
-
-        """
-        t = np.asarray(df['Log[X/aT]'])
-        d = np.asarray(df['Y'])
+        """Fit the master curve"""
+        t = np.asarray(df["Log[X/aT]"])
+        d = np.asarray(df["Y"])
         return self.cf.fit_points(t, d)
 
     @staticmethod
@@ -393,16 +482,16 @@ class MasterCurve(object):
         subtracting the shift value
 
         """
-        ref_curve = np.asarray(df1[['Log[X]', 'Y']])
-        curve = np.asarray(df2[['Log[X]', 'Y']])
+        ref_curve = np.asarray(df1[["Log[X]", "Y"]])
+        curve = np.asarray(df2[["Log[X]", "Y"]])
 
         ref_bnds = bounding_box(ref_curve)
         crv_bnds = bounding_box(curve)
 
-        if (crv_bnds[1, 1] > ref_bnds[1, 1]):
+        if crv_bnds[1, 1] > ref_bnds[1, 1]:
             # y values for curve larger than ref_curve, check for overlap
-            if (crv_bnds[0, 1] < ref_bnds[1, 1]):
-                ypt = (ref_bnds[1, 1] + crv_bnds[0, 1]) / 2.
+            if crv_bnds[0, 1] < ref_bnds[1, 1]:
+                ypt = (ref_bnds[1, 1] + crv_bnds[0, 1]) / 2.0
                 x_crv = interp1d(curve, ypt, findx=True)
                 x_ref = interp1d(ref_curve, ypt, findx=True)
             else:
@@ -410,8 +499,8 @@ class MasterCurve(object):
                 x_ref, x_crv = ref_curve[0, 0], curve[-1, 0]
         else:
             # y values for ref_curve larger than curve, check for overlap
-            if (ref_bnds[0, 1] < crv_bnds[1, 1]):
-                ypt = (ref_bnds[0, 1] + crv_bnds[1, 1]) / 2.
+            if ref_bnds[0, 1] < crv_bnds[1, 1]:
+                ypt = (ref_bnds[0, 1] + crv_bnds[1, 1]) / 2.0
                 x_crv = interp1d(curve, ypt, findx=True)
                 x_ref = interp1d(ref_curve, ypt, findx=True)
             else:
@@ -439,19 +528,20 @@ class MasterCurve(object):
 
         """
         # shift the data to the reference curve
-        dg = df.groupby('Temp')
+        dg = df.groupby("Temp")
         rc = dg.get_group(T0)
 
         # Shift each data set.  xs is [T, logaT]
         xs = np.array([[g, self.x_shift(rc, df1)] for (g, df1) in dg])
-        if all([abs(x) < 1.e-6 for x in xs[:,1]]):
-            logging.warn('No shift found, consider specifying '
-                         'initial WLF coefficients')
+        if all([abs(x) < 1.0e-6 for x in xs[:, 1]]):
+            logging.warn(
+                "No shift found, consider specifying " "initial WLF coefficients"
+            )
 
         # Setup A Matrix
         A = np.zeros((xs.shape[0], 2))
-        A[:, 0] = xs[:,0] - T0
-        A[:, 1] = xs[:,1]
+        A[:, 0] = xs[:, 0] - T0
+        A[:, 1] = xs[:, 1]
 
         # Setup b Vector
         b = -A[:, 0] * A[:, 1]
@@ -462,7 +552,7 @@ class MasterCurve(object):
         try:
             wlf_coeffs = np.linalg.solve(ATA, ATb)
         except np.linalg.LinAlgError:
-            logging.warn('Using least squares to find wlf coefficients')
+            logging.warn("Using least squares to find wlf coefficients")
             wlf_coeffs = np.linalg.lstsq(ATA, ATb)[0]
 
         return wlf_coeffs
@@ -476,81 +566,96 @@ class MasterCurve(object):
 
     def _bp_plot(self, raw=False, show_fit=False):
         if bp is None:
-            raise ImportError('bokeh')
+            raise ImportError("bokeh")
 
         if raw:
-            x_label = 'Log[{0}] ({1})'.format(self.xvar, self.xunits)
+            x_label = "Log[{0}] ({1})".format(self.xvar, self.xunits)
         else:
-            x_label = 'Log[{0}/aT] ({1})'.format(self.xvar, self.xunits)
-        y_label = '{0} ({1})'.format(self.yvar, self.yunits)
+            x_label = "Log[{0}/aT] ({1})".format(self.xvar, self.xunits)
+        y_label = "{0} ({1})".format(self.yvar, self.yunits)
         plot = bp.figure(x_axis_label=x_label, y_axis_label=y_label)
         if raw:
-            plot.title = 'Raw, unshifted data'
-            dg = self.df.groupby('Temp')
+            plot.title = "Raw, unshifted data"
+            dg = self.df.groupby("Temp")
             colors = gen_colors([str(temp) for temp in dg.groups.keys()])
             for (temp, df) in dg:
-                plot.scatter(df['Log[X]'], df['Y'], legend='{0}'.format(temp),
-                             color=colors[str(temp)])
+                plot.scatter(
+                    df["Log[X]"],
+                    df["Y"],
+                    legend="{0}".format(temp),
+                    color=colors[str(temp)],
+                )
             return plot
 
         if not self._fit:
             self.fit()
 
-        dg = self.dfm.groupby('Temp')
+        dg = self.dfm.groupby("Temp")
         colors = gen_colors([str(temp) for temp in dg.groups.keys()])
-        plot.title = 'Data shift: {0}'.format(self.cf.name)
+        plot.title = "Data shift: {0}".format(self.cf.name)
         for (temp, df) in dg:
-            plot.scatter(df['Log[X/aT]'], df['Y'],
-                         legend='{0}'.format(temp), color=colors[str(temp)])
+            plot.scatter(
+                df["Log[X/aT]"],
+                df["Y"],
+                legend="{0}".format(temp),
+                color=colors[str(temp)],
+            )
         if show_fit:
             xp, yp = self._mc_points()
-            plot.line(xp, yp, color='black', line_width=1.5,
-                      legend='Master Curve Fit')
+            plot.line(xp, yp, color="black", line_width=1.5, legend="Master Curve Fit")
         return plot
 
-    def _mp_plot(self, raw=False, show_fit=False, filename=None,
-                 legend_loc='best', legend_ncol=1):
-        """Plot the given data or shifted data and/or the fit """
+    def _mp_plot(
+        self, raw=False, show_fit=False, filename=None, legend_loc="best", legend_ncol=1
+    ):
+        """Plot the given data or shifted data and/or the fit"""
         if plt is None:
-            raise ImportError('matplotlib')
+            raise ImportError("matplotlib")
 
         plt.clf()
         plt.cla()
         xl, xu = self.xvar, self.xunits
         yl, yu = self.yvar, self.yunits
         if raw:
-            plt.xlabel(r'$\log\left(%s\right)$ (%s)' % (xl, xu))
+            plt.xlabel(r"$\log\left(%s\right)$ (%s)" % (xl, xu))
         else:
-            plt.xlabel(r'$\log\left(\frac{%s}{aT}\right)$ (%s)' % (xl, xu))
-        ylabel = r'$%s$ (%s)' % (yl, yu)
+            plt.xlabel(r"$\log\left(\frac{%s}{aT}\right)$ (%s)" % (xl, xu))
+        ylabel = r"$%s$ (%s)" % (yl, yu)
         plt.ylabel(ylabel)
 
         if raw:
-            dg = self.df.groupby('Temp')
+            dg = self.df.groupby("Temp")
             colors = gen_colors([str(temp) for temp in dg.groups.keys()])
             for (temp, df) in dg:
-                plt.scatter(df['Log[X]'], df['Y'], label='{0}'.format(temp),
-                            color=colors[str(temp)])
+                plt.scatter(
+                    df["Log[X]"],
+                    df["Y"],
+                    label="{0}".format(temp),
+                    color=colors[str(temp)],
+                )
 
         else:
             if not self._fit:
                 self.fit()
-            dg = self.dfm.groupby('Temp')
+            dg = self.dfm.groupby("Temp")
             colors = gen_colors([str(temp) for temp in dg.groups.keys()])
             for (temp, df) in dg:
-                plt.scatter(df['Log[X/aT]'], df['Y'],
-                            label='{0}'.format(temp), color=colors[str(temp)])
+                plt.scatter(
+                    df["Log[X/aT]"],
+                    df["Y"],
+                    label="{0}".format(temp),
+                    color=colors[str(temp)],
+                )
 
             if show_fit:
                 xp, yp = self._mc_points()
-                plt.plot(xp, yp, 'k-', lw=1.5)
+                plt.plot(xp, yp, "k-", lw=1.5)
 
         if legend_loc is not None:
-            kwds = {'loc': legend_loc, 'ncol': legend_ncol,
-                    'scatterpoints': 1}
+            kwds = {"loc": legend_loc, "ncol": legend_ncol, "scatterpoints": 1}
             if show_fit:
-                kwds['title'] = '${0}$ = {1}'.format(self.yvar, self.cf.plot_label)
-                kwds['fancybox'] = True
+                kwds["title"] = "${0}$ = {1}".format(self.yvar, self.cf.plot_label)
+                kwds["fancybox"] = True
             plt.legend(**kwds)
 
         if environ.notebook:
@@ -578,22 +683,22 @@ class MasterCurve(object):
         if not self._fit:
             self.fit()
 
-        fh = open(filename, 'w')
-        fh.write('mcgen\nVersion\n1.2\n')
-        fh.write('Curve Fitter\n{0}\n'.format(self.cf.name))
-        fh.write('Curve Fitting Information\n')
+        fh = open(filename, "w")
+        fh.write("mcgen\nVersion\n1.2\n")
+        fh.write("Curve Fitter\n{0}\n".format(self.cf.name))
+        fh.write("Curve Fitting Information\n")
         # write out the fit info
-        line = self.cf.dump_info(self.mc_fit, delimiter=',')
+        line = self.cf.dump_info(self.mc_fit, delimiter=",")
         fh.write(line)
         try:
-            fh.write('Fit Error\n{0:.18f}\n'.format(self.fiterr))
+            fh.write("Fit Error\n{0:.18f}\n".format(self.fiterr))
         except ValueError:
             pass
-        fh.write(joinn(['WLF C1', 'WLF C2'], sep=','))
-        fh.write(joinn([self.wlf_opt[0], self.wlf_opt[1]], sep=',', num=True))
+        fh.write(joinn(["WLF C1", "WLF C2"], sep=","))
+        fh.write(joinn([self.wlf_opt[0], self.wlf_opt[1]], sep=",", num=True))
 
-        fh.write('Data\n')
-        self.dfm.to_csv(fh, float_format='%.18f', index=False)
+        fh.write("Data\n")
+        self.dfm.to_csv(fh, float_format="%.18f", index=False)
         fh.close()
 
     def to_excel(self, filename):
@@ -601,41 +706,41 @@ class MasterCurve(object):
             self.fit()
 
         def cell(i, j):
-            return '{0}{1}'.format(chr(j+ord('A')), i+1)
+            return "{0}{1}".format(chr(j + ord("A")), i + 1)
 
         writer = pandas.ExcelWriter(filename)
         worksheet = writer.book.create_sheet()
-        worksheet.title = 'mcgen Meta'
-        worksheet[cell(0, 0)] = 'mcgen Version'
-        worksheet[cell(0, 1)] = '1.2'
+        worksheet.title = "mcgen Meta"
+        worksheet[cell(0, 0)] = "mcgen Version"
+        worksheet[cell(0, 1)] = "1.2"
 
-        worksheet[cell(1, 0)] = 'Curve Fitter'
+        worksheet[cell(1, 0)] = "Curve Fitter"
         worksheet[cell(1, 0)] = self.cf.name
 
-        worksheet[cell(2, 0)] = 'Curve Fitting Information'
-        lines = self.cf.dump_info(self.mc_fit, delimiter=',')
-        for (i, line) in enumerate(lines.split('\n')):
-            for (j, item) in enumerate(line.split(',')):
-                worksheet[cell(3+i, j)] = '{0}'.format(item.strip())
-        n = 3+i
+        worksheet[cell(2, 0)] = "Curve Fitting Information"
+        lines = self.cf.dump_info(self.mc_fit, delimiter=",")
+        for (i, line) in enumerate(lines.split("\n")):
+            for (j, item) in enumerate(line.split(",")):
+                worksheet[cell(3 + i, j)] = "{0}".format(item.strip())
+        n = 3 + i
         try:
-            worksheet[cell(n, 0)] = 'Fit Error'
-            worksheet[cell(n, 1)] = '{0:.18f}\n'.format(self.fiterr)
+            worksheet[cell(n, 0)] = "Fit Error"
+            worksheet[cell(n, 1)] = "{0:.18f}\n".format(self.fiterr)
             n += 1
         except ValueError:
             pass
-        worksheet[cell(n, 0)] = 'WLF C1'
-        worksheet[cell(n, 1)] = 'WLF C1'
-        worksheet[cell(n+1, 0)] = '{0}'.format(self.wlf_opt[0])
-        worksheet[cell(n+1, 1)] = '{0}'.format(self.wlf_opt[1])
+        worksheet[cell(n, 0)] = "WLF C1"
+        worksheet[cell(n, 1)] = "WLF C1"
+        worksheet[cell(n + 1, 0)] = "{0}".format(self.wlf_opt[0])
+        worksheet[cell(n + 1, 1)] = "{0}".format(self.wlf_opt[1])
 
-        self.dfm.to_excel(writer, sheet_name='mcgen Data', index=False)
+        self.dfm.to_excel(writer, sheet_name="mcgen Data", index=False)
         writer.save()
         return
 
     def _mc_points(self, n=50):
-        xmin = np.amin(self.dfm['Log[X/aT]'])
-        xmax = np.amax(self.dfm['Log[X/aT]'])
+        xmin = np.amin(self.dfm["Log[X/aT]"])
+        xmax = np.amax(self.dfm["Log[X/aT]"])
         xvals = np.linspace(xmin, xmax, n)
         yvals = np.array([self.cf.eval(self.mc_fit, x) for x in xvals])
         return xvals, yvals
@@ -643,17 +748,17 @@ class MasterCurve(object):
     @classmethod
     def Import(cls, filename, **kwargs):
         root, ext = os.path.splitext(filename)
-        if ext.lower() == '.csv':
+        if ext.lower() == ".csv":
             return ReadCSV(filename, **kwargs)
-        raise TypeError('Unexpected file extension {0!r}'.format(ext))
+        raise TypeError("Unexpected file extension {0!r}".format(ext))
 
     def Export(self, filename):
         root, ext = os.path.splitext(filename)
-        if ext.lower() == '.csv':
+        if ext.lower() == ".csv":
             return self.to_csv(filename)
-        elif ext.lower() == '.xlsx':
+        elif ext.lower() == ".xlsx":
             return self.to_excel(filename)
-        raise TypeError('Unexpected file extension {0!r}'.format(ext))
+        raise TypeError("Unexpected file extension {0!r}".format(ext))
 
     @property
     def description(self):
@@ -661,42 +766,49 @@ class MasterCurve(object):
             self.fit()
 
         fh = sys.stdout
-        fh.write('mcgen Version 1.2\n')
-        fh.write('Curve Fitter: {0}\n'.format(self.cf.name))
-        fh.write('Curve Fitting Information\n')
+        fh.write("mcgen Version 1.2\n")
+        fh.write("Curve Fitter: {0}\n".format(self.cf.name))
+        fh.write("Curve Fitting Information\n")
 
         # write out the fit info
-        line = self.cf.dump_info(self.mc_fit, delimiter=',')
+        line = self.cf.dump_info(self.mc_fit, delimiter=",")
         fh.write(line)
         try:
-            fh.write('Fit Error\n{0:.18f}\n'.format(self.fiterr))
+            fh.write("Fit Error\n{0:.18f}\n".format(self.fiterr))
         except ValueError:
             pass
-        fh.write(joinn(['WLF C1', 'WLF C2'], sep=','))
-        fh.write(joinn([self.wlf_opt[0], self.wlf_opt[1]], sep=',', num=True))
+        fh.write(joinn(["WLF C1", "WLF C2"], sep=","))
+        fh.write(joinn([self.wlf_opt[0], self.wlf_opt[1]], sep=",", num=True))
 
-        #fh.write('Data\n')
-        #self.dfm.to_csv(fh, float_format='%.18f', index=False)
+        # fh.write('Data\n')
+        # self.dfm.to_csv(fh, float_format='%.18f', index=False)
+
 
 class _CurveFitter(object):
     """CurveFitter base class"""
+
     name = None
     key = None
-    plot_label = 'Curve fit'
+    plot_label = "Curve fit"
     requires_opt = False
+
     def fit_points(self, *args, **kwargs):
         raise NotImplementedError
+
     def eval(self, *args, **kwargs):
         raise NotImplementedError
+
     def dump_info(self, *args, **kwargs):
         raise NotImplementedError
 
+
 class PronyFit(_CurveFitter):
-    name = 'Prony'
+    name = "Prony"
     key = PRONY
-    plot_label = r'$\sum_{i=1}^{n} y_i e^{\frac{t/a_T}{\tau_i}}$'
+    plot_label = r"$\sum_{i=1}^{n} y_i e^{\frac{t/a_T}{\tau_i}}$"
+
     def __init__(self, *args, **kwargs):
-        optprony = kwargs.pop('optprony', False)
+        optprony = kwargs.pop("optprony", False)
         self.optprony = optprony and sciopt is not None
 
     def fit_points(self, xp, yp):
@@ -740,13 +852,13 @@ class PronyFit(_CurveFitter):
         tau[:-1] = [BASE ** (round(mn) + i) for i in range(ndp)]
 
         d = np.zeros((n, nn))
-        d[:, -1] = 1.
+        d[:, -1] = 1.0
         for i in range(n):
-            d[i, :ndp] = np.exp(-BASE ** xp[i] / tau[:ndp])
+            d[i, :ndp] = np.exp(-(BASE ** xp[i]) / tau[:ndp])
         try:
             dtdi = np.linalg.inv(np.dot(d.T, d))
         except np.linalg.LinAlgError:
-            raise ValueError('adjust initial WLF coefficients')
+            raise ValueError("adjust initial WLF coefficients")
         ddd = np.dot(dtdi, d.T)
         coeffs = np.dot(ddd, yp)
         if self.optprony:
@@ -759,6 +871,7 @@ class PronyFit(_CurveFitter):
                 y = [self._eval(ti, ci, x) for x in xp]
                 err = np.sqrt(np.mean((yp - y) ** 2))
                 return err
+
             xarg = np.append(coeffs, tau)
             xopt = sciopt.fmin(func, xarg, args=(nn, xp, yp), disp=0)
             coeffs = xopt[:nn]
@@ -785,24 +898,26 @@ class PronyFit(_CurveFitter):
 
         """
         ti, ci = fit[:, 0], fit[:, 1]
-        return self._eval(ti, ci, BASE ** z)
+        return self._eval(ti, ci, BASE**z)
 
-    def dump_info(self, fit, ffmt='.18f', delimiter=','):
+    def dump_info(self, fit, ffmt=".18f", delimiter=","):
         line = []
         ti, ci = fit[:, 0], fit[:, 1]
-        line.append(['tau_{0:d}'.format(i+1) for i in range(len(ti)-1)])
-        line.append(['{0:{1}}'.format(r, ffmt) for r in ti[:-1]])
-        line.append(['y_{0:d}'.format(i+1) for i in range(len(ci)-1)])
-        line[-1].append('y_inf')
-        line.append(['{0:{1}}'.format(r, ffmt) for r in ci])
+        line.append(["tau_{0:d}".format(i + 1) for i in range(len(ti) - 1)])
+        line.append(["{0:{1}}".format(r, ffmt) for r in ti[:-1]])
+        line.append(["y_{0:d}".format(i + 1) for i in range(len(ci) - 1)])
+        line[-1].append("y_inf")
+        line.append(["{0:{1}}".format(r, ffmt) for r in ci])
         line = joinn(line, sep=delimiter)
         return line
 
+
 class ModifiedPowerFit(_CurveFitter):
-    name = 'Modified Power'
+    name = "Modified Power"
     key = MODIFIED_POWER
     requires_opt = True
-    plot_label = r'$y_0 + y_1 \left(\frac{t}{a_T}\right) ^ a$'
+    plot_label = r"$y_0 + y_1 \left(\frac{t}{a_T}\right) ^ a$"
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -829,9 +944,11 @@ class ModifiedPowerFit(_CurveFitter):
                Er = Ee + E1 (t/aT)
 
         """
+
         def func(p, x, y):
             return y - self._eval(p[0], p[1], p[2], x)
-        out, success = sciopt.leastsq(func, [200., 100., -.1], args=(xp, yp))
+
+        out, success = sciopt.leastsq(func, [200.0, 100.0, -0.1], args=(xp, yp))
         return out[:3]
 
     def eval(self, fit, x):
@@ -840,22 +957,25 @@ class ModifiedPowerFit(_CurveFitter):
 
     @staticmethod
     def _eval(Ee, E1, a, x):
-        return Ee + E1 * (BASE ** x) ** a
+        return Ee + E1 * (BASE**x) ** a
 
-    def dump_info(self, fit, ffmt='.18f', delimiter=','):
+    def dump_info(self, fit, ffmt=".18f", delimiter=","):
         line = []
-        line.append(['Ee', 'E1', 'a'])
-        line.append(['{0:{1}}'.format(r, ffmt) for r in fit])
+        line.append(["Ee", "E1", "a"])
+        line.append(["{0:{1}}".format(r, ffmt) for r in fit])
         line = joinn(line, sep=delimiter)
         return line
 
+
 class PowerFit(_CurveFitter):
-    name = 'Power'
+    name = "Power"
     key = POWER
     requires_opt = True
-    plot_label = r'$y_0\left(\frac{t}{a_T}\right) ^ a$'
+    plot_label = r"$y_0\left(\frac{t}{a_T}\right) ^ a$"
+
     def __init__(self, *args, **kwargs):
         pass
+
     def fit_points(self, xp, yp):
         """Retuns the best fits for a power curve
 
@@ -879,9 +999,11 @@ class PowerFit(_CurveFitter):
                Er = E0 (t/aT)
 
         """
+
         def func(p, x, y):
             return y - self._eval(p[0], p[1], x)
-        out, success = sciopt.leastsq(func, [100., -.1], args=(xp, yp))
+
+        out, success = sciopt.leastsq(func, [100.0, -0.1], args=(xp, yp))
         return out[:2]
 
     def eval(self, fit, x):
@@ -890,34 +1012,38 @@ class PowerFit(_CurveFitter):
 
     @staticmethod
     def _eval(E0, a, x):
-        return E0 * (BASE ** x) ** a
+        return E0 * (BASE**x) ** a
 
-    def dump_info(self, fit, ffmt='.18f', delimiter=','):
+    def dump_info(self, fit, ffmt=".18f", delimiter=","):
         line = []
-        line.append(['E0', 'a'])
-        line.append(['{0:{1}}'.format(r, ffmt) for r in fit])
+        line.append(["E0", "a"])
+        line.append(["{0:{1}}".format(r, ffmt) for r in fit])
         line = joinn(line, sep=delimiter)
         return line
 
+
 class PolyFit(_CurveFitter):
-    name = 'Polynomial'
+    name = "Polynomial"
     key = POLYNOMIAL
+
     def __init__(self, *args, **kwargs):
-        self.order = kwargs.get('order', 2)
+        self.order = kwargs.get("order", 2)
         self.p = None
         pass
+
     @property
     def plot_label(self):
-        f = r'\log{\left(\frac{t}{a_T}\right)}'
+        f = r"\log{\left(\frac{t}{a_T}\right)}"
         if self.p is None:
-            return r'$c_0 + c_1 %(f)s + ... + c_n %(f)s^n$' % {'f': f}
+            return r"$c_0 + c_1 %(f)s + ... + c_n %(f)s^n$" % {"f": f}
         np = self.p.shape[0]
-        l = ['c_0']
+        l = ["c_0"]
         if np > 1:
-            l.append('c_1 %(f)s' % {'f':f})
+            l.append("c_1 %(f)s" % {"f": f})
         if np > 2:
-            l.extend([r'\cdots', r'c_%(n)d %(f)s^%(n)d' % {'f':f, 'n':np-1}])
-        return r'${0}$'.format(' + '.join(l))
+            l.extend([r"\cdots", r"c_%(n)d %(f)s^%(n)d" % {"f": f, "n": np - 1}])
+        return r"${0}$".format(" + ".join(l))
+
     def fit_points(self, xp, yp):
         """Retuns the best fits for a polynomial curve
 
@@ -935,12 +1061,13 @@ class PolyFit(_CurveFitter):
     def eval(self, fit, x):
         return np.poly1d(fit)(x)
 
-    def dump_info(self, fit, ffmt='.18f', delimiter=','):
+    def dump_info(self, fit, ffmt=".18f", delimiter=","):
         line = []
-        line.append(['p_{0}'.format(i) for i in range(fit.shape[0])])
-        line.append(['{0:{1}}'.format(r, ffmt) for r in fit[::-1]])
+        line.append(["p_{0}".format(i) for i in range(fit.shape[0])])
+        line.append(["{0:{1}}".format(r, ffmt) for r in fit[::-1]])
         line = joinn(line, sep=delimiter)
         return line
+
 
 def CurveFitter(key):
     """Curve Fitter factory method"""
@@ -949,18 +1076,34 @@ def CurveFitter(key):
         if f.key == key:
             break
     else:
-        raise ValueError('{0}: unrecognized fitter'.format(key))
+        raise ValueError("{0}: unrecognized fitter".format(key))
     if f.requires_opt and not sciopt:
-        raise ValueError('{0}: requires scipy.optimize'.format(key))
+        raise ValueError("{0}: requires scipy.optimize".format(key))
     return f
 
-RE = re.compile('[ \,]')
-def _split(string, comments, i=0):
-    return [x for x in RE.split(string.strip().split(comments,1)[i]) if x.split()]
 
-def ReadCSV(filename, apply_log=True, ref_temp=75., cols=[0,1,2],
-            xvar='Time', xunits='min', yvar='Er', yunits='psi',
-            skip_temps=None, xfac=1., yfac=1., comments='#', **kwargs):
+RE = re.compile("[ \,]")
+
+
+def _split(string, comments, i=0):
+    return [x for x in RE.split(string.strip().split(comments, 1)[i]) if x.split()]
+
+
+def ReadCSV(
+    filename,
+    apply_log=True,
+    ref_temp=75.0,
+    cols=[0, 1, 2],
+    xvar="Time",
+    xunits="min",
+    yvar="Er",
+    yunits="psi",
+    skip_temps=None,
+    xfac=1.0,
+    yfac=1.0,
+    comments="#",
+    **kwargs
+):
     """MasterCurve factory method
 
     Parameters
@@ -987,7 +1130,7 @@ def ReadCSV(filename, apply_log=True, ref_temp=75., cols=[0,1,2],
         else:
             fh = iter(filename)
     except (TypeError):
-        message = 'filename must be a string, file handle, or generator'
+        message = "filename must be a string, file handle, or generator"
         raise ValueError(message)
 
     data = []
@@ -999,45 +1142,60 @@ def ReadCSV(filename, apply_log=True, ref_temp=75., cols=[0,1,2],
             try:
                 line = [float(x) for x in line]
             except ValueError:
-                raise ValueError('expected floates in line{0} '
-                                 'got {1}'.format(i+1, line))
+                raise ValueError(
+                    "expected floates in line{0} " "got {1}".format(i + 1, line)
+                )
             data.append(line)
     finally:
         if fown:
             fh.close()
 
-    data = np.array(data)[:,cols]
+    data = np.array(data)[:, cols]
     data = np.asarray(sorted(data, key=lambda x: (x[0], x[1])))
-    return MasterCurve(data, ref_temp=ref_temp, apply_log=apply_log,
-                       skip_temps=skip_temps, xfac=xfac, yfac=yfac,
-                       xvar=xvar, xunits=xunits, yvar=yvar, yunits=yunits,
-                       **kwargs)
+    return MasterCurve(
+        data,
+        ref_temp=ref_temp,
+        apply_log=apply_log,
+        skip_temps=skip_temps,
+        xfac=xfac,
+        yfac=yfac,
+        xvar=xvar,
+        xunits=xunits,
+        yvar=yvar,
+        yunits=yunits,
+        **kwargs
+    )
 
-def mc_init_notebook(plot_lib='bokeh', i=1):
+
+def mc_init_notebook(plot_lib="bokeh", i=1):
     lib = plot_lib.lower()
-    if lib == 'bokeh':
+    if lib == "bokeh":
         if bp is None:
-            raise ImportError('bokeh')
+            raise ImportError("bokeh")
         if i:
             from bokeh.io import output_notebook
+
             output_notebook()
         environ.notebook = 2
-    elif lib == 'matplotlib':
+    elif lib == "matplotlib":
         if plt is None:
-            raise ImportError('matplotlib')
-        plt.rcParams['figure.figsize'] = (15, 12)
-        plt.rcParams['font.family'] = 'serif'
-        plt.rcParams['font.size'] = 20
-        plt.rcParams['font.serif'] = 'Times New Roman'
-        plt.rcParams['legend.scatterpoints'] = 1
-        plt.rcParams['legend.handlelength'] = 0
+            raise ImportError("matplotlib")
+        plt.rcParams["figure.figsize"] = (15, 12)
+        plt.rcParams["font.family"] = "serif"
+        plt.rcParams["font.size"] = 20
+        plt.rcParams["font.serif"] = "Times New Roman"
+        plt.rcParams["legend.scatterpoints"] = 1
+        plt.rcParams["legend.handlelength"] = 0
         environ.notebook = 1
     else:
-        raise ValueError('expected bokeh or matplotlib, got {0!r}'.format(plot_lib))
+        raise ValueError("expected bokeh or matplotlib, got {0!r}".format(plot_lib))
+
 
 def mcgen_test_data():
     from io import StringIO
-    return StringIO("""\
+
+    return StringIO(
+        """\
 # Each line shall be as
 # Temperature, Time, Value
 0.0000, 0.0100, 4857.0000
@@ -1087,25 +1245,38 @@ def mcgen_test_data():
 130.0000, 1.0000, 364.0000
 130.0000, 3.1623, 313.0000
 130.0000, 10.0000, 271.0000
-130.0000, 16.5959, 254.0000""")
+130.0000, 16.5959, 254.0000"""
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Baseline solution
     c = np.array([3.292, 181.82])
-    p = np.array([[.0001, 2489],
-                  [.001, 1482],
-                  [.01, 803],
-                  [.1, 402],
-                  [1, 207],
-                  [10, 124],
-                  [100, 101],
-                  [0, 222]], dtype=np.float64)
-    mc = ReadCSV(mcgen_test_data(), ref_temp=75., apply_log=True,
-                 fitter=PRONY, optimizer=FMIN, optwlf=False)
-    s1 = 'WLF coefficients not within tolerance'
+    p = np.array(
+        [
+            [0.0001, 2489],
+            [0.001, 1482],
+            [0.01, 803],
+            [0.1, 402],
+            [1, 207],
+            [10, 124],
+            [100, 101],
+            [0, 222],
+        ],
+        dtype=np.float64,
+    )
+    mc = ReadCSV(
+        mcgen_test_data(),
+        ref_temp=75.0,
+        apply_log=True,
+        fitter=PRONY,
+        optimizer=FMIN,
+        optwlf=False,
+    )
+    s1 = "WLF coefficients not within tolerance"
     mc.fit()
-    assert np.allclose(mc.wlf_opt, c, rtol=1.e-3, atol=1.e-3), s1
-    s2 = 'Prony series not within tolerance'
-    assert np.allclose(mc.mc_fit[:, 1], p[:, 1], rtol=1.e-2, atol=1.e-2), s2
+    assert np.allclose(mc.wlf_opt, c, rtol=1.0e-3, atol=1.0e-3), s1
+    s2 = "Prony series not within tolerance"
+    assert np.allclose(mc.mc_fit[:, 1], p[:, 1], rtol=1.0e-2, atol=1.0e-2), s2
     mc.fit(optimize=True)
-    print('Success')
+    print("Success")

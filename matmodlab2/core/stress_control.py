@@ -2,12 +2,13 @@ import warnings
 import numpy as np
 from copy import deepcopy as copy
 from .environ import environ
-from .tensor import VOIGT
 from .deformation import update_deformation
 
-def d_from_prescribed_stress(func, t, dt, temp, dtemp, f0, f,
-                             stran, d, sig, ufield, dufield, statev, v, sigspec):
-    '''Determine the symmetric part of the velocity gradient given stress
+
+def d_from_prescribed_stress(
+    func, t, dt, temp, dtemp, f0, f, stran, d, sig, ufield, dufield, statev, v, sigspec
+):
+    """Determine the symmetric part of the velocity gradient given stress
 
     Parameters
     ----------
@@ -48,11 +49,26 @@ def d_from_prescribed_stress(func, t, dt, temp, dtemp, f0, f,
          if converged
       3) Call simplex with d[v] = 0. to solve 1, return stress, statev, d
 
-    '''
+    """
     dsave = d.copy()
 
-    d = newton(func, t, dt, temp, dtemp, f0, f, stran, d,
-               sig, ufield, dufield, statev, v, sigspec)
+    d = newton(
+        func,
+        t,
+        dt,
+        temp,
+        dtemp,
+        f0,
+        f,
+        stran,
+        d,
+        sig,
+        ufield,
+        dufield,
+        statev,
+        v,
+        sigspec,
+    )
     if d is not None:
         return d
 
@@ -60,20 +76,66 @@ def d_from_prescribed_stress(func, t, dt, temp, dtemp, f0, f,
     # --- d[v]=0.
     d = dsave.copy()
     d[v] = np.zeros(len(v))
-    d = newton(func, t, dt, temp, dtemp, f0, f, stran, d,
-               sig, ufield, dufield, statev, v, sigspec)
+    d = newton(
+        func,
+        t,
+        dt,
+        temp,
+        dtemp,
+        f0,
+        f,
+        stran,
+        d,
+        sig,
+        ufield,
+        dufield,
+        statev,
+        v,
+        sigspec,
+    )
     if d is not None:
         return d
 
     # --- Still didn't converge. Try downhill simplex method and accept
     #     whatever answer it returns:
     d = dsave.copy()
-    return simplex(func, t, dt, temp, dtemp, f0, f, stran, d,
-                   sig, ufield, dufield, statev, v, sigspec)
+    return simplex(
+        func,
+        t,
+        dt,
+        temp,
+        dtemp,
+        f0,
+        f,
+        stran,
+        d,
+        sig,
+        ufield,
+        dufield,
+        statev,
+        v,
+        sigspec,
+    )
 
-def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
-           sigarg, ufield, dufield, statev_arg, v, sigspec):
-    '''Seek to determine the unknown components of the symmetric part of velocity
+
+def newton(
+    func,
+    t,
+    dt,
+    temp,
+    dtemp,
+    f0,
+    farg,
+    stran,
+    darg,
+    sigarg,
+    ufield,
+    dufield,
+    statev_arg,
+    v,
+    sigspec,
+):
+    """Seek to determine the unknown components of the symmetric part of velocity
     gradient d[v] satisfying
 
                                sig(d[v]) = sigspec
@@ -125,13 +187,13 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
     argument converged is a flag indicat- ing whether or not the procedure
     converged:
 
-    '''
-    depsmag = lambda a: np.sqrt(sum(a[:3] ** 2) + 2. * sum(a[3:] ** 2)) * dt
+    """
+    depsmag = lambda a: np.sqrt(sum(a[:3] ** 2) + 2.0 * sum(a[3:] ** 2)) * dt
 
     # Initialize
     eps = np.finfo(np.float).eps
     tol1, tol2 = eps, np.sqrt(eps)
-    maxit1, maxit2, depsmax = 20, 30, .2
+    maxit1, maxit2, depsmax = 20, 30, 0.2
 
     sig = sigarg.copy()
     d = darg.copy()
@@ -142,20 +204,22 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
     statev_save = copy(statev)
 
     # --- Check if strain increment is too large
-    if (depsmag(d) > depsmax):
+    if depsmag(d) > depsmax:
         return None
 
     # update the material state to get the first guess at the new stress
-    sig, statev, stif = func(0, t, dt, temp, dtemp, f0, f, stran, d, sig,
-                             ufield, dufield, statev)
+    sig, statev, stif = func(
+        0, t, dt, temp, dtemp, f0, f, stran, d, sig, ufield, dufield, statev
+    )
     sigerr = sig[v] - sigspec
 
     # --- Perform Newton iteration
     for i in range(maxit2):
         sig = sigsave.copy()
         statev = copy(statev_save)
-        stif = func(0, t, dt, temp, dtemp, f0, f, stran, d, sig,
-                    ufield, dufield, statev)[2]
+        stif = func(
+            0, t, dt, temp, dtemp, f0, f, stran, d, sig, ufield, dufield, statev
+        )[2]
         if stif is None:
             # material models without an analytic jacobian send the Jacobian
             # back as None so that it is found numerically here. Likewise, we
@@ -165,8 +229,22 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
             # the visco correction, push it forward, and convert to Jaummann
             # rate. It's not as trivial as it sounds...
             statev = copy(statev_save)
-            stif = numerical_jacobian(func, t, dt, temp, dtemp, f0, f,
-                                      stran, d, sig, ufield, dufield, statev, v)
+            stif = numerical_jacobian(
+                func,
+                t,
+                dt,
+                temp,
+                dtemp,
+                f0,
+                f,
+                stran,
+                d,
+                sig,
+                ufield,
+                dufield,
+                statev,
+                v,
+            )
         else:
             stif = stif[[[i] for i in v], v]
 
@@ -174,24 +252,26 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
             try:
                 evals = np.linalg.eigvalsh(stif)
             except np.linalg.LinAlgError:
-                raise RuntimeError('failed to determine elastic '
-                                   'stiffness eigenvalues')
+                raise RuntimeError(
+                    "failed to determine elastic " "stiffness eigenvalues"
+                )
             else:
-                if np.any(evals < 0.):
-                    negevals = evals[np.where(evals < 0.)]
-                    warnings.warn('negative eigen value[s] encountered '
-                                  'in material Jacobian: '
-                                  '{0} ({1:.2f})'.format(negevals, t))
+                if np.any(evals < 0.0):
+                    negevals = evals[np.where(evals < 0.0)]
+                    warnings.warn(
+                        "negative eigen value[s] encountered "
+                        "in material Jacobian: "
+                        "{0} ({1:.2f})".format(negevals, t)
+                    )
 
         try:
             d[v] -= np.linalg.solve(stif, sigerr) / dt
         except np.linalg.LinAlgError:
             if environ.SQA:
-                warnings.warn('using least squares approximation to '
-                              'matrix inverse')
+                warnings.warn("using least squares approximation to " "matrix inverse")
             d[v] -= np.linalg.lstsq(stif, sigerr)[0] / dt
 
-        if (depsmag(d) > depsmax or  np.any(np.isnan(d)) or np.any(np.isinf(d))):
+        if depsmag(d) > depsmax or np.any(np.isnan(d)) or np.any(np.isinf(d)):
             # increment too large
             return None
 
@@ -199,11 +279,12 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
         sig = sigsave.copy()
         statev = copy(statev_save)
         fp, ep = update_deformation(f, d, dt, 0)
-        sig, statev, stif = func(0, t, dt, temp, dtemp, f0, fp, ep, d, sig,
-                                 ufield, dufield, statev)
+        sig, statev, stif = func(
+            0, t, dt, temp, dtemp, f0, fp, ep, d, sig, ufield, dufield, statev
+        )
 
         sigerr = sig[v] - sigspec
-        dnom = max(np.amax(np.abs(sigspec)), 1.)
+        dnom = max(np.amax(np.abs(sigspec)), 1.0)
         relerr = np.amax(np.abs(sigerr) / dnom)
 
         if i <= maxit1 and relerr < tol1:
@@ -217,9 +298,25 @@ def newton(func, t, dt, temp, dtemp, f0, farg, stran, darg,
     # didn't converge, restore restore data and exit
     return None
 
-def simplex(func, t, dt, temp, dtemp, f0, farg, stran, darg, sigarg,
-            ufield, dufield, statev_arg, v, sigspec):
-    '''Perform a downhill simplex search to find sym_velgrad[v] such that
+
+def simplex(
+    func,
+    t,
+    dt,
+    temp,
+    dtemp,
+    f0,
+    farg,
+    stran,
+    darg,
+    sigarg,
+    ufield,
+    dufield,
+    statev_arg,
+    v,
+    sigspec,
+):
+    """Perform a downhill simplex search to find sym_velgrad[v] such that
 
                         sig(sym_velgrad[v]) = sigspec[v]
 
@@ -244,23 +341,54 @@ def simplex(func, t, dt, temp, dtemp, f0, farg, stran, darg, sigarg,
     d : ndarray
         the symmetric part of the velocity gradient
 
-    '''
+    """
     # --- Perform the simplex search
     import scipy.optimize
+
     d = darg.copy()
     f = farg.copy()
     sig = sigarg.copy()
     statev = copy(statev_arg)
-    args = (func, t, dt, temp, dtemp, f0, f, stran, d,
-            sig, ufield, dufield, statev, v, sigspec)
+    args = (
+        func,
+        t,
+        dt,
+        temp,
+        dtemp,
+        f0,
+        f,
+        stran,
+        d,
+        sig,
+        ufield,
+        dufield,
+        statev,
+        v,
+        sigspec,
+    )
     d[v] = scipy.optimize.fmin(_func, d[v], args=args, maxiter=20, disp=False)
     return d
 
-def _func(x, func, t, dt, temp, dtemp, f0, farg, stran, darg,
-          sigarg, ufield, dufield, statev_arg, v, sigspec):
-    '''Objective function to be optimized by simplex
 
-    '''
+def _func(
+    x,
+    func,
+    t,
+    dt,
+    temp,
+    dtemp,
+    f0,
+    farg,
+    stran,
+    darg,
+    sigarg,
+    ufield,
+    dufield,
+    statev_arg,
+    v,
+    sigspec,
+):
+    """Objective function to be optimized by simplex"""
     d = darg.copy()
     f = farg.copy()
     sig = sigarg.copy()
@@ -271,20 +399,23 @@ def _func(x, func, t, dt, temp, dtemp, f0, farg, stran, darg,
     fp, ep = update_deformation(f, d, dt, 0)
 
     # store the best guesses
-    sig, statev, stif = func(0, t, dt, temp, dtemp, f0, fp, ep, d, sig,
-                             ufield, dufield, statev)
+    sig, statev, stif = func(
+        0, t, dt, temp, dtemp, f0, fp, ep, d, sig, ufield, dufield, statev
+    )
 
     # check the error
-    error = 0.
+    error = 0.0
     for i, j in enumerate(v):
         error += (sig[j] - sigspec[i]) ** 2
         continue
 
     return error
 
-def numerical_jacobian(func, time, dtime, temp, dtemp, F0, F, stran, d,
-                       stress, ufield, dufield, statev, v):
-    '''Numerically compute material Jacobian by a centered difference scheme.
+
+def numerical_jacobian(
+    func, time, dtime, temp, dtemp, F0, F, stran, d, stress, ufield, dufield, statev, v
+):
+    """Numerically compute material Jacobian by a centered difference scheme.
 
     Parameters
     ----------
@@ -339,31 +470,33 @@ def numerical_jacobian(func, time, dtime, temp, dtemp, F0, F, stran, d,
     Tom Pucick, original fortran implementation in the MMD driver
     Tim Fuller, Sandial National Laboratories, tjfulle@sandia.gov
 
-    '''
+    """
     # local variables
     nv = len(v)
-    deps =  np.sqrt(np.finfo(np.float64).eps)
+    deps = np.sqrt(np.finfo(np.float64).eps)
     Jsub = np.zeros((nv, nv))
-    dtime = 1 if dtime < 1.e-12 else dtime
+    dtime = 1 if dtime < 1.0e-12 else dtime
 
     for i in range(nv):
         # perturb forward
         Dp = d.copy()
-        Dp[v[i]] = d[v[i]] + (deps / dtime) / 2.
+        Dp[v[i]] = d[v[i]] + (deps / dtime) / 2.0
         Fp, Ep = update_deformation(F, Dp, dtime, 0)
         sigp = stress.copy()
         xp = copy(statev)
-        sigp = func(0, time, dtime, temp, dtemp, F0, Fp, Ep, Dp, sigp,
-                    ufield, dufield, xp)[0]
+        sigp = func(
+            0, time, dtime, temp, dtemp, F0, Fp, Ep, Dp, sigp, ufield, dufield, xp
+        )[0]
 
         # perturb backward
         Dm = d.copy()
-        Dm[v[i]] = d[v[i]] - (deps / dtime) / 2.
+        Dm[v[i]] = d[v[i]] - (deps / dtime) / 2.0
         Fm, Em = update_deformation(F, Dm, dtime, 0)
         sigm = stress.copy()
         xm = copy(statev)
-        sigm = func(0, time, dtime, temp, dtemp, F0, Fm, Em, Dm, sigm,
-                    ufield, dufield, xm)[0]
+        sigm = func(
+            0, time, dtime, temp, dtemp, F0, Fm, Em, Dm, sigm, ufield, dufield, xm
+        )[0]
 
         # compute component of jacobian
         Jsub[i, :] = (sigp[v] - sigm[v]) / deps

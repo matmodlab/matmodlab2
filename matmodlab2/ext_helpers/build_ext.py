@@ -1,69 +1,73 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
-import re
 import sys
 import glob
 import shutil
 import logging
-import tempfile
 from argparse import ArgumentParser
 from subprocess import Popen, STDOUT
 from contextlib import contextmanager
 
 from matmodlab2.core.logio import get_logger
 from matmodlab2.core.environ import environ
-from matmodlab2.core.misc import is_listlike
 
 ext_support_dir = os.path.dirname(os.path.realpath(__file__))
-aba_support_dir = os.path.join(ext_support_dir, '../umat')
+aba_support_dir = os.path.join(ext_support_dir, "../umat")
 
 # "Lite" version of blas/lapack
-lapack_lite = os.path.join(ext_support_dir, 'blas_lapack-lite.f')
-lapack_lite_obj = os.path.splitext(lapack_lite)[0] + '.o'
+lapack_lite = os.path.join(ext_support_dir, "blas_lapack-lite.f")
+lapack_lite_obj = os.path.splitext(lapack_lite)[0] + ".o"
 assert os.path.isfile(lapack_lite)
 
 # Fortran I/O
-mml_io = os.path.join(ext_support_dir, 'mml_io.f90')
+mml_io = os.path.join(ext_support_dir, "mml_io.f90")
 assert os.path.isfile(mml_io)
 
 # Abaqus related files
-aba_sdvini = os.path.join(aba_support_dir, 'aba_sdvini.f90')
+aba_sdvini = os.path.join(aba_support_dir, "aba_sdvini.f90")
 assert os.path.isfile(aba_sdvini)
-aba_utils = os.path.join(aba_support_dir, 'aba_utils.f90')
+aba_utils = os.path.join(aba_support_dir, "aba_utils.f90")
 assert os.path.isfile(aba_utils)
-umat_pyf = os.path.join(aba_support_dir, 'umat.pyf')
+umat_pyf = os.path.join(aba_support_dir, "umat.pyf")
 assert os.path.isfile(umat_pyf)
-uhyper_pyf = os.path.join(aba_support_dir, 'uhyper.pyf')
+vumat_pyf = os.path.join(aba_support_dir, "vumat.pyf")
+assert os.path.isfile(vumat_pyf)
+uhyper_pyf = os.path.join(aba_support_dir, "uhyper.pyf")
 assert os.path.isfile(uhyper_pyf)
-tensalg_f90 = os.path.join(aba_support_dir, 'tensalg.f90')
+tensalg_f90 = os.path.join(aba_support_dir, "tensalg.f90")
 assert os.path.isfile(tensalg_f90)
-uhyper_wrap_f90 = os.path.join(aba_support_dir, 'uhyper_wrap.f90')
+uhyper_wrap_f90 = os.path.join(aba_support_dir, "uhyper_wrap.f90")
 assert os.path.isfile(uhyper_wrap_f90)
+
 
 class ExtensionNotBuilt(Exception):
     pass
 
+
 def which(name):
     """Find the executable name on PATH"""
-    for path in os.getenv('PATH', '').split(os.pathsep):
+    for path in os.getenv("PATH", "").split(os.pathsep):
         if not os.path.isdir(path):
             continue
         if os.path.isfile(os.path.join(path, name)):
             return os.path.join(path, name)
     return None
 
+
 def clean_f2py_tracks(dirname):
     if not os.path.isdir(dirname):
         return
-    for pat in ('*.so.dSYM', '*-f2pywrappers2.*', '*module.c'):
+    for pat in ("*.so.dSYM", "*-f2pywrappers2.*", "*module.c"):
         for item in glob.glob(os.path.join(dirname, pat)):
             if os.path.isdir(item):
                 shutil.rmtree(item)
             else:
                 os.remove(item)
 
-def build_extension_module(name, sources, include_dirs=None, verbose=False,
-                           user_ics=False, fc=None, cwd=None):
+
+def build_extension_module(
+    name, sources, include_dirs=None, verbose=False, user_ics=False, fc=None, cwd=None
+):
     """Build the fortran extension module (material model)
 
     Parameters
@@ -90,17 +94,17 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     """
     the_loglevel = environ.loglevel
     environ.loglevel = logging.DEBUG
-    logger = get_logger('build-ext')
-    fc = fc or which('gfortran')
+    logger = get_logger("build-ext")
+    fc = fc or which("gfortran")
     if fc is None:
-        raise OSError('Fortran compiler not found')
+        raise OSError("Fortran compiler not found")
 
     # Check source files
     for source_file in sources:
         if not os.path.isfile(source_file):
-            raise OSError('{0!r}: file not found'.format(source_file))
+            raise OSError("{0!r}: file not found".format(source_file))
 
-    if name != '_matfuncs_sq3':
+    if name != "_matfuncs_sq3":
         sources.append(mml_io)
 
     # We'll add the object file back in
@@ -116,38 +120,43 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
 
     include_dirs = include_dirs or []
 
-    umat = name.lower() == 'umat'
-    uhyper = name.lower() == 'uhyper'
-    if umat or uhyper:
+    if name.lower() in ("umat", "vumat", "uhyper"):
         # Build the umat module - add some Abaqus utility files
         clean_f2py_tracks(aba_support_dir)
-        name = '_umat' if umat else '_uhyper'
+        name = "_" + name.lower()
         sources.append(aba_utils)
-        if umat:
+        if name == "_umat":
             sources.append(umat_pyf)
-        elif uhyper:
+        elif name == "_vumat":
+            sources.append(vumat_pyf)
+        else:
             sources.extend([uhyper_pyf, tensalg_f90, uhyper_wrap_f90])
         if not user_ics:
             sources.append(aba_sdvini)
         include_dirs = include_dirs + [aba_support_dir]
 
-    if any(' ' in x for x in sources):
-        logger.warning('File paths with spaces are known to fail to build')
+    if any(" " in x for x in sources):
+        logger.warning("File paths with spaces are known to fail to build")
 
-    command = ['f2py', '-c']
+    command = ["f2py", "-c"]
 
     # Build the fortran flags argument
-    fflags = ['-Wno-unused-dummy-argument', '-fPIC', '-shared']
-    if os.getenv('FCFLAGS'):
-        fflags.extend(os.environ['FCFLAGS'].split())
-    command.extend(['--f77flags={0!r}'.format(' '.join(fflags)),
-                    '--f90flags={0!r}'.format(' '.join(fflags))])
-    command.extend(['--include-paths', ':'.join(include_dirs)])
-    command.extend(['-m', name])
+    fflags = ["-Wno-unused-dummy-argument", "-fPIC", "-shared"]
+    if os.getenv("FCFLAGS"):
+        fflags.extend(os.environ["FCFLAGS"].split())
+    command.extend(
+        [
+            "--f77flags={0!r}".format(" ".join(fflags)),
+            "--f90flags={0!r}".format(" ".join(fflags)),
+        ]
+    )
+    command.extend(["--include-paths", ":".join(include_dirs)])
+    command.extend(["-m", name])
     command.extend(sources)
 
-    logger.info('building extension module {0!r}... '.format(name),
-                extra={'continued':1})
+    logger.info(
+        "building extension module {0!r}... ".format(name), extra={"continued": 1}
+    )
 
     logfile = None
     cwd = cwd or os.getcwd()
@@ -157,15 +166,16 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
         p.wait()
     elif environ.notebook:
         from IPython.utils import io
-        with io.capture_output() as captured:
+
+        with io.capture_output():
             p = Popen(command, cwd=cwd)
             p.wait()
     else:
-        logfile = os.path.join(cwd, 'build.log')
+        logfile = os.path.join(cwd, "build.log")
         with stdout_redirected(to=logfile), merged_stderr_stdout():
             p = Popen(command, cwd=cwd)
             p.wait()
-    logger.info('done')
+    logger.info("done")
 
     if logfile is not None and logfile != sys.stdout:
         os.remove(logfile)
@@ -176,63 +186,66 @@ def build_extension_module(name, sources, include_dirs=None, verbose=False,
     clean_f2py_tracks(cwd)
 
     if p.returncode != 0:
-        logger.error('Failed to build')
+        logger.error("Failed to build")
         raise ExtensionNotBuilt(name)
 
     return 0
 
+
 def _build_blas_lapack(logger, fc):
-    logger.info('building blas_lapack-lite... ', extra={'continued':1})
-    cmd = [fc, '-fPIC', '-shared', '-O3', lapack_lite, '-o' + lapack_lite_obj]
-    proc = Popen(cmd, stdout=open(os.devnull, 'a'), stderr=STDOUT,
-                 cwd=ext_support_dir)
+    logger.info("building blas_lapack-lite... ", extra={"continued": 1})
+    cmd = [fc, "-fPIC", "-shared", "-O3", lapack_lite, "-o" + lapack_lite_obj]
+    proc = Popen(cmd, stdout=open(os.devnull, "a"), stderr=STDOUT, cwd=ext_support_dir)
     proc.wait()
     if proc.returncode == 0:
-        logger.info('done')
+        logger.info("done")
     else:
-        logger.info('failed')
+        logger.info("failed")
     return proc.returncode
 
+
 def fileno(file_or_fd):
-    fd = getattr(file_or_fd, 'fileno', lambda: file_or_fd)()
+    fd = getattr(file_or_fd, "fileno", lambda: file_or_fd)()
     if not isinstance(fd, int):
         raise ValueError("Expected a file (`.fileno()`) or a file descriptor")
     return fd
 
+
 @contextmanager
 def stdout_redirected(to=os.devnull, stdout=None):
     """From:  http://stackoverflow.com/questions/4675728/
-                        redirect-stdout-to-a-file-in-python/22434262#22434262
+    redirect-stdout-to-a-file-in-python/22434262#22434262
 
     """
     if stdout is None:
-       stdout = sys.stdout
+        stdout = sys.stdout
 
     stdout_fd = fileno(stdout)
     # copy stdout_fd before it is overwritten
-    #NOTE: `copied` is inheritable on Windows when duplicating a standard stream
-    with os.fdopen(os.dup(stdout_fd), 'wb') as copied:
+    # NOTE: `copied` is inheritable on Windows when duplicating a standard stream
+    with os.fdopen(os.dup(stdout_fd), "wb") as copied:
         stdout.flush()  # flush library buffers that dup2 knows nothing about
         try:
             os.dup2(fileno(to), stdout_fd)  # $ exec >&to
         except ValueError:  # filename
-            with open(to, 'wb') as to_file:
+            with open(to, "wb") as to_file:
                 os.dup2(to_file.fileno(), stdout_fd)  # $ exec > to
         try:
-            yield stdout # allow code to be run with the redirected stdout
+            yield stdout  # allow code to be run with the redirected stdout
         finally:
             # restore stdout to its previous value
-            #NOTE: dup2 makes stdout_fd inheritable unconditionally
+            # NOTE: dup2 makes stdout_fd inheritable unconditionally
             stdout.flush()
             os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
+
 
 def merged_stderr_stdout():  # $ exec 2>&1
     return stdout_redirected(to=sys.stdout, stdout=sys.stderr)
 
-def build_extension_module_as_subprocess(name, sources,
-                                         include_dirs=None, verbose=False,
-                                         user_ics=False, fc=None,
-                                         cwd=None):
+
+def build_extension_module_as_subprocess(
+    name, sources, include_dirs=None, verbose=False, user_ics=False, fc=None, cwd=None
+):
     """Build the extension module, but call as a subprocess.
 
     Parameters
@@ -241,21 +254,29 @@ def build_extension_module_as_subprocess(name, sources,
 
     Notes
     -----
-    This function exists since distutils can only be initialized once and we want to run build several different extensions
+    This function exists since distutils can only be initialized once and we
+    want to run build several different extensions
     """
-    build_extension_module(name, sources, include_dirs=include_dirs,
-                           verbose=verbose, user_ics=user_ics, fc=fc)
+    build_extension_module(
+        name,
+        sources,
+        include_dirs=include_dirs,
+        verbose=verbose,
+        user_ics=user_ics,
+        fc=fc,
+    )
     return 0
+
 
 def build_mml_matrix_functions():
     """Build the mml linear algebra library"""
-    name = '_matfuncs_sq3'
-    mfuncs_pyf = os.path.join(ext_support_dir, 'matrix_funcs.pyf')
-    mfuncs_f90 = os.path.join(ext_support_dir, 'matrix_funcs.f90')
-    dgpadm_f = os.path.join(ext_support_dir, 'dgpadm.f')
+    name = "_matfuncs_sq3"
+    mfuncs_pyf = os.path.join(ext_support_dir, "matrix_funcs.pyf")
+    mfuncs_f90 = os.path.join(ext_support_dir, "matrix_funcs.f90")
+    dgpadm_f = os.path.join(ext_support_dir, "dgpadm.f")
     sources = [mfuncs_pyf, mfuncs_f90, lapack_lite, dgpadm_f]
-    package_path = os.path.join(ext_support_dir, '../core')
-    command = ['f2py', '-c']
+    package_path = os.path.join(ext_support_dir, "../core")
+    command = ["f2py", "-c"]
     command.extend(sources)
     p = Popen(command, cwd=package_path)
     p.wait()
@@ -263,25 +284,31 @@ def build_mml_matrix_functions():
         raise ExtensionNotBuilt(name)
     return 0
 
+
 def main():
     p = ArgumentParser()
-    p.add_argument('name')
-    p.add_argument('sources', nargs='*')
-    p.add_argument('--include-dirs', action='append', default=None)
-    p.add_argument('--verbose', action='store_true', default=False)
-    p.add_argument('--package-path', default=None)
-    p.add_argument('--user-ics', action='store_true', default=False)
-    p.add_argument('--fc', default=False)
+    p.add_argument("name")
+    p.add_argument("sources", nargs="*")
+    p.add_argument("--include-dirs", action="append", default=None)
+    p.add_argument("--verbose", action="store_true", default=False)
+    p.add_argument("--package-path", default=None)
+    p.add_argument("--user-ics", action="store_true", default=False)
+    p.add_argument("--fc", default=False)
     args = p.parse_args()
-    if args.name == 'matfuncs':
+    if args.name == "matfuncs":
         return build_mml_matrix_functions()
     if not args.sources:
-        raise ValueError('Missing sources argument')
-    build_extension_module(args.name, args.sources,
-                           include_dirs=args.include_dirs,
-                           verbose=args.verbose,
-                           user_ics=args.user_ics,
-                           fc=args.fc, cwd=args.package_path)
+        raise ValueError("Missing sources argument")
+    build_extension_module(
+        args.name,
+        args.sources,
+        include_dirs=args.include_dirs,
+        verbose=args.verbose,
+        user_ics=args.user_ics,
+        fc=args.fc,
+        cwd=args.package_path,
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

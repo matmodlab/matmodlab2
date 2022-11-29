@@ -1,6 +1,6 @@
 import numpy as np
 from matmodlab2.core.logio import logger, StopFortran
-from matmodlab2.core.tensor import polar_decomp, inv
+from matmodlab2.core.tensor import polar_decomp, inv, array_rep, det
 from matmodlab2.core.material import Material
 
 lib = None
@@ -11,7 +11,7 @@ class VUMat(Material):
 
     name = "vumat"
 
-    def __init__(self, parameters, depvar=1):
+    def __init__(self, parameters, depvar=1, density=1.):
         """initialize the material state"""
         global lib
         try:
@@ -37,24 +37,7 @@ class VUMat(Material):
 
         self.num_sdv = depvar
         self.sdv_names = sdv_keys
-
-    def sdvini(self, statev):
-        # initialize the model
-        coords = np.zeros(3, order="F")
-        noel = npt = layer = kspt = 1
-        statev = np.zeros(self.num_sdv)
-        lib.sdvini(
-            statev,
-            coords,
-            noel,
-            npt,
-            layer,
-            kspt,
-            logger.info,
-            logger.warning,
-            StopFortran,
-        )
-        return statev
+        self.initial_density = density
 
     def eval(self, time, dtime, temp, dtemp, F0, F, stran, d, stress, statev, **kwargs):
 
@@ -65,7 +48,8 @@ class VUMat(Material):
         char_length = 1.0
         nstatev = self.num_sdv
         nprops = len(self.params)
-        rho = 1.0
+        jac = det(F)
+        rho = self.initial_density / jac
 
         coordMp = np.zeros((nblock, 3), order="F")
         char_length = np.ones(nblock, order="F")
@@ -95,30 +79,26 @@ class VUMat(Material):
         dF = np.reshape(F - F0, (3, 3))
         dR = np.reshape(Rp - Rn, (3, 3))
         O = np.dot(dR, Rp.T)
-        L = np.dot(dF, inv(F))
+        L = np.dot(dF, np.reshape(inv(F), (3,3)))
         W = 0.5 * (L - L.T)
         dW = W - O
 
         props[:] = self.params
         strain_inc[0, :] = d * dtime
-        rel_spin_inc[0, :] = [dW[21], dW[0, 2], dW[1, 0]]
-        stretch_old[0, :] = Un
+        rel_spin_inc[0, :] = [dW[2, 1], dW[0, 2], dW[1, 0]]
+        stretch_old[0, :] = array_rep(Un, (6,))
         defgrad_old[0, :] = np.reshape(F0, (3, 3), order="F").flatten()
         stress_old[0, :] = stress
-        state_old[:] = self.statev
-        stretch_new[0, :] = Up
+        state_old[:] = statev
+        stretch_new[0, :] = array_rep(Up, (6,))
         defgrad_new[0, :] = np.reshape(F, (3, 3), order="F").flatten()
+        step_time = total_time = time
 
-        lib.vumat(
-            nblock,
+        stress_new, state_new, ener_intern_new, ener_inelas_new = lib.vumat(
             ndir,
-            nshr,
-            self.num_sdv,
-            nfieldv,
-            nprops,
             lanneal,
-            time,
-            time,
+            step_time,
+            total_time,
             dtime,
             cmname,
             coordMp,
@@ -139,12 +119,11 @@ class VUMat(Material):
             stretch_new,
             defgrad_new,
             field_new,
-            stress_new,
-            state_new,
-            ener_intern_new,
-            ener_inelas_new,
+            logger.info,
+            logger.warning,
+            StopFortran,
         )
 
         stress = stress_new[0, :]
         statev = state_new[:]
-        return stress, statev
+        return stress, statev, None

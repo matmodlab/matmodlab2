@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import re
 import sys
 import glob
 import shutil
@@ -65,9 +66,7 @@ def clean_f2py_tracks(dirname):
                 os.remove(item)
 
 
-def build_extension_module(
-    name, sources, include_dirs=None, verbose=False, user_ics=False, fc=None, cwd=None
-):
+def build_extension_module(name, *files, **kwds):
     """Build the fortran extension module (material model)
 
     Parameters
@@ -80,18 +79,15 @@ def build_extension_module(
         List of extra include directories
     verbose : bool
         Write output to stdout if True, otherwise suppress stdout
-    user_ics : bool
-        List of source files includes source defining subroutine SDVINI.
-        Applicable only for Abaqus umat and uhyper.
     fc : str
         Fortran compiler
 
-    Notes
-    -----
-    To build abaqus umat, the name must be 'umat'
-    To build abaqus uhyper, the name must be 'uhyper'
-
     """
+    include_dirs = kwds.pop("include_dirs", [])
+    verbose = kwds.pop("verbose", False)
+    fc = kwds.pop("fc", None)
+    cwd = kwds.pop("cwd", None)
+
     the_loglevel = environ.loglevel
     environ.loglevel = logging.DEBUG
     logger = get_logger("build-ext")
@@ -100,42 +96,28 @@ def build_extension_module(
         raise OSError("Fortran compiler not found")
 
     # Check source files
-    for source_file in sources:
-        if not os.path.isfile(source_file):
-            raise OSError("{0!r}: file not found".format(source_file))
+    files = list(files)
+    for file in files:
+        if not os.path.isfile(file):
+            raise OSError("{0!r}: file not found".format(file))
 
     if name != "_matfuncs_sq3":
-        sources.append(mml_io)
+        files.append(mml_io)
 
     # We'll add the object file back in
-    if lapack_lite in sources:
-        sources.remove(lapack_lite)
+    if lapack_lite in files:
+        files.remove(lapack_lite)
 
-    # Everyone get lapack!
-    if lapack_lite_obj not in sources:
-        sources.append(lapack_lite_obj)
+    # Everyone gets lapack!
+    if lapack_lite_obj not in files:
+        files.append(lapack_lite_obj)
 
     if not os.path.isfile(lapack_lite_obj):
         _build_blas_lapack(logger, fc)
 
     include_dirs = include_dirs or []
 
-    if name.lower() in ("umat", "vumat", "uhyper"):
-        # Build the umat module - add some Abaqus utility files
-        clean_f2py_tracks(aba_support_dir)
-        name = "_" + name.lower()
-        sources.append(aba_utils)
-        if name == "_umat":
-            sources.append(umat_pyf)
-        elif name == "_vumat":
-            sources.append(vumat_pyf)
-        else:
-            sources.extend([uhyper_pyf, tensalg_f90, uhyper_wrap_f90])
-        if not user_ics:
-            sources.append(aba_sdvini)
-        include_dirs = include_dirs + [aba_support_dir]
-
-    if any(" " in x for x in sources):
+    if any(" " in x for x in files):
         logger.warning("File paths with spaces are known to fail to build")
 
     command = ["f2py", "-c"]
@@ -152,7 +134,7 @@ def build_extension_module(
     )
     command.extend(["--include-paths", ":".join(include_dirs)])
     command.extend(["-m", name])
-    command.extend(sources)
+    command.extend(files)
 
     logger.info(
         "building extension module {0!r}... ".format(name), extra={"continued": 1}
@@ -186,7 +168,7 @@ def build_extension_module(
     clean_f2py_tracks(cwd)
 
     if p.returncode != 0:
-        logger.error("Failed to build")
+        logger.error(f"Failed to build {name}")
         raise ExtensionNotBuilt(name)
 
     return 0
@@ -243,29 +225,37 @@ def merged_stderr_stdout():  # $ exec 2>&1
     return stdout_redirected(to=sys.stdout, stdout=sys.stderr)
 
 
-def build_extension_module_as_subprocess(
-    name, sources, include_dirs=None, verbose=False, user_ics=False, fc=None, cwd=None
-):
-    """Build the extension module, but call as a subprocess.
+def build_umat(*files, **kwds):
+    """Build the umat extension module (material model)"""
+    clean_f2py_tracks(aba_support_dir)
+    sdvini_defined = has_sdvini(*files)
+    files = list(files) + [aba_utils, umat_pyf]
+    if not sdvini_defined:
+        files.append(aba_sdvini)
+    include_dirs = kwds.pop("include_dirs", None) or []
+    include_dirs.append(aba_support_dir)
+    return build_extension_module("_umat", *files, include_dirs=include_dirs, **kwds)
 
-    Parameters
-    ----------
-    Same as build_extension_module
 
-    Notes
-    -----
-    This function exists since distutils can only be initialized once and we
-    want to run build several different extensions
-    """
-    build_extension_module(
-        name,
-        sources,
-        include_dirs=include_dirs,
-        verbose=verbose,
-        user_ics=user_ics,
-        fc=fc,
-    )
-    return 0
+def build_vumat(*files, **kwds):
+    """Build the vumat extension module (material model)"""
+    clean_f2py_tracks(aba_support_dir)
+    files = list(files) + [aba_utils, vumat_pyf]
+    include_dirs = kwds.pop("include_dirs", None) or []
+    include_dirs.append(aba_support_dir)
+    return build_extension_module("_vumat", *files, include_dirs=include_dirs, **kwds)
+
+
+def build_uhyper(*files, **kwds):
+    """Build the uhyper extension module (material model)"""
+    clean_f2py_tracks(aba_support_dir)
+    sdvini_defined = has_sdvini(*files)
+    files = list(files) + [aba_utils, uhyper_pyf, tensalg_f90, uhyper_wrap_f90]
+    if not sdvini_defined:
+        files.append(aba_sdvini)
+    include_dirs = kwds.pop("include_dirs", None) or []
+    include_dirs.append(aba_support_dir)
+    return build_extension_module("_uhyper", *files, include_dirs=include_dirs, **kwds)
 
 
 def build_mml_matrix_functions():
@@ -274,10 +264,10 @@ def build_mml_matrix_functions():
     mfuncs_pyf = os.path.join(ext_support_dir, "matrix_funcs.pyf")
     mfuncs_f90 = os.path.join(ext_support_dir, "matrix_funcs.f90")
     dgpadm_f = os.path.join(ext_support_dir, "dgpadm.f")
-    sources = [mfuncs_pyf, mfuncs_f90, lapack_lite, dgpadm_f]
+    files = [mfuncs_pyf, mfuncs_f90, lapack_lite, dgpadm_f]
     package_path = os.path.join(ext_support_dir, "../core")
     command = ["f2py", "-c"]
-    command.extend(sources)
+    command.extend(files)
     p = Popen(command, cwd=package_path)
     p.wait()
     if p.returncode != 0:
@@ -285,29 +275,42 @@ def build_mml_matrix_functions():
     return 0
 
 
+def has_sdvini(*files):
+    for file in files:
+        with open(file) as fh:
+            if re.search("(?i)\w+subroutine\s+sdvini", fh.read()):
+                return True
+    return False
+
+
 def main():
     p = ArgumentParser()
     p.add_argument("name")
-    p.add_argument("sources", nargs="*")
+    p.add_argument("files", nargs="*")
     p.add_argument("--include-dirs", action="append", default=None)
     p.add_argument("--verbose", action="store_true", default=False)
     p.add_argument("--package-path", default=None)
-    p.add_argument("--user-ics", action="store_true", default=False)
     p.add_argument("--fc", default=False)
     args = p.parse_args()
     if args.name == "matfuncs":
         return build_mml_matrix_functions()
-    if not args.sources:
-        raise ValueError("Missing sources argument")
-    build_extension_module(
-        args.name,
-        args.sources,
-        include_dirs=args.include_dirs,
-        verbose=args.verbose,
-        user_ics=args.user_ics,
-        fc=args.fc,
-        cwd=args.package_path,
-    )
+    if not args.files:
+        raise ValueError("Missing source files")
+    kwds = {
+        "include_dirs": args.include_dirs,
+        "verbose": args.verbose,
+        "fc": args.fc,
+        "cwd": args.package_path,
+    }
+    files = list(args.files or [])
+    if args.name == "umat":
+        return build_umat(*files, **kwds)
+    elif args.name == "uhyper":
+        return build_uhyper(*files, **kwds)
+    elif args.name == "vumat":
+        return build_vumat(*files, **kwds)
+    else:
+        return build_extension_module(args.name, *files, **kwds)
 
 
 if __name__ == "__main__":

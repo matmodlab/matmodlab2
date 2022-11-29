@@ -7,25 +7,29 @@ import numpy as np
 from matmodlab2.core.numerix import *
 from matmodlab2.core.database import read_db
 
+
 def teardown_module():
     """Remove generated files after a test"""
-    for ext in ('.log', '.exo', '.dat', '.npz'):
-        for filename in glob.glob('*'+ext):
+    for ext in (".log", ".exo", ".dat", ".npz"):
+        for filename in glob.glob("*" + ext):
             os.remove(filename)
+
 
 def my_dirname():
     return os.path.dirname(inspect.stack()[1][1])
+
 
 def isclose(a, b, tol=1e-8):
     """Is b close to a?"""
     return abs(a - b) <= tol
 
+
 def find_db_from_jobid(jobid, data_dir, baseline=False):
     """Find the output for jobid"""
     data_dir = data_dir or os.getcwd()
-    for ext in ('npz', 'dat', 'exo'):
-        prefix = 'base_' if baseline else ''
-        ext = '.{0}{1}'.format(prefix, ext)
+    for ext in ("npz", "dat", "exo"):
+        prefix = "base_" if baseline else ""
+        ext = ".{0}{1}".format(prefix, ext)
         filename = os.path.join(data_dir, jobid + ext)
         if os.path.isfile(filename):
             break
@@ -33,26 +37,39 @@ def find_db_from_jobid(jobid, data_dir, baseline=False):
         return None
     return read_db(filename)
 
+
 class tee:
     def __init__(self, filename):
         self.filename = filename
+
     def __enter__(self):
-        self.fh = open(self.filename, 'w')
+        self.fh = open(self.filename, "w")
         return self
+
     def write(self, string):
         self.fh.write(string)
         sys.stdout.write(string)
+
     def __exit__(self, *args):
         self.fh.close()
 
+
 def afloor(a, floor):
     """Put a floor of zero on array"""
-    return np.array(np.where(np.abs(a) <= floor, 0., a))
+    return np.array(np.where(np.abs(a) <= floor, 0.0, a))
 
-def same_as_baseline(jobid, simulation_df=None, baseline_df=None,
-                     variables_to_compare=None, interp=0,
-                     diff_tolerance=1.5e-6, fail_tolerance=1e-4, floor=1e-12,
-                     istart=0):
+
+def same_as_baseline(
+    jobid,
+    simulation_df=None,
+    baseline_df=None,
+    variables_to_compare=None,
+    interp=0,
+    diff_tolerance=1.5e-6,
+    fail_tolerance=1e-4,
+    floor=1e-12,
+    istart=0,
+):
     """Is the response from the simulation the same as the baseline?
 
     jobid : str
@@ -84,44 +101,48 @@ def same_as_baseline(jobid, simulation_df=None, baseline_df=None,
         simulation_df = find_db_from_jobid(jobid, data_dir)
 
     if baseline_df is None:
-        data_dir = os.path.join(dirname_of_caller, 'data')
+        data_dir = os.path.join(dirname_of_caller, "data")
         baseline_df = find_db_from_jobid(jobid, data_dir, baseline=True)
 
-    sim_time = np.array(simulation_df['Time'])[istart:]
-    base_time = np.array(baseline_df['Time'])[istart:]
+    sim_time = np.array(simulation_df["Time"])[istart:]
+    base_time = np.array(baseline_df["Time"])[istart:]
 
     if not interp:
         # interpolation will not be used when comparing values, so the
         # timesteps must be equal
         if sim_time.shape[0] != base_time.shape[0]:
             print(sim_time.shape[0], base_time.shape[0])
-            raise Exception('Number of timesteps differ')
+            raise Exception("Number of timesteps differ")
 
-        if not np.allclose(sim_time, base_time,
-                           atol=fail_tolerance, rtol=fail_tolerance):
-            raise Exception('Timestep size in File1 and File2 differ')
+        if not np.allclose(
+            sim_time, base_time, atol=fail_tolerance, rtol=fail_tolerance
+        ):
+            raise Exception("Timestep size in File1 and File2 differ")
 
     if variables_to_compare is None:
-        variables_to_compare = [(x, x, diff_tolerance, fail_tolerance, floor)
-                                for x in simulation_df.columns
-                                if x in baseline_df.columns and x != 'Time']
+        variables_to_compare = [
+            (x, x, diff_tolerance, fail_tolerance, floor)
+            for x in simulation_df.columns
+            if x in baseline_df.columns and x != "Time"
+        ]
 
     passed, diffed, failed = [], [], []
     for item in variables_to_compare:
         try:
             sim_key, base_key, v_diff_tolerance, v_fail_tolerance, v_floor = item
         except ValueError:
-            raise ValueError('expected len(5) variable')
+            raise ValueError("expected len(5) variable")
 
         sim_var_val = afloor(simulation_df[sim_key], v_floor)[istart:]
         base_var_val = afloor(baseline_df[base_key], v_floor)[istart:]
         if not interp:
-            if np.allclose(sim_var_val, base_var_val,
-                           atol=v_fail_tolerance, rtol=v_fail_tolerance):
+            if np.allclose(
+                sim_var_val, base_var_val, atol=v_fail_tolerance, rtol=v_fail_tolerance
+            ):
                 passed.append(sim_key)
                 continue
 
-        if amag(sim_var_val) < 1.e-10 and amag(base_var_val) < 1.e-10:
+        if amag(sim_var_val) < 1.0e-10 and amag(base_var_val) < 1.0e-10:
             # Zero
             passed.append(sim_key)
             continue
@@ -141,18 +162,20 @@ def same_as_baseline(jobid, simulation_df=None, baseline_df=None,
     if len(passed) == len(variables_to_compare):
         return True
 
-    with tee(os.path.join(dirname_of_caller, jobid+'.failed')) as fh:
-        fh.write('======== FAILED ==========\n')
+    with tee(os.path.join(dirname_of_caller, jobid + ".failed")) as fh:
+        fh.write("======== FAILED ==========\n")
         for item in failed:
-            fh.write('{0}: rms={1}, nrms={2}\n'.format(*item))
-        fh.write('======== DIFFED ==========\n')
+            fh.write("{0}: rms={1}, nrms={2}\n".format(*item))
+        fh.write("======== DIFFED ==========\n")
         for item in diffed:
-            fh.write('{0}: rms={1}, nrms={2}\n'.format(*item))
+            fh.write("{0}: rms={1}, nrms={2}\n".format(*item))
 
     return False
 
-def responses_are_same(jobid, a, b, variables_to_compare,
-                       diff_tolerance=5e-3, fail_tolerance=1e-2):
+
+def responses_are_same(
+    jobid, a, b, variables_to_compare, diff_tolerance=5e-3, fail_tolerance=1e-2
+):
     T = a[:, 0]
     t = b[:, 0]
     passed, diffed, failed = [], [], []
@@ -171,45 +194,50 @@ def responses_are_same(jobid, a, b, variables_to_compare,
         return True
 
     dirname_of_caller = os.path.dirname(inspect.stack()[1][1])
-    with tee(os.path.join(dirname_of_caller, jobid+'.failed')) as fh:
-        fh.write('======== FAILED ==========\n')
+    with tee(os.path.join(dirname_of_caller, jobid + ".failed")) as fh:
+        fh.write("======== FAILED ==========\n")
         for item in failed:
-            fh.write('{0}: rms={1}, nrms={2}\n'.format(*item))
-        fh.write('======== DIFFED ==========\n')
+            fh.write("{0}: rms={1}, nrms={2}\n".format(*item))
+        fh.write("======== DIFFED ==========\n")
         for item in diffed:
-            fh.write('{0}: rms={1}, nrms={2}\n'.format(*item))
+            fh.write("{0}: rms={1}, nrms={2}\n".format(*item))
 
     return False
 
+
 def random_matrix():
-    return np.random.rand(9).reshape(3,3)
+    return np.random.rand(9).reshape(3, 3)
+
 
 def random_symmetric_positive_definite_matrix():
     R = random_rotation_matrix()
     L = random_diagonal_matrix()
     X = np.dot(np.dot(R, L), R.T)
-    return (X + X.T) / 2.
+    return (X + X.T) / 2.0
+
 
 def random_diagonal_matrix():
-    L = np.zeros((3,3))
-    L[([0,1,2],[0,1,2])] = np.random.rand(3)
+    L = np.zeros((3, 3))
+    L[([0, 1, 2], [0, 1, 2])] = np.random.rand(3)
     return L
 
+
 def random_rotation_matrix():
-    theta = np.random.uniform(0, 2*np.pi, 1)[0]
+    theta = np.random.uniform(0, 2 * np.pi, 1)[0]
     a = np.random.rand(3)
-    a = a / np.sqrt(np.dot(a,a))
-    aa = np.outer(a,a)
+    a = a / np.sqrt(np.dot(a, a))
+    aa = np.outer(a, a)
     I = np.eye(3)
     A = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
-    R = I + 2*np.sin(theta/2.)**2*(aa-I)+np.sin(theta)*A
+    R = I + 2 * np.sin(theta / 2.0) ** 2 * (aa - I) + np.sin(theta) * A
     return R
 
-def newton(xn, func, fprime, tol=1.e-7):
+
+def newton(xn, func, fprime, tol=1.0e-7):
     for iter in range(25):
         fder = fprime(xn)
         if fder == 0:
-            message = 'derivative was zero'
+            message = "derivative was zero"
             warnings.warn(message, RuntimeWarning)
             return xn
         fval = func(xn)

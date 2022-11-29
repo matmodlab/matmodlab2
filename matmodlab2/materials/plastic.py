@@ -64,7 +64,7 @@ class PlasticMaterial(Material):
             errors += 1
             logger.error("Poisson's ratio < -1.")
         if nu < 0.0:
-            logger.warn("#negative Poisson's ratio")
+            logger.warning("#negative Poisson's ratio")
         if A1 <= 0.0:
             errors += 1
             logger.error("A1 must be positive nonzero")

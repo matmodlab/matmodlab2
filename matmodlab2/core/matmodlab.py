@@ -990,7 +990,7 @@ class MaterialPointSimulator(object):
             elif environ.SQA:
                 d = dfm.rate_of_strain_to_rate_of_deformation(dedt, strain[2], kappa)
                 if not np.allclose(d, dedt):
-                    logger.warn("SQA: d != dedt")
+                    logger.warning("SQA: d != dedt")
             else:
                 d = np.array(dedt)
 
@@ -1003,7 +1003,10 @@ class MaterialPointSimulator(object):
             try:
                 dedt[v] = la.solve(Jsub, work)
             except Exception:
-                dedt[v] -= la.lstsq(Jsub, work)[0]
+                try:
+                    dedt[v] -= la.lstsq(Jsub, work, rcond=None)[0]
+                except Exception:
+                    dedt[v] = 0
             dedt[v] = dedt[v] / VOIGT[v]
 
         # Process each frame of the step
@@ -1041,7 +1044,7 @@ class MaterialPointSimulator(object):
             strain[2, v] = e[v]
 
             if environ.SQA and not np.allclose(strain[2, vx], e[vx]):
-                logger.warn("SQA: bad strain on  step {0}".format(istep))
+                logger.warning("SQA: bad strain on  step {0}".format(istep))
 
             state = self.eval(
                 kappa,

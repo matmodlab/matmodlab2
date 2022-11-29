@@ -53,9 +53,10 @@ def test_initialize():
     # Setup
 
     # Test
-    assert 'MaterialPointSimulator' in matmodlab2.__all__
+    assert "MaterialPointSimulator" in matmodlab2.__all__
 
     # Teardown
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_import()

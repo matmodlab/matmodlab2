@@ -96,7 +96,7 @@ class Optimizer(object):
 
             if x.bounds is not None:
                 if self.method in ("simplex", "powell"):
-                    logger.warn("optimization method does not support bounds")
+                    logger.warning("optimization method does not support bounds")
                     x.bounds = None
             self.bounds.append(x.bounds)
 
@@ -104,12 +104,12 @@ class Optimizer(object):
             self.bounds = None
 
         if maxiter <= 0:
-            logger.warn("maxiter < 0, setting to default value")
+            logger.warning("maxiter < 0, setting to default value")
             maxiter = MAXITER
         self.maxiter = maxiter
 
         if tolerance <= 0:
-            logger.warn("tolerance < 0, setting to default value")
+            logger.warning("tolerance < 0, setting to default value")
             tolerance = TOL
         self.tolerance = tolerance
 

@@ -9,12 +9,9 @@ from matmodlab2 import *
 from testing_utils import *
 from matmodlab2.core.tensor import I6
 
-@pytest.mark.pandas
-@pytest.mark.material
-@pytest.mark.drucker_prager
-@pytest.mark.spherical
+
 def test_spherical_drucker_prager():
-    jobid = 'lin_druck_prag_spher'
+    jobid = "lin_druck_prag_spher"
     mps = MaterialPointSimulator(jobid)
     # Elastic modulii
     LAM = 1.0e9
@@ -24,39 +21,41 @@ def test_spherical_drucker_prager():
     FAC = 1.0e6
     RINT = 1.0 * FAC
     ZINT = sqrt(2.0) * FAC
-    parameters = {'K': K, 'G': MU,
-                    'A1': RINT/sqrt(2.0), 'A4': RINT/sqrt(6.0)/ZINT}
+    parameters = {
+        "K": K,
+        "G": MU,
+        "A1": RINT / sqrt(2.0),
+        "A4": RINT / sqrt(6.0) / ZINT,
+    }
     material = PlasticMaterial(**parameters)
     mps.assign_material(material)
     head, data = gen_spherical_everything(K, MU, RINT, ZINT)
-    i = head.index('E.XX')
-    j = head.index('E.XX') + 6
-    t = head.index('Time')
+    i = head.index("E.XX")
+    j = head.index("E.XX") + 6
+    t = head.index("Time")
     for (k, row) in enumerate(data[1:], start=1):
-        dt = data[k][t] - data[k-1][t]
-        mps.run_step('E', row[i:j], increment=dt, frames=1)
+        dt = data[k][t] - data[k - 1][t]
+        mps.run_step("E", row[i:j], increment=dt, frames=1)
     assert same_as_baseline(mps.jobid, mps.df, interp=1)
 
-@pytest.mark.material
-@pytest.mark.drucker_prager
-@pytest.mark.random
-@pytest.mark.analytic
-@pytest.mark.parametrize('realization', range(1,4))
+
+@pytest.mark.parametrize("realization", range(1, 4))
 def test_random_linear_drucker_prager(realization):
-    myvars = ('Time', 'E.XX', 'E.YY', 'E.ZZ', 'S.XX', 'S.YY', 'S.ZZ')
-    jobid = 'linear_drucker_prager_rand_{0}'.format(realization)
+    myvars = ("Time", "E.XX", "E.YY", "E.ZZ", "S.XX", "S.YY", "S.ZZ")
+    jobid = "linear_drucker_prager_rand_{0}".format(realization)
     mps = MaterialPointSimulator(jobid)
     nu, E, K, G, LAM = gen_rand_elastic_params()
     A1, A4 = gen_rand_surface_params(K, G)
-    parameters = {'K': K, 'G': G, 'A1': A1, 'A4': A4}
+    parameters = {"K": K, "G": G, "A1": A1, "A4": A4}
     material = PlasticMaterial(**parameters)
     mps.assign_material(material)
     strain = gen_strain_table(K, G, A1, A4)
     analytic = gen_analytic_solution(K, G, A1, A4, strain)
     for row in strain[1:]:
-        mps.run_step('E', row, increment=1.0, frames=25)
+        mps.run_step("E", row, increment=1.0, frames=25)
     simulation = mps.get2(*myvars)
     assert responses_are_same(jobid, analytic, simulation, myvars)
+
 
 def gen_rand_elastic_params():
     # poisson_ratio and young's modulus
@@ -83,7 +82,7 @@ def gen_strain_table(K, G, A1, A4):
     gamma = mag(dev(strain))
 
     # Figure out how much strain we'll need to achieve yield
-    fac = A1 / (3. * K * A4 * np.sum(strain[:3]) + sqrt(2.) * G * gamma)
+    fac = A1 / (3.0 * K * A4 * np.sum(strain[:3]) + sqrt(2.0) * G * gamma)
     strain = fac * strain
 
     strain_table = np.zeros((3, 6))
@@ -95,16 +94,14 @@ def gen_strain_table(K, G, A1, A4):
 def gen_unit_strain(A1, A4):
     # Generate a random strain deviator
     straingen = lambda: random.uniform(-1, 1)
-    #devstrain = np.array([straingen(), straingen(), straingen(),
+    # devstrain = np.array([straingen(), straingen(), straingen(),
     #                      straingen(), straingen(), straingen()])
-    devstrain = np.array([straingen(), straingen(), straingen(),
-                          0., 0., 0.])
+    devstrain = np.array([straingen(), straingen(), straingen(), 0.0, 0.0, 0.0])
     while mag(dev(devstrain)) == 0.0:
-        devstrain = np.array([straingen(), straingen(), straingen(),
-                              0., 0., 0.])
+        devstrain = np.array([straingen(), straingen(), straingen(), 0.0, 0.0, 0.0])
 
     snorm = unit(dev(devstrain))
-    return (sqrt(2.0) * A4 * I6 + snorm) / sqrt(6.0 * A4 ** 2 + 1.0)
+    return (sqrt(2.0) * A4 * I6 + snorm) / sqrt(6.0 * A4**2 + 1.0)
 
 
 def gen_analytic_solution(K, G, A1, A4, strain):
@@ -144,7 +141,7 @@ def gen_spherical_everything(K, MU, RINT, ZINT):
     ES = RINT / (2.0 * sqrt(2.0) * MU)
 
     # Spherical (volumetric) strain
-    RNUM = 3.0 * K ** 2 * (RINT / ZINT) ** 2
+    RNUM = 3.0 * K**2 * (RINT / ZINT) ** 2
     DNOM = 3.0 * K * (RINT / ZINT) ** 2 + 2.0 * MU
     TREPS = ZINT / (sqrt(3.0) * K - sqrt(3.0) * RNUM / DNOM)
     EV = TREPS / 3.0
@@ -153,15 +150,17 @@ def gen_spherical_everything(K, MU, RINT, ZINT):
     MAX_SHEAR_STRESS = 2.0 * MU * ES
     MAX_HYDRO_STRESS = ZINT / sqrt(3.0)
 
-    pathtable = [[0.0, 0.0, 0.0,  ES, 0.0, 0.0],
-                 [ EV,  EV,  EV,  ES, 0.0, 0.0]]
+    pathtable = [[0.0, 0.0, 0.0, ES, 0.0, 0.0], [EV, EV, EV, ES, 0.0, 0.0]]
 
-    head = (["Time"] + ["E." + _ for _ in ["XX","YY","ZZ","XY","XZ","YZ"]]
-                     + ["S." + _ for _ in ["XX","YY","ZZ","XY","XZ","YZ"]]
-                     + ["N." + _ for _ in ["XX","YY","ZZ","XY","XZ","YZ"]]
-                     + ["P." + _ for _ in ["XX","YY","ZZ","XY","XZ","YZ"]])
+    head = (
+        ["Time"]
+        + ["E." + _ for _ in ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]]
+        + ["S." + _ for _ in ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]]
+        + ["N." + _ for _ in ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]]
+        + ["P." + _ for _ in ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]]
+    )
     data = []
-    for t in np.linspace(0.0, 2.0, 100*2 + 1):
+    for t in np.linspace(0.0, 2.0, 100 * 2 + 1):
         exx = 0.0 if t < 1.0 else EV * (t - 1.0)
         exy = ES * min(1.0, t)
         sxx = 0.0 if t < 1.0 else MAX_HYDRO_STRESS * (t - 1.0)
@@ -173,23 +172,47 @@ def gen_spherical_everything(K, MU, RINT, ZINT):
             pxx = 0.0
             pxy = 0.0
         else:
-            fac = 1.0 / np.sqrt((RINT/ZINT)**2 + 1.0)
+            fac = 1.0 / np.sqrt((RINT / ZINT) ** 2 + 1.0)
             nxx = fac * RINT / ZINT / np.sqrt(3.0)
             nxy = fac * 1.0 / np.sqrt(2.0)
             pxx = 3.0 * K * nxx
             pxy = 2.0 * MU * nxy
 
-        data.append([t, exx, exx, exx, exy, 0.0, 0.0,
-                        sxx, sxx, sxx, sxy, 0.0, 0.0,
-                        nxx, nxx, nxx, nxy, 0.0, 0.0,
-                        pxx, pxx, pxx, pxy, 0.0, 0.0,
-                    ])
+        data.append(
+            [
+                t,
+                exx,
+                exx,
+                exx,
+                exy,
+                0.0,
+                0.0,
+                sxx,
+                sxx,
+                sxx,
+                sxy,
+                0.0,
+                0.0,
+                nxx,
+                nxx,
+                nxx,
+                nxy,
+                0.0,
+                0.0,
+                pxx,
+                pxx,
+                pxx,
+                pxy,
+                0.0,
+                0.0,
+            ]
+        )
 
     if 0:
         with open("dum.dat", "w") as F:
-            F.write("".join(["{0:>20s}".format(_) for _ in head])+"\n")
+            F.write("".join(["{0:>20s}".format(_) for _ in head]) + "\n")
             for leg in data:
-                F.write("".join(["{0:20.10e}".format(_) for _ in leg])+"\n")
+                F.write("".join(["{0:20.10e}".format(_) for _ in leg]) + "\n")
     return head, data
 
 
@@ -198,7 +221,7 @@ def gen_spherical_path(K, MU, RINT, ZINT):
     ES = RINT / (2.0 * sqrt(2.0) * MU)
 
     # Spherical (volumetric) strain
-    RNUM = 3.0 * K ** 2 * (RINT / ZINT) ** 2
+    RNUM = 3.0 * K**2 * (RINT / ZINT) ** 2
     DNOM = 3.0 * K * (RINT / ZINT) ** 2 + 2.0 * MU
     TREPS = ZINT / (sqrt(3.0) * K - sqrt(3.0) * RNUM / DNOM)
     EV = TREPS / 3.0
@@ -207,7 +230,6 @@ def gen_spherical_path(K, MU, RINT, ZINT):
     MAX_SHEAR_STRESS = 2.0 * MU * ES
     MAX_HYDRO_STRESS = ZINT / sqrt(3.0)
 
-    pathtable = [[0.0, 0.0, 0.0,  ES, 0.0, 0.0],
-                 [ EV,  EV,  EV,  ES, 0.0, 0.0]]
+    pathtable = [[0.0, 0.0, 0.0, ES, 0.0, 0.0], [EV, EV, EV, ES, 0.0, 0.0]]
 
     return pathtable

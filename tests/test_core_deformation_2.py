@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 import matmodlab2 as mml
 
-tol=1.0e-12
+tol = 1.0e-12
+
 
 def val_is_close(val1, val2, tol):
     if np.isclose(val1, val2, atol=tol, rtol=tol):
@@ -22,8 +23,7 @@ def arr_is_close(arr1, arr2, tol):
     return False
 
 
-@pytest.mark.unit
-@pytest.mark.parametrize('kappa', np.linspace(-2.0, 2.0, 9))
+@pytest.mark.parametrize("kappa", np.linspace(-2.0, 2.0, 9))
 def test_strain_from_stretch_1(kappa):
 
     # Setup
@@ -37,9 +37,8 @@ def test_strain_from_stretch_1(kappa):
     pass
 
 
-@pytest.mark.unit
-@pytest.mark.parametrize('kappa', np.linspace(-2.0, 2.0, 9))
-@pytest.mark.parametrize('stretch', np.linspace(0.5, 1.5, 9))
+@pytest.mark.parametrize("kappa", np.linspace(-2.0, 2.0, 9))
+@pytest.mark.parametrize("stretch", np.linspace(0.5, 1.5, 9))
 def test_strain_from_stretch_2(kappa, stretch):
 
     # Setup
@@ -49,7 +48,7 @@ def test_strain_from_stretch_2(kappa, stretch):
     if kappa == 0.0:
         strain = np.log(stretch)
     else:
-        strain = (stretch ** kappa - 1.0) / kappa
+        strain = (stretch**kappa - 1.0) / kappa
 
     # Test
     comp = mml.core.deformation.strain_from_stretch(components, kappa)
@@ -61,10 +60,7 @@ def test_strain_from_stretch_2(kappa, stretch):
     pass
 
 
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize('kappa', [2.0, 1.0, 0.0, -1.0, -2.0])
+@pytest.mark.parametrize("kappa", [2.0, 1.0, 0.0, -1.0, -2.0])
 def test_strain_from_defgrad_1(kappa):
 
     # Setup
@@ -82,9 +78,8 @@ def test_strain_from_defgrad_1(kappa):
     pass
 
 
-@pytest.mark.unit
-@pytest.mark.parametrize('kappa', np.linspace(-2.0, 2.0, 9))
-@pytest.mark.parametrize('stretch', np.linspace(0.5, 1.5, 9))
+@pytest.mark.parametrize("kappa", np.linspace(-2.0, 2.0, 9))
+@pytest.mark.parametrize("stretch", np.linspace(0.5, 1.5, 9))
 def test_strain_from_defgrad_2(kappa, stretch):
 
     # Setup
@@ -94,7 +89,7 @@ def test_strain_from_defgrad_2(kappa, stretch):
     if kappa == 0.0:
         strain = np.log(stretch)
     else:
-        strain = (stretch ** kappa - 1.0) / kappa
+        strain = (stretch**kappa - 1.0) / kappa
 
     # Test
     comp, rot = mml.core.deformation.strain_from_defgrad(components, kappa)
@@ -107,9 +102,8 @@ def test_strain_from_defgrad_2(kappa, stretch):
     pass
 
 
-@pytest.mark.unit
-@pytest.mark.parametrize('kappa', np.linspace(-2.0, 2.0, 9))
-@pytest.mark.parametrize('stretch', np.linspace(0.5, 1.5, 9))
+@pytest.mark.parametrize("kappa", np.linspace(-2.0, 2.0, 9))
+@pytest.mark.parametrize("stretch", np.linspace(0.5, 1.5, 9))
 def test_strain_from_defgrad_3(kappa, stretch):
     """
     Axial deformation with superimposed random rotation
@@ -120,21 +114,24 @@ def test_strain_from_defgrad_3(kappa, stretch):
     def random_unit_vector():
         theta = np.arccos(1.0 - 2.0 * np.random.random())
         phi = 2.0 * np.pi * np.random.random()
-        return np.array([np.sin(theta) * np.cos(phi),
-                         np.sin(theta) * np.sin(phi),
-                         np.cos(theta)])
+        return np.array(
+            [np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)]
+        )
 
     def random_rotation_tensor():
         alpha = np.random.uniform(0.0, 2.0 * np.pi)
         veca = random_unit_vector()
 
         dyadaa = np.outer(veca, veca)
-        axiala = np.array([[0.0, -veca[2], veca[1]],
-                           [veca[2], 0.0, -veca[0]],
-                           [-veca[1], veca[0], 0.0]])
+        axiala = np.array(
+            [
+                [0.0, -veca[2], veca[1]],
+                [veca[2], 0.0, -veca[0]],
+                [-veca[1], veca[0], 0.0],
+            ]
+        )
 
-        return (np.cos(alpha) * (np.eye(3) - dyadaa) +
-                dyadaa + np.sin(alpha) * axiala)
+        return np.cos(alpha) * (np.eye(3) - dyadaa) + dyadaa + np.sin(alpha) * axiala
 
     R = random_rotation_tensor()
     components = np.eye(3)
@@ -144,7 +141,7 @@ def test_strain_from_defgrad_3(kappa, stretch):
     if kappa == 0.0:
         strain = np.log(stretch)
     else:
-        strain = (stretch ** kappa - 1.0) / kappa
+        strain = (stretch**kappa - 1.0) / kappa
 
     # Test
     comp, rot = mml.core.deformation.strain_from_defgrad(components, kappa)
@@ -157,7 +154,5 @@ def test_strain_from_defgrad_3(kappa, stretch):
     pass
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_defgrad_basic(0.0)

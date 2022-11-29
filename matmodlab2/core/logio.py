@@ -17,7 +17,7 @@ SPLASH = r"""
 )
 
 # Monkey path the logging stream handler emit function
-logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+logging.basicConfig(format="%(message)s")
 
 
 def emit(self, record):

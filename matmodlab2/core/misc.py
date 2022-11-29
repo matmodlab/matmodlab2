@@ -1,4 +1,6 @@
 """Misc. functions"""
+import os
+from contextlib import contextmanager
 
 
 def is_listlike(item):
@@ -45,3 +47,11 @@ def add_metaclass(metaclass):
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
 
     return wrapper
+
+
+@contextmanager
+def working_dir(dirname):
+    cwd = os.getcwd()
+    os.chdir(dirname)
+    yield dirname
+    os.chdir(cwd)

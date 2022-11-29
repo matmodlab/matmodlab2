@@ -9,83 +9,75 @@ import pytest
 import numpy as np
 import testing_utils as tu
 from subprocess import Popen, STDOUT
-from matmodlab2.ext_helpers import build_extension_module_as_subprocess
+from matmodlab2.ext_helpers import build_umat
+from matmodlab2.umat.umats import neohooke_umat
 from matmodlab2 import MaterialPointSimulator, UMat
+from matmodlab2.core.misc import working_dir
 
 try:
-    fc = os.getenv('FC', 'gfortran')
-    with open(os.devnull, 'a') as fh:
-        p = Popen([fc, '-v'], stdout=fh, stderr=STDOUT)
+    fc = os.getenv("FC", "gfortran")
+    with open(os.devnull, "a") as fh:
+        p = Popen([fc, "-v"], stdout=fh, stderr=STDOUT)
         p.wait()
     has_fortran = p.returncode == 0
 except:
     has_fortran = False
 
-def teardown_module():
-    tu.teardown_module()
-    for filename in glob.glob('_umat*.so'):
-        os.remove(filename)
 
-def build_extension_module(name, sources, user_ics=False):
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-    return build_extension_module_as_subprocess(name, sources,
-                                                user_ics=user_ics,
-                                                verbose=True, cwd=this_dir)
-
-@pytest.mark.slow
-@pytest.mark.umat
-@pytest.mark.fortran
-@pytest.mark.material
-@pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
-def test_umat_neohooke():
+@pytest.mark.skipif(not has_fortran, reason="Fortran compiler not found")
+def test_umat_neohooke(tmpdir):
     """Test building a umat"""
+    with working_dir(tmpdir):
+        returncode = build_umat(neohooke_umat, cwd=".")
+        if not len(glob.glob("_umat*.so")):
+            assert 0, f"umat not found in {tmpdir}"
+        if "_umat" in sys.modules:
+            # Remove so it can be loaded below
+            del sys.modules["_umat"]
+        try:
+            import _umat
+        except ImportError:
+            raise Exception("_umat not imported")
+        assert hasattr(_umat, "sdvini")
+        assert hasattr(_umat, "umat")
 
-    name = 'umat'
-    sources = ['../../matmodlab2/umat/umats/umat_neohooke.f90']
-    assert os.path.isfile(sources[0])
-    returncode = build_extension_module(name, sources)
-    assert returncode == 0, 'umat not built'
-    assert len(glob.glob('_umat*.so')), 'umat not built'
-    if '_umat' in sys.modules:
-        # Remove so it can be loaded below
-        del sys.modules['_umat']
-    try:
-        import _umat
-    except ImportError:
-        raise Exception('_umat not imported')
-    assert hasattr(_umat, 'sdvini')
-    assert hasattr(_umat, 'umat')
+        # Now do the actual material test
+        E = 500
+        Nu = 0.45
+        C1 = E / (4.0 * (1.0 + Nu))
+        D1 = 1.0 / (6.0 * (1.0 - 2.0 * Nu) / E)
 
-    # Now do the actual material test
-    E = 500
-    Nu = .45
-    C1 = E / (4. * (1. + Nu))
-    D1 = 1. / (6. * (1. - 2. * Nu) / E)
+        X = 0.1
+        mps = MaterialPointSimulator("Umat")
+        mps.material = UMat([E, Nu])
+        mps.run_step("ESS", (1, 0, 0), frames=10, scale=X)
+        mps.run_step("ESS", (0, 0, 0), frames=10)
 
-    X = .1
-    mps = MaterialPointSimulator('Umat')
-    mps.material = UMat([E, Nu])
-    mps.run_step('ESS', (1,0,0), frames=10, scale=X)
-    mps.run_step('ESS', (0,0,0), frames=10)
+        V0 = ("E.XX", "E.YY", "E.ZZ", "S.XX", "S.YY", "S.ZZ", "F.XX", "F.YY", "F.ZZ")
+        a = mps.get2(*V0)
 
-    V0 = ('E.XX', 'E.YY', 'E.ZZ',
-          'S.XX', 'S.YY', 'S.ZZ',
-          'F.XX', 'F.YY', 'F.ZZ')
-    a = mps.get2(*V0)
+        # make sure the strain table was interpoloated correctly
+        i = np.argmax(a[:, 0])
+        assert np.allclose(a[i, 0], X)
 
-    # make sure the strain table was interpoloated correctly
-    i = np.argmax(a[:,0])
-    assert np.allclose(a[i,0], X)
+        # analytic solution for uniaxial stress
 
-    # analytic solution for uniaxial stress
+        J = np.prod(a[i, [6, 7, 8]])
+        L = np.exp(a[i, 0])
+        S = 2.0 * C1 / (J ** (5.0 / 3.0)) * (L**2 - J / L)
+        assert np.allclose(a[i, 3], S)
 
-    J = np.prod(a[i, [6,7,8]])
-    L = np.exp(a[i,0])
-    S = 2. * C1 / (J ** (5. / 3.)) * (L ** 2 - J / L)
-    assert np.allclose(a[i,3], S)
-
-    # analytic solution for J
-    f = lambda j: D1*j**(8./3.) - D1*j**(5./3.) + C1/(3.*L)*J - C1*L**2./3.
-    df = lambda j: 8./3.*D1*j**(5./3.) - 5./3.*D1*j**(2./3.) + C1/(3.*L)
-    j = tu.newton(1., f, df)
-    assert np.allclose(J, j)
+        # analytic solution for J
+        f = (
+            lambda j: D1 * j ** (8.0 / 3.0)
+            - D1 * j ** (5.0 / 3.0)
+            + C1 / (3.0 * L) * J
+            - C1 * L**2.0 / 3.0
+        )
+        df = (
+            lambda j: 8.0 / 3.0 * D1 * j ** (5.0 / 3.0)
+            - 5.0 / 3.0 * D1 * j ** (2.0 / 3.0)
+            + C1 / (3.0 * L)
+        )
+        j = tu.newton(1.0, f, df)
+        assert np.allclose(J, j)

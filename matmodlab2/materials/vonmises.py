@@ -37,7 +37,7 @@ class VonMisesMaterial(Material):
             errors += 1
             logger.error("Poisson's ratio < -1.")
         if nu < 0.0:
-            logger.warn("negative Poisson's ratio")
+            logger.warning("negative Poisson's ratio")
         if abs(Y0) <= 1.0e-12:
             Y0 = 1.0e99
         if errors:

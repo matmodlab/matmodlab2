@@ -14,22 +14,25 @@ from matmodlab2 import *
 from matmodlab2.optimize import Optimizer, OptimizeVariable
 import testing_utils as tu
 
+
 def teardown_module():
     tu.teardown_module()
-    for dirname in glob.glob('*.eval'):
+    for dirname in glob.glob("*.eval"):
         if os.path.isdir(dirname):
             shutil.rmtree(dirname)
 
-E = 10.
+
+E = 10.0
+
 
 def func(x, xnames, evald, job, *args):
-    parameters = {'E': x[0], 'Nu': .1}
+    parameters = {"E": x[0], "Nu": 0.1}
     mps = MaterialPointSimulator(job)
     mps.material = ElasticMaterial(**parameters)
-    mps.run_step('ESS', [.1, 0., 0.])
-    mps.run_step('ESS', [0., 0., 0.])
-    sxx = np.array(mps.df['S.XX'])
-    exx = np.array(mps.df['E.XX'])
+    mps.run_step("ESS", [0.1, 0.0, 0.0])
+    mps.run_step("ESS", [0.0, 0.0, 0.0])
+    sxx = np.array(mps.df["S.XX"])
+    exx = np.array(mps.df["E.XX"])
     youngs = []
     for (i, e) in enumerate(exx):
         if abs(e) < 1e-12:
@@ -38,34 +41,32 @@ def func(x, xnames, evald, job, *args):
     youngs = np.average(youngs)
     return youngs - E
 
+
 def run_method(method):
-    E = OptimizeVariable('E', 8, bounds=(7, 12))
-    xinit = [E,]
-    optimizer = Optimizer(method, func, xinit, method=method,
-                          maxiter=25, tolerance=1.e-4)
+    E = OptimizeVariable("E", 8, bounds=(7, 12))
+    xinit = [
+        E,
+    ]
+    optimizer = Optimizer(
+        method, func, xinit, method=method, maxiter=25, tolerance=1.0e-4
+    )
     optimizer.run()
     return optimizer.xopt
 
-@pytest.mark.pandas
-@pytest.mark.cobyla
-@pytest.mark.optimize
+
 def test_optimize_cobyla():
-    xopt = run_method('cobyla')
-    err = (xopt[0] - E)
+    xopt = run_method("cobyla")
+    err = xopt[0] - E
     assert err < 1e-4
 
-@pytest.mark.pandas
-@pytest.mark.powell
-@pytest.mark.optimize
+
 def test_powell():
-    xopt = run_method('powell')
-    err = (xopt[0] - E)
+    xopt = run_method("powell")
+    err = xopt[0] - E
     assert err < 1e-4
 
-@pytest.mark.pandas
-@pytest.mark.simplex
-@pytest.mark.optimize
+
 def test_simplex():
-    xopt = run_method('simplex')
-    err = (xopt[0] - E)
+    xopt = run_method("simplex")
+    err = xopt[0] - E
     assert err < 1e-4

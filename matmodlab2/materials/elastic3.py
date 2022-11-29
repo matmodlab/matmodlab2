@@ -27,7 +27,7 @@ class ElasticMaterialTotal(Material):
             errors += 1
             logger.error("Poisson's ratio < -1.")
         if Nu < 0.0:
-            logger.warn("#---- WARNING: negative Poisson's ratio")
+            logger.warning("#---- WARNING: negative Poisson's ratio")
         if errors:
             raise ValueError("stopping due to previous errors")
         self.params = {"E": E, "Nu": Nu, "k": k}

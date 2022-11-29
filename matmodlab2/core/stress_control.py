@@ -99,6 +99,7 @@ def d_from_prescribed_stress(
     # --- Still didn't converge. Try downhill simplex method and accept
     #     whatever answer it returns:
     d = dsave.copy()
+    d[v] = np.zeros(len(v))
     return simplex(
         func,
         t,
@@ -269,7 +270,7 @@ def newton(
         except np.linalg.LinAlgError:
             if environ.SQA:
                 warnings.warn("using least squares approximation to " "matrix inverse")
-            d[v] -= np.linalg.lstsq(stif, sigerr)[0] / dt
+            d[v] -= np.linalg.lstsq(stif, sigerr, rcond=None)[0] / dt
 
         if depsmag(d) > depsmax or np.any(np.isnan(d)) or np.any(np.isinf(d)):
             # increment too large

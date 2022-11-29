@@ -10,11 +10,9 @@ import numpy as np
 from matmodlab2 import *
 from testing_utils import *
 
-@pytest.mark.material
-@pytest.mark.analytic
-@pytest.mark.multi_stage
+
 def test_brannon_lellavanichkul_2():
-    '''This function generates the analytical solution for example #2
+    """This function generates the analytical solution for example #2
     in the paper.
 
     The material parameters are set as:
@@ -22,8 +20,8 @@ def test_brannon_lellavanichkul_2():
         shear modulus   = 79 GPa
         poisson's ratio = 1/3  (not technically needed for simulation)
 
-    '''
-    jobid = 'brannon_leelavanichkul_2'
+    """
+    jobid = "brannon_leelavanichkul_2"
     mps = MaterialPointSimulator(jobid)
 
     # Yield in shear, shear modulus, and poisson_ratio
@@ -39,9 +37,11 @@ def test_brannon_lellavanichkul_2():
 
     # generate path
     #               time   e11         e22    e33
-    strain_table = [[0.0,  0.0,        0.0,   0.0],
-                    [1.0, -0.003,     -0.003, 0.006],
-                    [2.0, -0.0103923,  0.0,   0.0103923]]
+    strain_table = [
+        [0.0, 0.0, 0.0, 0.0],
+        [1.0, -0.003, -0.003, 0.006],
+        [2.0, -0.0103923, 0.0, 0.0103923],
+    ]
 
     N = 500  # number of interpolation points
     expanded = [[_] for _ in strain_table[0]]
@@ -63,7 +63,7 @@ def test_brannon_lellavanichkul_2():
     analytic_response = np.array(analytic_response)
 
     # set up the material
-    parameters = {'K': K, 'G': G, 'Y0': Y}
+    parameters = {"K": K, "G": G, "Y0": Y}
     material = VonMisesMaterial(**parameters)
     mps.assign_material(material)
 
@@ -71,15 +71,14 @@ def test_brannon_lellavanichkul_2():
     for idx, leg in enumerate(analytic_response):
         if idx == 0:
             continue
-        incr = analytic_response[idx,0] - analytic_response[idx-1,0]
-        mps.run_step('E', leg[1:4], increment=incr, frames=1)
+        incr = analytic_response[idx, 0] - analytic_response[idx - 1, 0]
+        mps.run_step("E", leg[1:4], increment=incr, frames=1)
 
     # check output with analytic
-    variables = ['Time',
-                 'E.XX', 'E.YY', 'E.ZZ', 'S.XX', 'S.YY', 'S.ZZ']
+    variables = ["Time", "E.XX", "E.YY", "E.ZZ", "S.XX", "S.YY", "S.ZZ"]
     simulate_response = mps.get2(*variables)
-    assert responses_are_same(jobid, analytic_response, simulate_response,
-                              variables)
+    assert responses_are_same(jobid, analytic_response, simulate_response, variables)
+
 
 def get_stress_2(t):
     # this function evaluates equations #59, #60, and #61
@@ -108,6 +107,6 @@ def get_stress_2(t):
         sig22 = 76.87
         sig33 = 112.5
     else:
-        raise Exception('Time was negative: t={0:.6e}'.format(t))
+        raise Exception("Time was negative: t={0:.6e}".format(t))
 
     return sig11 * 1.0e6, sig22 * 1.0e6, sig33 * 1.0e6, 0.0, 0.0, 0.0

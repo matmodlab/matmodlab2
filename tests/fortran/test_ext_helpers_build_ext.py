@@ -4,9 +4,11 @@ import glob
 import pytest
 import testing_utils as tu
 from subprocess import Popen, STDOUT
-from matmodlab2.ext_helpers import build_extension_module_as_subprocess
+from matmodlab2.ext_helpers import build_umat
+from matmodlab2.umat.umats import neohooke_umat
+from matmodlab2.core.misc import working_dir
 
-#pytestmark = pytest.mark.skipif('linux' in sys.platform.lower(),
+# pytestmark = pytest.mark.skipif('linux' in sys.platform.lower(),
 #                                reason='Does not pass on linux')
 
 # matmodlab.ext_helpers.build_ext defines the actual function that builds the
@@ -18,66 +20,29 @@ from matmodlab2.ext_helpers import build_extension_module_as_subprocess
 # a different library.
 
 try:
-    fc = os.getenv('FC', 'gfortran')
-    with open(os.devnull, 'a') as fh:
-        p = Popen([fc, '-v'], stdout=fh, stderr=STDOUT)
+    fc = os.getenv("FC", "gfortran")
+    with open(os.devnull, "a") as fh:
+        p = Popen([fc, "-v"], stdout=fh, stderr=STDOUT)
         p.wait()
     has_fortran = p.returncode == 0
 except:
     has_fortran = False
 
-def teardown_module():
-    tu.teardown_module()
-    for filename in glob.glob('_umat*.so'):
-        os.remove(filename)
 
-def build_extension_module(name, sources, user_ics=False):
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-    return build_extension_module_as_subprocess(name, sources,
-                                                user_ics=user_ics,
-                                                verbose=True, cwd=this_dir)
-
-@pytest.mark.slow
-@pytest.mark.fortran
-@pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
-def test_build_umat_ext_no_user_ics():
+@pytest.mark.skipif(not has_fortran, reason="Fortran compiler not found")
+def test_build_umat_ext(tmpdir):
     """Test building a umat"""
 
-    name = 'umat'
-    sources = ['../../matmodlab2/umat/umats/umat_neohooke.f90']
-    assert os.path.isfile(sources[0])
-    returncode = build_extension_module(name, sources)
-    assert returncode == 0, 'umat not built'
-    assert len(glob.glob('_umat*.so')), 'umat not built'
-    if '_umat' in sys.modules:
-        # Remove so it can be loaded below
-        del sys.modules['_umat']
-    try:
-        import _umat
-    except ImportError:
-        raise Exception('_umat not imported')
-    assert hasattr(_umat, 'sdvini')
-    assert hasattr(_umat, 'umat')
-
-@pytest.mark.slow
-@pytest.mark.fortran
-@pytest.mark.skipif(not has_fortran, reason='Fortran compiler not found')
-def test_build_umat_ext_with_user_ics():
-    """Test building a umat with user defined sdvini"""
-    name = 'umat'
-    sources = ['../../matmodlab2/umat/umats/umat_neohooke.f90',
-               '../../matmodlab2/umat/aba_sdvini.f90']
-    assert os.path.isfile(sources[0])
-    assert os.path.isfile(sources[1])
-    returncode = build_extension_module(name, sources, user_ics=True)
-    assert returncode == 0, 'umat not built'
-    assert len(glob.glob('_umat*.so')), 'umat not built'
-    if '_umat' in sys.modules:
-        # Remove so it can be loaded below
-        del sys.modules['_umat']
-    try:
-        import _umat
-    except ImportError:
-        raise Exception('_umat not imported')
-    assert hasattr(_umat, 'sdvini')
-    assert hasattr(_umat, 'umat')
+    with working_dir(tmpdir):
+        returncode = build_umat(neohooke_umat, cwd=".")
+        if not len(glob.glob("_umat*.so")):
+            assert 0, f"umat not found in {tmpdir}"
+        if "_umat" in sys.modules:
+            # Remove so it can be loaded below
+            del sys.modules["_umat"]
+        try:
+            import _umat
+        except ImportError:
+            raise Exception("_umat not imported")
+        assert hasattr(_umat, "sdvini")
+        assert hasattr(_umat, "umat")

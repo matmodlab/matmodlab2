@@ -7,7 +7,7 @@ import pytest
 import matmodlab2 as mml
 
 
-runid = 'simulation_output'
+runid = "simulation_output"
 solution_filename = runid + "_solution.csv"
 solution_string = """Time,E.XX,E.YY,E.ZZ,E.XY,E.YZ,E.XZ
 0.00, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000
@@ -24,26 +24,42 @@ solution_string = """Time,E.XX,E.YY,E.ZZ,E.XY,E.YZ,E.XZ
 """
 
 # kappa = 0 (logarithmic strain)
-db = OrderedDict((
-      ["Step 1", OrderedDict((
-                  ("dt", 0.35),
-                  ("frames", 5),
-                  ("strain",    np.array([0.1, -0.025, -0.05, 0.05, -0.075, 0.020])),
-                  ("straininc", np.array([0.1, -0.025, -0.05, 0.05, -0.075, 0.020]) / 0.35),
-                 ))
-      ],
-      ["Step 2", OrderedDict((
-                  ("dt", 0.65),
-                  ("frames", 5),
-                  ("strain",    np.array([ 0.0, -0.050, 0.075, -0.075, -0.075,  0.010])),
-                  ("straininc", np.array([-0.1, -0.025, 0.125, -0.125,  0.000, -0.010]) / 0.65),
-                 ))
-      ],
-     ))
+db = OrderedDict(
+    (
+        [
+            "Step 1",
+            OrderedDict(
+                (
+                    ("dt", 0.35),
+                    ("frames", 5),
+                    ("strain", np.array([0.1, -0.025, -0.05, 0.05, -0.075, 0.020])),
+                    (
+                        "straininc",
+                        np.array([0.1, -0.025, -0.05, 0.05, -0.075, 0.020]) / 0.35,
+                    ),
+                )
+            ),
+        ],
+        [
+            "Step 2",
+            OrderedDict(
+                (
+                    ("dt", 0.65),
+                    ("frames", 5),
+                    ("strain", np.array([0.0, -0.050, 0.075, -0.075, -0.075, 0.010])),
+                    (
+                        "straininc",
+                        np.array([-0.1, -0.025, 0.125, -0.125, 0.000, -0.010]) / 0.65,
+                    ),
+                )
+            ),
+        ],
+    )
+)
 
 solution_io = StringIO(solution_string)
 
-with open(solution_filename, 'w') as fd:
+with open(solution_filename, "w") as fd:
     fd.write(solution_string)
 
 solution_pd = pd.read_csv(solution_io)
@@ -64,6 +80,7 @@ def compare_dataframes(frame1, frame2, tol=1.0e-12):
             print(sum(arr1 - arr2))
     return passed
 
+
 # Show that it can correctly run this for
 # * mps.run_step(strain)
 # * mps.run_step(strain increment)
@@ -73,7 +90,7 @@ def compare_dataframes(frame1, frame2, tol=1.0e-12):
 # * mps.run_from_data(?string?)
 # * mps.run_from_data(?array?)
 
-@pytest.mark.pandas
+
 def test_strain_evolution_strain():
 
     # Initialize the simulator
@@ -85,15 +102,17 @@ def test_strain_evolution_strain():
 
     # Run the steps
     for step_data in db.values():
-        mps.run_step('EEEEEE', step_data["strain"],
-                     frames=step_data["frames"],
-                     increment=step_data["dt"])
+        mps.run_step(
+            "EEEEEE",
+            step_data["strain"],
+            frames=step_data["frames"],
+            increment=step_data["dt"],
+        )
 
     mps.df.to_csv("strain_evolution_strain.csv", index=False)
     assert compare_dataframes(solution_pd, mps.df)
 
 
-@pytest.mark.pandas
 def test_strain_evolution_strain_increment():
 
     # Initialize the simulator
@@ -105,19 +124,18 @@ def test_strain_evolution_strain_increment():
 
     # Run the steps
     for step_data in db.values():
-        mps.run_step(['DE', 'DE', 'DE', 'DE', 'DE', 'DE'],
-                     step_data["straininc"],
-                     frames=step_data["frames"],
-                     increment=step_data["dt"])
-
-    
+        mps.run_step(
+            ["DE", "DE", "DE", "DE", "DE", "DE"],
+            step_data["straininc"],
+            frames=step_data["frames"],
+            increment=step_data["dt"],
+        )
 
     mps.df.to_csv("strain_evolution_straininc.csv", index=False)
     assert compare_dataframes(solution_pd, mps.df)
 
 
-@pytest.mark.pandas
-@pytest.mark.parametrize('kappa', [-2.0, -1.0, 0.0, 1.0, 2.0])
+@pytest.mark.parametrize("kappa", [-2.0, -1.0, 0.0, 1.0, 2.0])
 def test_strain_evolution_defgrad(kappa):
 
     # Initialize the simulator
@@ -127,26 +145,30 @@ def test_strain_evolution_defgrad(kappa):
     mat = mml.ElasticMaterial(E=8.0, Nu=1.0 / 3.0)
     mps.assign_material(mat)
 
-
     for idx in range(1, len(solution_pd["Time"])):
-        dt = solution_pd["Time"][idx] - solution_pd["Time"][idx-1]
+        dt = solution_pd["Time"][idx] - solution_pd["Time"][idx - 1]
         get = lambda x: solution_pd[x][idx]
-        strain = np.array([[get("E.XX"), get("E.XY"), get("E.XZ")],
-                           [get("E.XY"), get("E.YY"), get("E.YZ")],
-                           [get("E.XZ"), get("E.YZ"), get("E.ZZ")]])
+        strain = np.array(
+            [
+                [get("E.XX"), get("E.XY"), get("E.XZ")],
+                [get("E.XY"), get("E.YY"), get("E.YZ")],
+                [get("E.XZ"), get("E.YZ"), get("E.ZZ")],
+            ]
+        )
         if kappa == 0.0:
             defgrad = sl.expm(strain)
         else:
-            defgrad = sl.fractional_matrix_power(kappa * strain + np.eye(3), 1.0 / kappa)
+            defgrad = sl.fractional_matrix_power(
+                kappa * strain + np.eye(3), 1.0 / kappa
+            )
 
-        mps.run_step('FFFFFFFFF',
-                     defgrad.flatten(),
-                     frames=1,
-                     increment=dt,
-                     kappa=kappa)
+        mps.run_step(
+            "FFFFFFFFF", defgrad.flatten(), frames=1, increment=dt, kappa=kappa
+        )
 
     mps.df.to_csv("strain_evolution_defgrad.csv", index=False)
     assert compare_dataframes(solution_pd, mps.df, tol=1.0e-12)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_strain_evolution_defgrad()

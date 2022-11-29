@@ -31,7 +31,7 @@ class NonhardeningPlasticMaterial(Material):
             errors += 1
             logger.error("Poisson's ratio < -1.")
         if Nu < 0.0:
-            logger.warn("#---- WARNING: negative Poisson's ratio")
+            logger.warning("#---- WARNING: negative Poisson's ratio")
         if Y < 0:
             errors += 1
             logger.error("Yield strength must be positive")

@@ -198,6 +198,7 @@ II5 = np.array(
 ).reshape((6, 6))
 
 # Second-order identities
+Z6 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 I6 = np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
 I9 = np.array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
 I3x3 = np.eye(3)

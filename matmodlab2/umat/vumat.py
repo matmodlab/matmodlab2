@@ -1,6 +1,6 @@
 import numpy as np
 from matmodlab2.core.logio import logger, StopFortran
-from matmodlab2.core.tensor import polar_decomp, inv, array_rep, det
+from matmodlab2.core.tensor import polar_decomp, inv, array_rep, det, I9, Z6
 from matmodlab2.core.material import Material
 
 lib = None
@@ -38,6 +38,10 @@ class VUMat(Material):
         self.num_sdv = depvar
         self.sdv_names = sdv_keys
         self.initial_density = density
+
+    def sdvini(self, statev):
+        _, statev, _ = self.eval(0, 0, 0, 0, I9, I9, Z6, Z6, Z6, statev)
+        return statev
 
     def eval(self, time, dtime, temp, dtemp, F0, F, stran, d, stress, statev, **kwargs):
 
@@ -92,10 +96,11 @@ class VUMat(Material):
         state_old[:] = statev
         stretch_new[0, :] = array_rep(Up, (6,))
         defgrad_new[0, :] = np.reshape(F, (3, 3), order="F").flatten()
-        step_time = total_time = time
+        step_time = total_time = time + dtime
 
         stress_new, state_new, ener_intern_new, ener_inelas_new = lib.vumat(
             ndir,
+            nshr,
             lanneal,
             step_time,
             total_time,
@@ -125,5 +130,5 @@ class VUMat(Material):
         )
 
         stress = stress_new[0, :]
-        statev = state_new[:]
+        statev = state_new[0, :]
         return stress, statev, None
